@@ -1,0 +1,67 @@
+# What this does: lets small, low-risk pull requests merge themselves AFTER the Tests check is green.
+#   - A pull request merges itself only if it has the label "automerge", or Dependabot opened it.
+#   - Anything that touches sign-in, the database, payments, GitHub's own settings, the build setup, or that is
+#     big (more than 400 changed lines) is never merged by the robot. It gets the label "needs-review" and a
+#     comment saying why. You read it and merge it yourself.
+#   - Dependabot patch and minor updates can merge themselves. Major updates never do.
+# The rules live in .github/ops/automerge-check.mjs. The robot reads that file from your main branch, never from the
+# pull request being judged, so a pull request can not change the rules that judge it.
+# This file is the same: it uses "pull_request_target", which makes GitHub run the copy of this workflow that is on
+# your main branch, not the copy in the pull request. So a pull request can not rewrite it to merge itself.
+# That is safe here because the workflow never checks out or runs the pull request's own code: it only reads
+# file names and counts. Do not add a step that does, ever.
+# Every run starts by switching automatic merge OFF for the pull request, and only switches it back on when the
+# rules say yes for the newest commit. That way a new commit, a removed label, or an error can never leave an old
+# "yes" in place.
+# It only works properly when GitHub is set to wait for the Tests check (Shipyard's ops setup offers to do this;
+# it needs a public repository or a paid GitHub plan). Without that it explains and leaves the merge to you.
+name: Auto-merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, labeled, unlabeled, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  decide:
+    # Only branches in this repository (Dependabot's are too, never forks) and only pull requests aimed at the main
+    # branch. The "automerge" label is NOT checked here: the script checks it, so that taking the label away (or
+    # pushing a risky commit after it) still switches automatic merge off.
+    if: >-
+      github.event.pull_request.base.ref == github.event.repository.default_branch &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The rules come from the main branch (the base of the pull request), not from the pull request's own code.
+      - name: Get the rules from the main branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          sparse-checkout: .github/ops
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - name: Decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ ! -f .github/ops/automerge-check.mjs ]; then
+            echo "The rules file is not on the main branch yet. Merge the pull request that adds it first; nothing to do now."
+            exit 0
+          fi
+          node .github/ops/automerge-check.mjs

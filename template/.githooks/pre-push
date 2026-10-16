@@ -1,0 +1,24 @@
+#!/bin/sh
+# Runs automatically before every `git push` (scaffold turns it on with `core.hooksPath .githooks`).
+# Stops the push if a key or password is found, so it never reaches GitHub.
+# It checks your files AND every commit being pushed: a key you added in one commit and deleted
+# in the next is still in the history GitHub would receive.
+# On Windows, Git runs this file through Git Bash, which comes with Git for Windows.
+zero=0000000000000000000000000000000000000000
+failed=0
+
+node scripts/secret-scan.mjs || failed=1
+
+# Git gives this hook one line per branch being pushed: <local ref> <local sha> <remote ref> <remote sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue # deleting a branch: nothing is sent
+  if [ "$remote_sha" != "$zero" ] && git cat-file -e "${remote_sha}^{commit}" 2>/dev/null; then
+    range="$remote_sha..$local_sha"
+  else
+    # New branch (or the old tip is unknown here): everything no remote has yet.
+    range="$local_sha --not --remotes"
+  fi
+  node scripts/secret-scan.mjs --range "$range" || failed=1
+done
+
+exit $failed

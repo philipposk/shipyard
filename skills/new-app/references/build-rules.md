@@ -1,0 +1,34 @@
+# Build rules
+
+Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. The app's `AGENTS.md` repeats them for the coding agent.
+
+## Data and keys
+- Every table has row level security (RLS) switched on: the database itself only lets a person see and change their own rows. Add the table to `supabase/isolation.json`; the app's tests and the verify script fail without it.
+- Database changes are new numbered files in `supabase/migrations/`. They can be run twice safely. Never edit one that already ran.
+- If people may edit their own row but not every column (like an admin flag), limit the columns with grants. A row rule alone cannot do that.
+- The server key lives only in server files. Never put a secret in a name starting with `NEXT_PUBLIC_`: that publishes it to every visitor.
+- Never set or change a password from an email address alone. Passwords change only through the person's own session.
+- Keys live in `.env.local` (never committed) and in Vercel settings. A leaked-key scan runs before every push and on every pull request.
+- Every route under `/api/auth/` must be public in `src/proxy.ts`; other API routes need a signed-in person.
+- Any link sent by email is built from the site address setting, never from the request's Host header. Check every `next` or redirect value points to the same site.
+
+## Costs
+- Any AI feature has a spend limit at the provider, a per-app key, a daily cap inside the app, and a per-person limit.
+- Do not build a feature that can run up a bill on anyone's key without a cap.
+
+## Behaviour
+- Brand name only from `BRAND` in `src/lib/constants.ts`.
+- A designed empty state, loading skeleton and error message for every screen that loads data.
+- Test with a real second account, not only simulated sessions.
+- Webhooks (later): check the signature, store event ids, ignore out-of-order events.
+- Work on a branch and open a pull request once the app is live; merge only on green checks.
+
+## Copy and look (what visitors read)
+- No fake numbers, fake reviews or invented testimonials. No "Made with AI" badges. No lorem ipsum.
+- No purple gradients, no gradient card backgrounds. One accent colour.
+- No em dashes in text people read. Use commas or full stops.
+- No explanatory sentences in menus, no subtitle that repeats the title, no "Tip:" boxes, no developer words (API, token, schema, RLS) where visitors can see them. If something needs explaining, one plain line, or a small "?" that opens a popover on tap (never hover only: phones cannot hover).
+- Legal links live in the account menu, not in a crowded footer.
+- Touch targets at least 44px. Inputs at least 16px so iPhones do not zoom. Light mode by default with dark mode available, no flash on load.
+- Do not hardcode copy that is really data. Do not show debug or backend wording to visitors.
+- Before saying ready, look at the home page on a phone width and check it against this list.

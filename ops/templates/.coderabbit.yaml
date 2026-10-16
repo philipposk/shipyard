@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
+# What this does: settings for CodeRabbit, a reviewer that reads every pull request and comments on it.
+# It only works after you install the CodeRabbit GitHub App on this repository (free for public repositories;
+# private ones need a paid plan or the 14-day trial). No app, no reviews: this file is then simply ignored.
+# A free alternative: run /code-review in Claude Code before you merge.
+language: "en-US"
+reviews:
+  # "chill" keeps comments to what matters. "assertive" is stricter and chattier.
+  profile: "chill"
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  # Files nobody should read line by line.
+  path_filters:
+    - "!**/package-lock.json"
+    - "!**/yarn.lock"
+    - "!**/pnpm-lock.yaml"
+    - "!.next/**"
+    - "!public/**"
+    - "!src/lib/legal-content.ts"
+  path_instructions:
+    - path: "supabase/migrations/**"
+      instructions: >-
+        Every new table must turn on row level security and have policies that only let a user see and change
+        their own rows. Check that a new table is also listed in supabase/isolation.json. Flag any grant to
+        anon or public, and any change that could delete or expose existing data.
+    - path: "src/lib/billing/**"
+      instructions: >-
+        Money code. Check that only signed-in users can reach it, that prices and plans are never trusted
+        from the browser, that webhooks check their signature, and that nothing is charged twice.
+    - path: "src/app/api/**"
+      instructions: >-
+        Check that the route confirms who is signed in before it reads or changes anything, and that
+        routes which change data (POST, PUT, PATCH, DELETE) check the request comes from this site (same origin).
+        Flag secrets or personal data in responses, logs or error messages.

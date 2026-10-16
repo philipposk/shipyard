@@ -1,0 +1,56 @@
+{
+  "id": "clean-mono",
+  "name": "Clean monochrome",
+  "description": "Near-black on white, a menu on the left, flat panels, sharp capital-letter buttons and tight type. No colour to get in the way.",
+  "goodFor": "tools, dashboards, SaaS, anything with lots of data",
+  "defaultTheme": "light",
+  "font": {
+    "body": "Inter",
+    "heading": "same"
+  },
+  "radius": {
+    "base": 8,
+    "sm": 6
+  },
+  "shadow": "crisp",
+  "type": {
+    "scale": "compact",
+    "headingWeight": 600,
+    "headingTracking": "tight"
+  },
+  "layout": {
+    "nav": "sidebar",
+    "density": "compact",
+    "maxWidth": "wide",
+    "home": "cards",
+    "cards": "flat",
+    "buttons": "sharp",
+    "header": "plain"
+  },
+  "light": {
+    "background": "#f4f4f5",
+    "foreground": "#111113",
+    "card": "#ffffff",
+    "muted": "#585860",
+    "line": "#e4e4e7",
+    "lineStrong": "#c3c3ca",
+    "accent": "#111113",
+    "accentContrast": "#ffffff",
+    "focus": "#111113",
+    "danger": "#c62828",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#0a0a0b",
+    "foreground": "#f2f2f3",
+    "card": "#141416",
+    "muted": "#a0a0a9",
+    "line": "#26262b",
+    "lineStrong": "#3c3c43",
+    "accent": "#f2f2f3",
+    "accentContrast": "#0a0a0b",
+    "focus": "#f2f2f3",
+    "danger": "#f0746b",
+    "dangerContrast": "#0a0a0b"
+  }
+}

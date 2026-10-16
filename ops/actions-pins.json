@@ -1,0 +1,8 @@
+{
+  "note": "The GitHub Actions the generated workflows use, pinned to a full commit so a moved tag can never change what runs. Looked up read-only with `gh api` and `git ls-remote` on 2026-10-16. setup-node 7.1.0 (8 days old on that date) was skipped on purpose: the newest release that is more than two weeks old is used.",
+  "checkedAt": "2026-10-16",
+  "actions": {
+    "actions/checkout": { "version": "v7.0.1", "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1", "publishedAt": "2026-07-20" },
+    "actions/setup-node": { "version": "v7.0.0", "sha": "820762786026740c76f36085b0efc47a31fe5020", "publishedAt": "2026-07-14" }
+  }
+}

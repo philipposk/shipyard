@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>{{NAME}}</title>
+<style>
+  :root {
+    --background: {{LIGHT_BACKGROUND}};
+    --foreground: {{LIGHT_FOREGROUND}};
+    --card: {{LIGHT_CARD}};
+    --muted: {{LIGHT_MUTED}};
+    --line: {{LIGHT_LINE}};
+    --accent: {{LIGHT_ACCENT}};
+    --accent-contrast: {{LIGHT_ACCENT_CONTRAST}};
+    --radius: {{RADIUS}};
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: {{DARK_BACKGROUND}};
+      --foreground: {{DARK_FOREGROUND}};
+      --card: {{DARK_CARD}};
+      --muted: {{DARK_MUTED}};
+      --line: {{DARK_LINE}};
+      --accent: {{DARK_ACCENT}};
+      --accent-contrast: {{DARK_ACCENT_CONTRAST}};
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+    background: var(--background);
+    color: var(--foreground);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    width: 100%;
+    max-width: 380px;
+    padding: 32px 24px;
+    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  img { display: block; width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 14px; }
+  h1 { margin: 0 0 8px; font-size: 22px; line-height: 1.25; }
+  p { margin: 0 0 24px; color: var(--muted); }
+  button {
+    min-height: 48px;
+    padding: 0 28px;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  small { display: block; margin-top: 16px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main role="status">
+  {{ICON}}
+  <h1>You're offline</h1>
+  <p>Check your connection and try again.</p>
+  <button type="button" id="retry">Try again</button>
+  <small>{{NAME}} needs the internet to load.</small>
+</main>
+<script>
+  (function () {
+    var target = {{URL_JSON}};
+    function retry() { window.location.href = target; }
+    document.getElementById('retry').addEventListener('click', retry);
+    window.addEventListener('online', retry);
+  })();
+</script>
+</body>
+</html>

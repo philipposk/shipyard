@@ -1,0 +1,28 @@
+# Written by Shipyard add-shell. Rebuildable files stay out of git.
+node_modules/
+.DS_Store
+
+# iOS (Xcode builds and downloaded packages)
+ios/App/build/
+ios/App/DerivedData/
+ios/App/Pods/
+ios/App/CapApp-SPM/.build/
+ios/App/xcuserdata/
+ios/debug.xcconfig
+
+# Android (Gradle builds)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Signing keys and passwords never go to git
+.env
+.env.*
+*.p12
+*.mobileprovision

@@ -1,0 +1,148 @@
+# What this does: every 6 hours, GitHub opens your live site and checks that it answers.
+# If something is wrong it opens ONE issue labelled "ops-alert" (GitHub emails you). When everything
+# works again it closes that issue by itself. You can also run it by hand: Actions > Health check > Run workflow.
+#
+# It needs two things, which Shipyard's ops setup creates for you:
+#   - a repository variable SITE_URL (your live address)
+#   - a repository secret CRON_SECRET (a private password the checker sends to your app's /api/ops/summary page)
+# GitHub switches scheduled workflows off after 60 days without any activity in a public repository.
+# If the checks stop, open the Actions tab and switch this workflow back on.
+name: Health check
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: health-check
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check the site
+        id: check
+        shell: bash
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          report="$RUNNER_TEMP/health-report.md"
+          if [ -z "${SITE_URL:-}" ]; then
+            echo "::error::The SITE_URL variable is not set. Add it under Settings > Secrets and variables > Actions > Variables, or run Shipyard's ops setup again."
+            exit 1
+          fi
+          case "$SITE_URL" in
+            https://*) ;;
+            *) echo "::error::SITE_URL must start with https://"; exit 1 ;;
+          esac
+          site="${SITE_URL%/}"
+          failed=0
+          rows=""
+
+          # 1. Two pages that must answer 200. Each is tried up to 3 times.
+          for path in "/" "/api/health"; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 --retry 2 --retry-delay 10 --retry-all-errors "$site$path" 2>/dev/null) || code="000"
+            if [ "$code" = "200" ]; then
+              rows="$rows| $path | ok (200) |"$'\n'
+            else
+              failed=1
+              rows="$rows| $path | **problem** (answer $code) |"$'\n'
+            fi
+          done
+
+          # 2. The app's own checks. The secret goes in through stdin, so it is never on a command line.
+          details=""
+          if [ -z "${CRON_SECRET:-}" ]; then
+            rows="$rows| App checks | skipped (no CRON_SECRET secret yet) |"$'\n'
+          else
+            code=$(printf 'header = "x-cron-secret: %s"\n' "$CRON_SECRET" | curl --config - -sS -o "$RUNNER_TEMP/summary.json" -w '%{http_code}' --max-time 30 --retry 2 --retry-delay 10 --retry-all-errors "$site/api/ops/summary" 2>/dev/null) || code="000"
+            case "$code" in
+              200)
+                if ! jq -e . "$RUNNER_TEMP/summary.json" >/dev/null 2>&1; then
+                  failed=1
+                  rows="$rows| App checks | **problem** (the answer was not readable) |"$'\n'
+                else
+                  clean='tostring | gsub("[^A-Za-z0-9_.-]"; "") | .[0:60]'
+                  bad=$(jq -r "(.checks // [])[] | select(.status == \"fail\") | .id | $clean" "$RUNNER_TEMP/summary.json" | paste -sd, -)
+                  warn=$(jq -r "(.checks // [])[] | select(.status == \"warn\") | .id | $clean" "$RUNNER_TEMP/summary.json" | paste -sd, -)
+                  errors=$(jq -r '.errors24h | select(type == "number")' "$RUNNER_TEMP/summary.json")
+                  open=$(jq -r '.unresolved | select(type == "number")' "$RUNNER_TEMP/summary.json")
+                  is_ok=$(jq -r '.ok' "$RUNNER_TEMP/summary.json")
+                  if [ "$is_ok" = "true" ] && [ -z "$bad" ]; then
+                    rows="$rows| App checks | ok |"$'\n'
+                  else
+                    failed=1
+                    rows="$rows| App checks | **problem**${bad:+ (failing: $bad)} |"$'\n'
+                  fi
+                  [ -n "$warn" ] && details="$details- Warnings: $warn"$'\n'
+                  [ -n "$errors" ] && details="$details- Errors logged in the last 24 hours: $errors"$'\n'
+                  [ -n "$open" ] && details="$details- Problems not marked as resolved: $open"$'\n'
+                fi
+                ;;
+              404)
+                failed=1
+                rows="$rows| App checks | **problem** (the page is closed: CRON_SECRET is not set on Vercel yet, or the app was not deployed since) |"$'\n'
+                ;;
+              401)
+                failed=1
+                rows="$rows| App checks | **problem** (the secret does not match: run Shipyard's ops setup again, then deploy) |"$'\n'
+                ;;
+              *)
+                failed=1
+                rows="$rows| App checks | **problem** (answer $code) |"$'\n'
+                ;;
+            esac
+          fi
+
+          {
+            if [ "$failed" = "1" ]; then
+              echo "The scheduled health check found a problem with $site."
+            else
+              echo "All checks passed for $site."
+            fi
+            echo
+            echo "| Check | Result |"
+            echo "|---|---|"
+            printf '%s' "$rows"
+            echo
+            [ -n "$details" ] && printf '%s' "$details" && echo
+            echo "Checked at $(date -u '+%Y-%m-%d %H:%M UTC'). Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo "This issue closes by itself when all checks pass again."
+          } > "$report"
+
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+          cat "$report"
+
+      - name: Open, update or close the alert
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          FAILED: ${{ steps.check.outputs.failed }}
+        run: |
+          set -eu
+          report="$RUNNER_TEMP/health-report.md"
+          gh label create ops-alert --repo "$REPO" --color D93F0B --description "Opened by the scheduled health check" --force >/dev/null 2>&1 || true
+          numbers=$(gh issue list --repo "$REPO" --label ops-alert --state open --json number --jq '.[].number')
+          first="${numbers%%$'\n'*}"
+          if [ "$FAILED" = "1" ]; then
+            if [ -n "$first" ]; then
+              gh issue edit "$first" --repo "$REPO" --body-file "$report"
+            else
+              gh issue create --repo "$REPO" --title "The health check found a problem" --label ops-alert --body-file "$report"
+            fi
+          else
+            for n in $numbers; do
+              gh issue close "$n" --repo "$REPO" --comment "All checks pass again, so this is closed."
+            done
+          fi

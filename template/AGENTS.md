@@ -1,0 +1,46 @@
+# <APP_NAME>: rules for the coding agent
+
+App slug: `<APP_SLUG>`. Read `SPEC.md` (what to build) and `DESIGN.md` (how it looks) before changing anything.
+Claude Code reads `CLAUDE.md`, which points here.
+
+## Always
+- Brand (name, short name, tagline, address) only through `BRAND` in `src/lib/constants.ts`. Never type it into a component.
+- Work on a branch and open a pull request. Once the app is live, never push straight to `main`. Merge only when CI is green.
+- Before saying a task is done, run Shipyard `verify` (`scripts/verify.mjs` in the Shipyard plugin; the `new-app` skill has the exact command) and say what was not verified.
+- Add or update a test for every piece of logic. `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` must pass.
+- Plain English in everything a visitor sees. No fake numbers, fake reviews or fake testimonials.
+
+## Database and keys
+- Every new table: row level security (RLS) on, one policy per action limited to the owner (`user_id = auth.uid()`), and an entry in `supabase/isolation.json`. `tests/schema-rules.test.mjs` fails if you forget.
+- Change the database only with a new numbered file in `supabase/migrations/` (`0004_name.sql`), idempotent (`if not exists`, `drop policy if exists` before `create policy`, `create or replace`), with a comment at the top. Never edit a migration that has already run.
+- A row policy cannot protect a single column. If people may update their own row but not some columns (like `is_admin`), use column-level grants as in `0001_profiles.sql`.
+- The server key (`SUPABASE_SERVICE_ROLE_KEY`) is used only in server files (`src/lib/admin.ts`, route handlers) and never imported from a `"use client"` file. Server-only files start with `import "server-only"`.
+- Never put a secret behind `NEXT_PUBLIC_`: that prefix publishes the value to every visitor. Keys live in `.env.local` (never committed) and in Vercel settings.
+- Admin is `profiles.is_admin` and nothing else. Never decide who is admin, or who may do anything special, from an email address: starter-mode sign-up marks every email as confirmed without checking that the person owns it. The owner account is made by Shipyard's `make-owner` script, and `/api/auth/signup` refuses the owner's email (`ADMIN_EMAIL`).
+- Starter-mode emails are not verified. Do not set `NEXT_PUBLIC_GOOGLE_SIGNIN_ENABLED=true` until real email confirmation works (a Resend key and a confirmation step on sign-up); the sign-up route refuses all email sign-ups while Google sign-in is on, because an unverified password account could be linked to someone else's Google login.
+- Sign-up has two modes, set by `NEXT_PUBLIC_SIGNUP_MODE` (baked into the build, so redeploy after changing it). `starter` (default) creates accounts with the email marked as confirmed and sends nothing. `verified` uses Supabase `auth.signUp`: the person gets a confirmation email and cannot sign in until they open the link (`/auth/confirm`). Switch to `verified` only after Shipyard's `launch-email` has set up sending. Both modes keep the same rules: an existing email gets a 409 and its password is never touched, the owner's email is refused, forgot-password works. Google sign-in may be switched on only in `verified` mode.
+- Never use the server key (`createSupabaseAdmin`) to read user data in a route or server action. It skips RLS, so one forgotten filter hands out every user's rows. Use the signed-in person's own client (`createSupabaseServer`). `verify` fails if `@/lib/admin` is imported outside the few files that need it.
+- Never set or change a password from an email address alone. Passwords change only through the person's own session (recovery link, then `/reset-password`).
+- All `/api/auth/*` routes must be listed in `PUBLIC_PREFIXES` in `src/proxy.ts`. Every other `/api/*` route needs a signed-in user: the proxy answers 401 without a login cookie. Only routes listed in `BEARER_API_PREFIXES` also accept a bearer token, and they must check it themselves.
+
+## Design (the short version, see `DESIGN.md`)
+- Change the look only with `/shipyard:design` (it rewrites the marked token blocks (colours, and the shape block with type sizes and spacing) in `globals.css`, `src/lib/theme.ts`, `src/lib/fonts.ts` and `DESIGN.md` together). Never hand-edit between the `shipyard:tokens` markers.
+- Sizes and spacing come from the shape variables (`--h1-size`, `--h2-size`, `--h3-size`, `--space`, `--pad-card`, `--gap`, `--content-max`) and rem units, never a fixed pixel size for text or page padding. Cards and buttons look different per app through `data-cards` and `data-buttons` on `<html>`: use `.card`, `.btn-primary` and `.btn-secondary` and let the look decide, do not restyle them per page.
+- The public home page is one of five patterns (`HOME_STYLE` in `src/lib/theme.ts`, files in `src/components/home/`). Change its words only in `src/lib/home-content.ts`: real sentences about this app, no invented numbers or reviews.
+- `src/app/design-preview/` shows a look on the real components while building (a 404 in production). Leave it in place.
+- Use the ready-made classes in `globals.css` before writing new CSS: `.btn` (`-primary`, `-secondary`, `-danger`, `-ghost`, 44px high), `.card`, `.input` (16px), `.field-label`, `.form-error`, `.list-row`, `.empty-state`, `.skeleton`, `.popover`, `.menu-item`, `.page-title`, `.page-header`, `.muted`, `.link`. Signed-in pages use the layout in `LAYOUT` (`src/lib/constants.ts`: `bottom-nav`, `sidebar` or `top-nav`), and all three read the page list in `src/lib/nav.ts`.
+- Colours only as CSS variables, never a hex value, `rgb()` or a Tailwind palette class (`bg-blue-500`) in a component. `npm run check:design` fails on these and on gradients, em dashes, emoji, placeholder text, fake proof, "Powered by AI", `alert()`/`confirm()`, inputs under 16px and "Tip:" boxes. A deliberate exception needs a `design-check: allow-<rule>` comment.
+- One accent colour, from the CSS variables in `src/app/globals.css`. No purple gradients, no gradient backgrounds on cards.
+- No em dashes in text people read. Use commas or full stops.
+- Touch targets at least 44px. Form inputs at least 16px (smaller makes iPhones zoom in).
+- Every list or screen that loads data has a designed empty state, a loading skeleton and an error message.
+- UI text: no explanatory sentences in menus, no subtitle that repeats the title, no "Tip:" boxes, no developer words (API, token, schema, RLS) anywhere a visitor can see.
+- No lorem ipsum, no "Made with AI" badges, no stock-photo hero without the real product.
+
+## Launch: accounts, legal pages, health, modules
+- **Account deletion** (`/settings`, `POST /api/account/delete`) is required by the app stores: keep it. It runs the hooks in `src/lib/account/pre-delete.ts` one by one, then deletes the sign-in user, and rows go with it only if their table points at `auth.users` with `on delete cascade`. So every new table with personal data needs `user_id uuid references auth.users on delete cascade`. If something outside the database must be cleaned up first (a paid subscription, files in another service), add a hook to `PRE_DELETE_HOOKS`: `{ id, label, run }`, safe to run twice, throwing stops the deletion. The route needs a login, a request from the same site and the typed word DELETE.
+- **Legal pages** show `src/lib/legal-content.ts` through `LegalDocument`. That file is written by Shipyard's `legal-generate` script from the owner's details, the services the app uses and the plans. Do not edit it by hand: change the inputs (`profile.mjs set company.*`, a new module, a price) and run `legal-generate` again. If you add a service that handles personal data (analytics, an AI model, email), regenerate it. The text is a draft: say so in chat and in HANDOFF.md, and have it checked. Never put the draft wording on the public page.
+- **Health page** (`/admin/health`, admins only, others get a 404) runs the list in `src/lib/health/checks.ts`. A check is `{ id, label, run }` and returns `ok`, `warn`, `fail` or `skip` with a plain-English `detail` and a `fix`. It only reads and never prints a key or password. Add a check when you add something that can be wrong in production (a new key, a webhook, a domain).
+- **Modules** (billing, newsletter) are added with Shipyard's `add-module`. They add entries to the lists `PRE_DELETE_HOOKS` (`src/lib/account/pre-delete.ts`), `HEALTH_CHECKS` (`src/lib/health/checks.ts`) and `ADMIN_LINKS` (`src/lib/nav.ts`), and put their section in `src/app/settings/page.tsx` between the `shipyard:settings-sections` comments. Keep those names and comments.
+- `NEXT_PUBLIC_CONTACT_EMAIL` is the public address people write to. It appears on the legal pages, so use an address the owner reads.
+- Routes that change data with the login cookie (delete, checkout, portal) check `isSameOrigin` from `src/lib/same-origin.mjs` as well as the login.

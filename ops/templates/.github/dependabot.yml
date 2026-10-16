@@ -1,0 +1,29 @@
+# What this does: GitHub checks once a week whether the packages your app uses have newer versions,
+# and opens pull requests for them. Small updates (minor and patch) come together in one pull request,
+# big updates (major) come one at a time. At most 5 are open at once.
+# Small updates can merge themselves once the Tests check is green (see .github/workflows/automerge.yml).
+# Big ones, and anything that changes the build setup, wait for you.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+  # The GitHub Actions your workflows use are pinned to an exact version. This keeps them current.
+  # These pull requests always wait for you, because they change files in .github/.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 2
+    groups:
+      actions:
+        patterns:
+          - "*"

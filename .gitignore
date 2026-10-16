@@ -1,0 +1,15 @@
+# Build notes that belong to the maker, not to the plugin. The marketplace source is this whole folder,
+# so anything committed here is installed on every student's computer.
+BUILD-SPEC.md
+
+node_modules/
+template/node_modules/
+.DS_Store
+.next/
+.shipyard/
+.env
+.env.*
+!.env.example
+
+# The maker's private word list used by tests/private-words.mjs (stays local).
+.private-words.txt

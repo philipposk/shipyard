@@ -1,0 +1,11 @@
+# <APP_NAME>
+
+> <APP_DESCRIPTION>
+
+## Pages
+- /: Home
+- /sign-in: Sign in or create an account
+- /about: About
+- /help: Help
+- /privacy: Privacy Policy
+- /terms: Terms of Service

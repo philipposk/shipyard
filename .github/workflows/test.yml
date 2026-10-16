@@ -1,0 +1,63 @@
+# What this does: on every pull request, GitHub runs the plugin's own tests on a clean computer:
+# the secrets guard, the key scan, the setup and provisioning scripts, the app template's tests,
+# and a check that hooks.json and the plugin files are well formed.
+# A green tick on the pull request means they all passed. Only merge a pull request when it is green.
+# (GitHub cannot block a merge on a free private repository, so this rule is yours to keep.)
+name: Tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # The tests make small git repositories, so git needs a name once.
+      - name: Git identity for the tests
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI"
+          git config --global init.defaultBranch main
+      # Every check reports on its own, so one failure never hides another.
+      - name: Plugin tests (guard, scripts, provisioning, verify)
+        if: ${{ !cancelled() }}
+        run: node --test tests/*.test.mjs
+      - name: App template tests (database rules, key scan, helpers)
+        if: ${{ !cancelled() }}
+        run: node --test template/tests/*.test.mjs
+      - name: hooks.json is valid JSON and points at the guard
+        if: ${{ !cancelled() }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const h = JSON.parse(fs.readFileSync('hooks/hooks.json', 'utf8'));
+            const pre = h.hooks && h.hooks.PreToolUse;
+            if (!Array.isArray(pre) || pre.length === 0) throw new Error('hooks.json has no PreToolUse hook');
+            const cmd = JSON.stringify(pre);
+            if (!cmd.includes('guard-secrets.mjs') || !cmd.includes('CLAUDE_PLUGIN_ROOT')) throw new Error('hooks.json does not run guard-secrets.mjs from CLAUDE_PLUGIN_ROOT');
+            if (!fs.existsSync('scripts/guard-secrets.mjs')) throw new Error('scripts/guard-secrets.mjs is missing');
+            JSON.parse(fs.readFileSync('.claude-plugin/plugin.json', 'utf8'));
+            JSON.parse(fs.readFileSync('.claude-plugin/marketplace.json', 'utf8'));
+            console.log('hooks.json and the plugin manifests are fine');
+          "
+      # Claude Code's own check of plugin.json and marketplace.json. Needs no login.
+      - name: Plugin manifest validation
+        if: ${{ !cancelled() && matrix.node == '24' }}
+        run: npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .

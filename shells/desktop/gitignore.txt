@@ -1,0 +1,11 @@
+# Written by Shipyard add-shell.
+node_modules/
+dist/
+.DS_Store
+
+# Signing certificates and passwords never go to git
+.env
+.env.*
+*.p12
+*.pfx
+*.cer

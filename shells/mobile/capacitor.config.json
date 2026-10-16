@@ -1,0 +1,35 @@
+{
+  "appId": "io.example.placeholder",
+  "appName": "App",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.example.invalid",
+    "cleartext": false,
+    "allowNavigation": [],
+    "errorPath": "index.html"
+  },
+  "ios": {
+    "backgroundColor": "#ffffff",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "android": {
+    "backgroundColor": "#ffffff",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "androidScaleType": "CENTER",
+      "showSpinner": false,
+      "splashFullScreen": true,
+      "splashImmersive": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#ffffff",
+      "overlaysWebView": false
+    }
+  }
+}

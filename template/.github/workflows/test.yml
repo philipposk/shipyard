@@ -1,0 +1,66 @@
+# What this does: on every pull request, GitHub runs the checks below on a clean computer:
+# types, code style, the look (no hard-coded colours, gradients or placeholder text), tests, a full build, and a scan for leaked keys.
+# A green tick on the pull request means they all passed. Only merge a pull request when it is green.
+# (GitHub cannot block a merge on a free private repository, so this rule is yours to keep.)
+name: Tests
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # the full history, so the secret scan can read every commit in the pull request
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install
+        id: install
+        run: npm ci
+      # Every check reports on its own, so one failure never hides another.
+      # The npm ones are skipped only when the install itself failed.
+      - name: Typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck
+      - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint
+      # Looks for the signs of a generic, machine-made look in src/. Needs no install.
+      - name: Design check
+        if: ${{ !cancelled() }}
+        run: npm run check:design
+      - name: Tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test
+      # Placeholder Supabase values: the build must work without any real keys.
+      - name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
+      # Looks for API keys in files git tracks. Prints file:line, never the key.
+      - name: Secret scan
+        if: ${{ !cancelled() }}
+        run: node scripts/secret-scan.mjs
+      # The same scan over every commit in this pull request, so a key that one commit added
+      # and a later commit deleted is still caught. The branch name goes through an env var, not the shell line.
+      - name: Secret scan (every commit in this pull request)
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/secret-scan.mjs --range "origin/${BASE_REF}..HEAD"

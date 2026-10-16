@@ -1,0 +1,5 @@
+{
+  "help": "permissions: add a line for each thing the app asks the phone for, with a plain sentence the person sees in the permission box. Known names: camera, microphone, location, photos. Example: \"camera\": \"This app uses the camera to scan receipts.\" Leave it empty if the app asks for nothing. Then run: npm run apply-native",
+  "permissions": {},
+  "authReturn": false
+}

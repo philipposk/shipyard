@@ -1,0 +1,56 @@
+{
+  "id": "night-tech",
+  "name": "Night tech",
+  "description": "Near-black blue-grey, electric cyan accent, a left sidebar, outlined buttons and compact type. Built for the dark.",
+  "goodFor": "developer tools, gaming, music, anything used at night",
+  "defaultTheme": "dark",
+  "font": {
+    "body": "IBM Plex Sans",
+    "heading": "same"
+  },
+  "radius": {
+    "base": 10,
+    "sm": 6
+  },
+  "shadow": "none",
+  "type": {
+    "scale": "compact",
+    "headingWeight": 600,
+    "headingTracking": "normal"
+  },
+  "layout": {
+    "nav": "sidebar",
+    "density": "compact",
+    "maxWidth": "wide",
+    "home": "list",
+    "cards": "bordered",
+    "buttons": "outline",
+    "header": "plain"
+  },
+  "light": {
+    "background": "#f1f5f8",
+    "foreground": "#0b1220",
+    "card": "#ffffff",
+    "muted": "#475569",
+    "line": "#d9e2ea",
+    "lineStrong": "#b0bfcd",
+    "accent": "#0b7285",
+    "accentContrast": "#ffffff",
+    "focus": "#0b7285",
+    "danger": "#b91c2b",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#090d12",
+    "foreground": "#e6edf3",
+    "card": "#10161e",
+    "muted": "#8e9bab",
+    "line": "#1d2631",
+    "lineStrong": "#2f3c4b",
+    "accent": "#22d3ee",
+    "accentContrast": "#03141a",
+    "focus": "#22d3ee",
+    "danger": "#ff7b72",
+    "dangerContrast": "#2a0a08"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "id": "calm-blue",
+  "name": "Calm and clear",
+  "description": "Soft grey-white pages, one friendly blue accent, gently rounded corners.",
+  "goodFor": "general apps, first projects, anything that should just feel clean",
+  "defaultTheme": "light",
+  "font": {
+    "body": "system",
+    "heading": "same"
+  },
+  "radius": {
+    "base": 14,
+    "sm": 10
+  },
+  "shadow": "soft",
+  "type": {
+    "scale": "comfortable",
+    "headingWeight": 700,
+    "headingTracking": "normal"
+  },
+  "layout": {
+    "nav": "bottom-nav",
+    "density": "regular",
+    "maxWidth": "medium",
+    "home": "focus",
+    "cards": "bordered",
+    "buttons": "solid",
+    "header": "bar"
+  },
+  "light": {
+    "background": "#f6f7f9",
+    "foreground": "#14161a",
+    "card": "#ffffff",
+    "muted": "#5b6270",
+    "line": "#e3e6eb",
+    "lineStrong": "#b9bfca",
+    "accent": "#2563eb",
+    "accentContrast": "#ffffff",
+    "focus": "#2563eb",
+    "danger": "#c0362c",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#0e1116",
+    "foreground": "#eceff4",
+    "card": "#171b22",
+    "muted": "#9aa3b2",
+    "line": "#262c36",
+    "lineStrong": "#3a4250",
+    "accent": "#6b9bff",
+    "accentContrast": "#0a0f1a",
+    "focus": "#6b9bff",
+    "danger": "#ef6a5e",
+    "dangerContrast": "#14161a"
+  }
+}

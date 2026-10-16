@@ -1,0 +1,56 @@
+{
+  "id": "fresh-green",
+  "name": "Fresh and healthy",
+  "description": "Mint-white pages, a deep leaf green accent, links in the top bar, a wide split homepage and pill buttons.",
+  "goodFor": "health, habits, learning, fitness, nature",
+  "defaultTheme": "light",
+  "font": {
+    "body": "Manrope",
+    "heading": "same"
+  },
+  "radius": {
+    "base": 14,
+    "sm": 10
+  },
+  "shadow": "soft",
+  "type": {
+    "scale": "comfortable",
+    "headingWeight": 800,
+    "headingTracking": "normal"
+  },
+  "layout": {
+    "nav": "top-nav",
+    "density": "regular",
+    "maxWidth": "wide",
+    "home": "split",
+    "cards": "tinted",
+    "buttons": "pill",
+    "header": "bar"
+  },
+  "light": {
+    "background": "#f1f7f3",
+    "foreground": "#12201a",
+    "card": "#ffffff",
+    "muted": "#52675b",
+    "line": "#dbe8df",
+    "lineStrong": "#b0c5b8",
+    "accent": "#1b7a4b",
+    "accentContrast": "#ffffff",
+    "focus": "#1b7a4b",
+    "danger": "#b3261e",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#0c1410",
+    "foreground": "#e6f1ea",
+    "card": "#141f1a",
+    "muted": "#9bb0a4",
+    "line": "#233229",
+    "lineStrong": "#344a3d",
+    "accent": "#4cc38a",
+    "accentContrast": "#04150d",
+    "focus": "#4cc38a",
+    "danger": "#f2776e",
+    "dangerContrast": "#2a0b09"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "id": "playful",
+  "name": "Playful",
+  "description": "Sunny cream pages, a bold tangerine accent, chunky pill buttons, tinted tiles and big round shapes. Loud in a good way.",
+  "goodFor": "games, kids-friendly learning, social, anything fun",
+  "defaultTheme": "light",
+  "font": {
+    "body": "Inter",
+    "heading": "Space Grotesk"
+  },
+  "radius": {
+    "base": 22,
+    "sm": 14
+  },
+  "shadow": "soft",
+  "type": {
+    "scale": "large",
+    "headingWeight": 700,
+    "headingTracking": "tight"
+  },
+  "layout": {
+    "nav": "bottom-nav",
+    "density": "regular",
+    "maxWidth": "medium",
+    "home": "list",
+    "cards": "tinted",
+    "buttons": "pill",
+    "header": "bar"
+  },
+  "light": {
+    "background": "#fff8e4",
+    "foreground": "#1d1a2b",
+    "card": "#ffffff",
+    "muted": "#5b5870",
+    "line": "#f1e5be",
+    "lineStrong": "#d3c08a",
+    "accent": "#e5570a",
+    "accentContrast": "#1d1a2b",
+    "focus": "#c44a05",
+    "danger": "#c81e4b",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#15161f",
+    "foreground": "#f6f3ea",
+    "card": "#1e202c",
+    "muted": "#aeaabf",
+    "line": "#2d3040",
+    "lineStrong": "#434860",
+    "accent": "#ff8a3d",
+    "accentContrast": "#1d1a2b",
+    "focus": "#ff8a3d",
+    "danger": "#ff7a99",
+    "dangerContrast": "#2b0a14"
+  }
+}

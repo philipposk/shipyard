@@ -1,0 +1,12 @@
+{
+  "name": "shipyard",
+  "description": "Shipyard: build and publish real web apps with Claude Code.",
+  "owner": { "name": "Philippos" },
+  "plugins": [
+    {
+      "name": "shipyard",
+      "source": "./",
+      "description": "Account setup plus a guided app builder (Next.js, Supabase, Vercel) with safety checks."
+    }
+  ]
+}

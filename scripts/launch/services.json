@@ -1,0 +1,133 @@
+{
+  "verifiedAt": "2026-10-16",
+  "verifiedNote": "Every privacyUrl and dpaUrl was opened on this date and was the company's own page (OpenAI blocks scripted requests, so those two were opened in a real browser). The transfers flags record only what the company's own page said on that date: sccs = it names standard contractual clauses, dpf = it names the EU-US Data Privacy Framework. Where a page did not say, the flag is false and the generated text says nothing about it. Run this check again before a release.",
+  "services": [
+    {
+      "id": "supabase",
+      "name": "Supabase",
+      "purpose": "Stores accounts and everything you save, and handles sign-in",
+      "dataShared": "Email, password (scrambled, never readable), profile, saved content",
+      "location": "The region chosen when the app was set up",
+      "privacyUrl": "https://supabase.com/privacy",
+      "dpaUrl": "https://supabase.com/legal/dpa",
+      "transfers": { "sccs": true, "dpf": false },
+      "role": "processor",
+      "detectedBy": { "env": [], "module": null, "always": true }
+    },
+    {
+      "id": "vercel",
+      "name": "Vercel",
+      "purpose": "Hosts the app and delivers its pages",
+      "dataShared": "Technical information about each visit, such as IP address and browser type",
+      "location": "Servers around the world, mainly in the United States",
+      "privacyUrl": "https://vercel.com/legal/privacy-policy",
+      "dpaUrl": "https://vercel.com/legal/dpa",
+      "transfers": { "sccs": true, "dpf": true },
+      "role": "processor",
+      "detectedBy": { "env": [], "module": null, "always": true }
+    },
+    {
+      "id": "resend",
+      "name": "Resend",
+      "purpose": "Sends the emails the app needs to send, such as sign-up confirmation and password reset",
+      "dataShared": "Your email address and the text of the email",
+      "location": "United States, with sending servers in the EU or the US depending on the region chosen",
+      "privacyUrl": "https://resend.com/legal/privacy-policy",
+      "dpaUrl": "https://resend.com/legal/dpa",
+      "transfers": { "sccs": true, "dpf": false },
+      "role": "processor",
+      "flags": { "email": true },
+      "detectedBy": { "env": ["RESEND_API_KEY", "RESEND_FROM"], "module": "newsletter", "always": false }
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "purpose": "Takes payments for paid plans and handles refunds, invoices and fraud checks",
+      "dataShared": "Name, email, payment details you enter at checkout, plan and payment history",
+      "location": "Worldwide, including the United States",
+      "privacyUrl": "https://stripe.com/privacy",
+      "dpaUrl": "https://stripe.com/legal/dpa",
+      "transfers": { "sccs": true, "dpf": true },
+      "role": "processor-and-controller",
+      "flags": { "payments": true },
+      "detectedBy": { "env": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"], "module": "billing", "always": false }
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "purpose": "Runs the AI features: it reads what you send to them and writes the answer",
+      "dataShared": "The text, files or questions you send to an AI feature",
+      "location": "United States",
+      "privacyUrl": "https://openai.com/policies/privacy-policy/",
+      "dpaUrl": "https://openai.com/policies/data-processing-addendum/",
+      "transfers": { "sccs": true, "dpf": false },
+      "role": "processor",
+      "flags": { "ai": true },
+      "detectedBy": { "env": ["OPENAI_API_KEY"], "module": null, "always": false }
+    },
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "purpose": "Passes what you send to an AI feature on to the company that runs the AI model, and brings the answer back",
+      "dataShared": "The text, files or questions you send to an AI feature",
+      "location": "United States and other countries, depending on the AI model used",
+      "privacyUrl": "https://openrouter.ai/privacy",
+      "dpaUrl": null,
+      "transfers": { "sccs": true, "dpf": false },
+      "role": "processor",
+      "flags": { "ai": true },
+      "detectedBy": { "env": ["OPENROUTER_API_KEY"], "module": null, "always": false }
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "purpose": "Lets you sign in with your Google account",
+      "dataShared": "Your name and email address, sent to us by Google when you choose to sign in with Google",
+      "location": "Worldwide",
+      "privacyUrl": "https://policies.google.com/privacy",
+      "dpaUrl": null,
+      "transfers": { "sccs": false, "dpf": false },
+      "role": "independent-controller",
+      "flags": { "signIn": true },
+      "detectedBy": { "env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "NEXT_PUBLIC_GOOGLE_SIGNIN_ENABLED"], "module": null, "always": false }
+    },
+    {
+      "id": "posthog",
+      "name": "PostHog",
+      "purpose": "Shows us how the app is used, such as which pages are opened and which buttons are pressed",
+      "dataShared": "Pages viewed, actions taken, device and browser type, and a random ID stored in your browser",
+      "location": "The EU or the United States, depending on the region chosen when it was set up",
+      "privacyUrl": "https://posthog.com/privacy",
+      "dpaUrl": "https://posthog.com/dpa",
+      "transfers": { "sccs": true, "dpf": true },
+      "role": "processor",
+      "flags": { "analytics": true, "cookies": true },
+      "detectedBy": { "env": ["NEXT_PUBLIC_POSTHOG_KEY", "NEXT_PUBLIC_POSTHOG_HOST"], "module": null, "always": false }
+    },
+    {
+      "id": "upstash",
+      "name": "Upstash",
+      "purpose": "Keeps short-lived counters, for example to slow down abuse",
+      "dataShared": "An IP address or account ID, for a short time",
+      "location": "The region chosen when it was set up",
+      "privacyUrl": "https://upstash.com/trust/privacy.pdf",
+      "dpaUrl": "https://upstash.com/trust/dpa.pdf",
+      "transfers": { "sccs": true, "dpf": true },
+      "role": "processor",
+      "detectedBy": { "env": ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL"], "module": null, "always": false }
+    },
+    {
+      "id": "sentry",
+      "name": "Sentry",
+      "purpose": "Collects error reports so faults can be found and fixed",
+      "dataShared": "Technical details of an error: the page, browser type, IP address and the error message",
+      "location": "The United States or Germany, depending on the region chosen when it was set up",
+      "privacyUrl": "https://sentry.io/privacy/",
+      "dpaUrl": "https://sentry.io/legal/dpa/",
+      "transfers": { "sccs": true, "dpf": true },
+      "role": "processor",
+      "flags": { "errors": true },
+      "detectedBy": { "env": ["SENTRY_DSN", "NEXT_PUBLIC_SENTRY_DSN"], "module": "errors", "always": false }
+    }
+  ]
+}

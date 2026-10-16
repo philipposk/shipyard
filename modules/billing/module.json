@@ -1,0 +1,174 @@
+{
+  "name": "billing",
+  "description": "Payments with Stripe: a pricing page, plans you edit in one file, subscriptions, and a billing section in Settings.",
+  "files": [
+    "src/lib/billing/plans-core.mjs",
+    "src/lib/billing/plans.ts",
+    "src/lib/billing/stripe.ts",
+    "src/lib/billing/webhook.mjs",
+    "src/lib/billing/account.mjs",
+    "src/lib/billing/checkout-core.mjs",
+    "src/lib/billing/health-core.mjs",
+    "src/lib/billing/health.ts",
+    "src/lib/billing/store.ts",
+    "src/lib/billing/withdraw-email.ts",
+    "src/lib/billing/customers.ts",
+    "src/lib/billing/entitlement.ts",
+    "src/lib/billing/pre-delete.ts",
+    "src/app/api/billing/checkout/route.ts",
+    "src/app/api/billing/portal/route.ts",
+    "src/app/api/billing/withdraw/route.ts",
+    "src/app/api/billing/webhook/route.ts",
+    "src/app/pricing/page.tsx",
+    "src/app/settings/billing/page.tsx",
+    "src/components/billing/PlanButton.tsx",
+    "src/components/billing/PortalButton.tsx",
+    "src/components/billing/WithdrawButton.tsx",
+    "src/components/billing/RefreshWhilePending.tsx",
+    "src/components/billing/TestModeBanner.tsx",
+    "src/components/billing/BillingSection.tsx",
+    "src/components/billing/UpgradeGate.tsx",
+    "tests/billing-plans.test.mjs",
+    "tests/billing-webhook.test.mjs",
+    "tests/billing-account.test.mjs",
+    "tests/billing-health.test.mjs",
+    "tests/billing-checkout.test.mjs"
+  ],
+  "migrations": [
+    "billing.sql"
+  ],
+  "env": {
+    "required": [
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET"
+    ],
+    "optional": [
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_PORTAL_CONFIGURATION"
+    ]
+  },
+  "perAppSecrets": [
+    "STRIPE_SECRET_KEY"
+  ],
+  "dependsOn": [],
+  "dependencies": {
+    "stripe": "^23.0.0"
+  },
+  "nav": [
+    {
+      "href": "/pricing",
+      "label": "Pricing",
+      "icon": "info"
+    }
+  ],
+  "proxyPublic": [
+    "/pricing",
+    "/api/billing/webhook"
+  ],
+  "isolation": [
+    {
+      "table": "billing_customers",
+      "ownerColumn": "user_id",
+      "seed": "server",
+      "insert": {
+        "stripe_customer_id": "cus_shipyard_isolation_test"
+      }
+    },
+    {
+      "table": "subscriptions",
+      "ownerColumn": "user_id",
+      "seed": "server",
+      "insert": {
+        "plan_id": "isolation_test",
+        "status": "active"
+      }
+    },
+    {
+      "table": "stripe_events",
+      "ownerColumn": "id",
+      "seed": "server",
+      "insert": {
+        "type": "isolation.test"
+      }
+    }
+  ],
+  "stripeEvents": [
+    "checkout.session.completed",
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+    "invoice.paid",
+    "invoice.payment_failed"
+  ],
+  "envExample": [
+    {
+      "name": "STRIPE_SECRET_KEY",
+      "comment": "Payments (Stripe). Your secret key: starts with sk_test_ while you try things out.\nServer only. Never put NEXT_PUBLIC_ in front of it."
+    },
+    {
+      "name": "STRIPE_WEBHOOK_SECRET",
+      "comment": "Payments (Stripe). Lets the app trust Stripe's messages. The Stripe setup in Shipyard fills this in."
+    },
+    {
+      "name": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "comment": "Payments (Stripe). Public key. Optional: the built-in payment page does not need it."
+    },
+    {
+      "name": "STRIPE_PORTAL_CONFIGURATION",
+      "comment": "Payments (Stripe). Optional: which customer portal settings to use. The Stripe setup in Shipyard fills this in."
+    }
+  ],
+  "patches": [
+    {
+      "id": "billing-settings-section",
+      "file": "src/app/settings/page.tsx",
+      "kind": "anchor",
+      "anchor": "shipyard:settings-sections:end",
+      "position": "before",
+      "occurrence": "first",
+      "insert": "<BillingSection />",
+      "already": "BillingSection",
+      "imports": [
+        "import { BillingSection } from \"@/components/billing/BillingSection\";"
+      ],
+      "note": "Show the billing section in Settings: add <BillingSection /> (from @/components/billing/BillingSection) inside the page. The page /settings/billing works either way."
+    },
+    {
+      "id": "billing-health-checks",
+      "file": "src/lib/health/checks.ts",
+      "kind": "array",
+      "entry": "...billingHealthChecks",
+      "already": "billingHealthChecks",
+      "imports": [
+        "import { billingHealthChecks } from \"@/lib/billing/health\";"
+      ],
+      "skipIfFileMissing": true,
+      "note": "Add the payments checks to the Health page: spread billingHealthChecks (from @/lib/billing/health) into the list of checks.",
+      "array": "HEALTH_CHECKS"
+    },
+    {
+      "id": "billing-cancel-on-delete",
+      "file": "src/lib/account/pre-delete.ts",
+      "kind": "array",
+      "entry": "{ id: \"billing-cancel-subscription\", label: \"cancel your subscription\", run: cancelBillingOnDelete }",
+      "already": "cancelBillingOnDelete",
+      "imports": [
+        "import { cancelBillingOnDelete } from \"@/lib/billing/pre-delete\";"
+      ],
+      "required": true,
+      "skipIfFileMissing": true,
+      "note": "Cancel the Stripe subscription when someone deletes their account: add cancelBillingOnDelete (from @/lib/billing/pre-delete) to the list of things done before an account is deleted.",
+      "array": "PRE_DELETE_HOOKS"
+    }
+  ],
+  "next": [
+    "Edit the plans in src/lib/billing/plans.ts (name, price, what each plan includes).",
+    "Run the Stripe setup (stripe-setup.mjs) in test mode: it makes the products, prices, customer portal and webhook in Stripe.",
+    "In the Stripe dashboard, Settings, Business, Public details: add your Terms link (your site address plus /terms). Checkout needs it for the \"I agree\" box.",
+    "Update your privacy policy and terms for payments: run legal-generate.mjs again.",
+    "Try a payment with the test card 4242 4242 4242 4242, then look at the admin Health page."
+  ],
+  "requiresFiles": [
+    "src/lib/same-origin.mjs"
+  ]
+}

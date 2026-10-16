@@ -1,0 +1,149 @@
+{
+  "name": "newsletter",
+  "description": "An email list: opt-in boxes at sign-up and in Settings, one-click unsubscribe, and an admin page to write and send updates.",
+  "files": [
+    "src/lib/newsletter/email-render.mjs",
+    "src/lib/newsletter/core.mjs",
+    "src/lib/newsletter/send.mjs",
+    "src/lib/newsletter/intent.mjs",
+    "src/lib/newsletter/intent.ts",
+    "src/lib/newsletter/admin.ts",
+    "src/lib/newsletter/store.ts",
+    "src/lib/newsletter/health.ts",
+    "src/app/api/newsletter/route.ts",
+    "src/app/api/newsletter/unsubscribe/route.ts",
+    "src/app/api/newsletter/admin/route.ts",
+    "src/app/unsubscribe/page.tsx",
+    "src/app/unsubscribe/unsubscribe-form.tsx",
+    "src/app/admin/newsletter/page.tsx",
+    "src/components/newsletter/NewsletterToggle.tsx",
+    "src/components/newsletter/NewsletterSettings.tsx",
+    "src/components/newsletter/SignupNewsletterOptIn.tsx",
+    "src/components/newsletter/NewsletterIntentApplier.tsx",
+    "src/components/newsletter/NewsletterComposer.tsx",
+    "tests/newsletter-core.test.mjs",
+    "tests/newsletter-render.test.mjs",
+    "tests/newsletter-send.test.mjs",
+    "tests/newsletter-intent.test.mjs"
+  ],
+  "migrations": [
+    "newsletter.sql"
+  ],
+  "env": {
+    "required": [
+      "RESEND_API_KEY",
+      "RESEND_FROM"
+    ],
+    "optional": [
+      "NEWSLETTER_CONSENT_NOT_BEFORE"
+    ]
+  },
+  "perAppSecrets": [
+    "RESEND_API_KEY"
+  ],
+  "generatedEnv": [
+    "NEWSLETTER_SECRET"
+  ],
+  "dependsOn": [],
+  "proxyPublic": [
+    "/unsubscribe",
+    "/api/newsletter/unsubscribe"
+  ],
+  "isolation": [
+    {
+      "table": "newsletter_subscribers",
+      "ownerColumn": "user_id",
+      "seed": "server",
+      "insert": {
+        "email": "isolation-test@example.com",
+        "status": "subscribed",
+        "unsubscribe_token_hash": "isolation_test_hash"
+      }
+    },
+    {
+      "table": "newsletter_sends",
+      "ownerColumn": "sent_by",
+      "seed": "server",
+      "insert": {
+        "subject": "isolation test",
+        "body_md": "isolation test"
+      }
+    }
+  ],
+  "envExample": [
+    {
+      "name": "NEWSLETTER_SECRET",
+      "comment": "Email list. A private random value that makes the unsubscribe links. Shipyard fills this in.\nKeep it: links already sent stop working if it changes."
+    },
+    {
+      "name": "NEWSLETTER_CONSENT_NOT_BEFORE",
+      "comment": "Email list. Optional. Shipyard sets this when sign-ups start needing a confirmed email: ticks collected before that time are ignored until people tick again."
+    }
+  ],
+  "patches": [
+    {
+      "id": "newsletter-settings-section",
+      "file": "src/app/settings/page.tsx",
+      "kind": "anchor",
+      "anchor": "shipyard:settings-sections:end",
+      "position": "before",
+      "occurrence": "first",
+      "insert": "<NewsletterSettings />",
+      "already": "NewsletterSettings",
+      "imports": [
+        "import { NewsletterSettings } from \"@/components/newsletter/NewsletterSettings\";"
+      ],
+      "note": "Show the email updates box in Settings: add <NewsletterSettings /> (from @/components/newsletter/NewsletterSettings) inside the page."
+    },
+    {
+      "id": "newsletter-signup-box",
+      "file": "src/app/sign-in/page.tsx",
+      "kind": "anchor",
+      "anchor": "{error && <p className=\"form-error\"",
+      "position": "before",
+      "occurrence": "first",
+      "insert": "{mode === \"signup\" && <SignupNewsletterOptIn email={email} />}",
+      "already": "SignupNewsletterOptIn",
+      "imports": [
+        "import { SignupNewsletterOptIn } from \"@/components/newsletter/SignupNewsletterOptIn\";"
+      ],
+      "note": "Add the optional updates box to the sign-up form: show <SignupNewsletterOptIn email={email} /> (from @/components/newsletter/SignupNewsletterOptIn) when the form is in sign-up mode. People can still switch updates on later in Settings."
+    },
+    {
+      "id": "newsletter-apply-signup-choice",
+      "file": "src/app/layout.tsx",
+      "kind": "anchor",
+      "anchor": "<ScrollProgress />",
+      "position": "after",
+      "occurrence": "first",
+      "insert": "<NewsletterIntentApplier />",
+      "already": "NewsletterIntentApplier",
+      "imports": [
+        "import { NewsletterIntentApplier } from \"@/components/newsletter/NewsletterIntentApplier\";"
+      ],
+      "note": "Make the sign-up box work: add <NewsletterIntentApplier /> (from @/components/newsletter/NewsletterIntentApplier) once in src/app/layout.tsx, next to the other small helpers."
+    },
+    {
+      "id": "newsletter-health-checks",
+      "file": "src/lib/health/checks.ts",
+      "kind": "array",
+      "entry": "...newsletterHealthChecks",
+      "already": "newsletterHealthChecks",
+      "imports": [
+        "import { newsletterHealthChecks } from \"@/lib/newsletter/health\";"
+      ],
+      "skipIfFileMissing": true,
+      "note": "Add the newsletter checks to the Health page: spread newsletterHealthChecks (from @/lib/newsletter/health) into the list of checks.",
+      "array": "HEALTH_CHECKS"
+    }
+  ],
+  "next": [
+    "Sign in as the owner and open Settings, then Send an update (or go to /admin/newsletter). Send yourself a test first.",
+    "Updates only open once sign-ups need a confirmed email address (so nobody can sign up someone else's address): finish the email setup, then switch on confirmed sign-ups.",
+    "To email everyone you need a verified sending domain: run the email setup (launch-email.mjs) in Shipyard.",
+    "Update your privacy policy so it mentions email updates: run legal-generate.mjs again."
+  ],
+  "requiresFiles": [
+    "src/lib/same-origin.mjs"
+  ]
+}

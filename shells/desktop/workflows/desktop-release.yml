@@ -1,0 +1,76 @@
+# What this does: when you push a tag that starts with "desktop-v" (for example desktop-v1.0.0), GitHub builds the
+# desktop app for macOS and Windows on its own computers and attaches the installers to a GitHub Release.
+#
+# The installers are NOT signed. People can still open them, but their computer shows a warning:
+#   - macOS 15 and newer: open the app, let macOS refuse it, then System Settings > Privacy & Security > Open Anyway
+#     (a downloaded unsigned app can also show as "damaged"; the same button fixes it). Removing the warning for
+#     everyone needs a paid Apple Developer account (99 USD a year) to sign and notarize the app.
+#   - Windows: SmartScreen says "unknown publisher". A code-signing certificate (paid) removes it.
+# To sign later, add the certificate and passwords as repository secrets and ask Claude to update this file.
+#
+# Cost: on a public repository these builds are free. On a private repository they use your free GitHub Actions
+# minutes, and a macOS minute counts about 10 times as much as a Linux minute (Windows about twice), so a few
+# releases a month is fine but build only when you mean to.
+name: Desktop release
+
+on:
+  push:
+    tags:
+      - "desktop-v*"
+
+# The build jobs install packages, so they only get a read-only token. Only the release job can write.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+      - name: Install
+        working-directory: desktop
+        shell: bash
+        run: |
+          # Commit desktop/package-lock.json (run "npm install" in desktop/ once): then the exact tested versions are installed.
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - name: Build the installer
+        working-directory: desktop
+        shell: bash
+        run: npx electron-builder --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Keep the installers
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-${{ runner.os }}
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/*.exe
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" artifacts/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

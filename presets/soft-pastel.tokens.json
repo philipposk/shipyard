@@ -1,0 +1,56 @@
+{
+  "id": "soft-pastel",
+  "name": "Soft pastel",
+  "description": "Lilac-grey pages, a dusty rose accent, flat soft panels, pill buttons and a centred name. Calm and gentle.",
+  "goodFor": "wellbeing, journaling, kids, mindful apps",
+  "defaultTheme": "light",
+  "font": {
+    "body": "Nunito",
+    "heading": "same"
+  },
+  "radius": {
+    "base": 24,
+    "sm": 16
+  },
+  "shadow": "soft",
+  "type": {
+    "scale": "comfortable",
+    "headingWeight": 700,
+    "headingTracking": "normal"
+  },
+  "layout": {
+    "nav": "top-nav",
+    "density": "airy",
+    "maxWidth": "narrow",
+    "home": "focus",
+    "cards": "flat",
+    "buttons": "pill",
+    "header": "centered"
+  },
+  "light": {
+    "background": "#f5f1f7",
+    "foreground": "#2f2634",
+    "card": "#fffcfd",
+    "muted": "#6c5f74",
+    "line": "#e9dfec",
+    "lineStrong": "#cbbad1",
+    "accent": "#a8456a",
+    "accentContrast": "#ffffff",
+    "focus": "#a8456a",
+    "danger": "#b3261e",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#1c1822",
+    "foreground": "#f3eaf1",
+    "card": "#262030",
+    "muted": "#b6a8bf",
+    "line": "#372f42",
+    "lineStrong": "#4d4259",
+    "accent": "#ec9fb6",
+    "accentContrast": "#2a0e19",
+    "focus": "#ec9fb6",
+    "danger": "#ff8f8a",
+    "dangerContrast": "#2a0a0a"
+  }
+}

@@ -1,0 +1,4 @@
+[
+  { "table": "items", "ownerColumn": "user_id" },
+  { "table": "profiles", "ownerColumn": "id" }
+]

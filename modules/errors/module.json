@@ -1,0 +1,115 @@
+{
+  "name": "errors",
+  "description": "An error log and alerts: problems are saved, the owner gets an email, crashed pages say sorry and report themselves, and an admin page shows what happened.",
+  "files": [
+    "src/app/admin/logs/page.tsx",
+    "src/app/api/admin/errors/resolve/route.ts",
+    "src/app/api/errors/route.ts",
+    "src/app/api/ops/summary/route.ts",
+    "src/app/error.tsx",
+    "src/app/global-error.tsx",
+    "src/components/errors/ErrorScreen.tsx",
+    "src/components/errors/ResolveButton.tsx",
+    "src/lib/errors/admin.ts",
+    "src/lib/errors/client.ts",
+    "src/lib/errors/core.mjs",
+    "src/lib/errors/health.ts",
+    "src/lib/errors/report.ts",
+    "src/lib/errors/reporter.mjs",
+    "src/lib/errors/store.ts",
+    "tests/errors-reporter.test.mjs",
+    "tests/errors-scrub.test.mjs",
+    "tests/errors-summary.test.mjs"
+  ],
+  "migrations": [
+    "error_log.sql"
+  ],
+  "env": {
+    "required": [],
+    "optional": [
+      "CRON_SECRET",
+      "ERROR_ALERT_HOURS"
+    ]
+  },
+  "perAppSecrets": [],
+  "dependsOn": [],
+  "proxyPublic": [
+    "/api/errors",
+    "/api/ops/summary"
+  ],
+  "isolation": [
+    {
+      "table": "error_log",
+      "ownerColumn": "user_id",
+      "seed": "server",
+      "insert": {
+        "area": "isolation-test",
+        "fingerprint": "isolation-test",
+        "message": "isolation test"
+      }
+    }
+  ],
+  "envExample": [
+    {
+      "name": "CRON_SECRET",
+      "comment": "Scheduled health checks. A private random value the checker sends to /api/ops/summary. Shipyard's ops setup fills this in.\nLeave it empty and that page stays closed (it answers \"not found\")."
+    },
+    {
+      "name": "ERROR_ALERT_HOURS",
+      "comment": "Error emails. Hours between two emails about the same problem. Optional, 6 if empty."
+    }
+  ],
+  "patches": [
+    {
+      "id": "errors-health-checks",
+      "file": "src/lib/health/checks.ts",
+      "kind": "array",
+      "array": "HEALTH_CHECKS",
+      "entry": "...errorsHealthChecks",
+      "already": "errorsHealthChecks",
+      "imports": [
+        "import { errorsHealthChecks } from \"@/lib/errors/health\";"
+      ],
+      "skipIfFileMissing": true,
+      "note": "Add the error check to the Health page: spread errorsHealthChecks (from @/lib/errors/health) into the list of checks."
+    },
+    {
+      "id": "errors-admin-menu",
+      "file": "src/lib/nav.ts",
+      "kind": "array",
+      "array": "ADMIN_LINKS",
+      "entry": "{ href: \"/admin/logs\", label: \"Error log\" }",
+      "already": "/admin/logs",
+      "skipIfFileMissing": true,
+      "note": "Add the error log to the admin part of the account menu: add { href: \"/admin/logs\", label: \"Error log\" } to the ADMIN_LINKS list in src/lib/nav.ts."
+    },
+    {
+      "id": "errors-health-link",
+      "file": "src/app/admin/health/page.tsx",
+      "kind": "anchor",
+      "anchor": "<section className=\"card\" aria-label=\"Checks\">",
+      "position": "before",
+      "occurrence": "first",
+      "insert": "<p className=\"mt-0 mb-4\">\n  <a href=\"/admin/logs\" className=\"btn btn-secondary\">\n    Error log\n  </a>\n</p>",
+      "already": "/admin/logs",
+      "skipIfFileMissing": true,
+      "note": "Link the Health page to the error log: add a link to /admin/logs above the list of checks."
+    }
+  ],
+  "next": [
+    "Sign in as the owner and open Error log from the account menu (or /admin/logs). Problems the app hits are saved there; a page that crashes shows a friendly screen and reports itself.",
+    "To get an email when something breaks, set ADMIN_EMAIL and the email setup (RESEND_API_KEY). Without them problems are still logged, just not mailed. At most one email per problem every 6 hours (ERROR_ALERT_HOURS).",
+    "The scheduled health check needs CRON_SECRET: Shipyard's ops setup creates it and sends it to Vercel and GitHub.",
+    "Log rows older than 90 days are deleted every day if Supabase Cron is switched on (Dashboard, Integrations, Cron). Otherwise the scheduled health check deletes them.",
+    "In your own routes, catch a failure and call serverError(\"area\", error, \"save your changes\") from @/lib/errors/report: the visitor sees a plain sentence and you get the real error."
+  ],
+  "requiresFiles": [
+    "src/lib/same-origin.mjs",
+    "src/lib/health/checks.ts",
+    "src/lib/health/run.mjs",
+    "src/lib/session.ts",
+    "src/lib/admin.ts",
+    "src/lib/theme.ts",
+    "src/lib/fonts.ts"
+  ]
+}

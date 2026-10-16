@@ -1,0 +1,56 @@
+{
+  "id": "warm-friendly",
+  "name": "Warm and friendly",
+  "description": "Cream background, terracotta accent, floating cards, pill buttons and roomy spacing. Feels like a neighbourhood cafe.",
+  "goodFor": "community, lifestyle, food, hobby apps",
+  "defaultTheme": "light",
+  "font": {
+    "body": "DM Sans",
+    "heading": "same"
+  },
+  "radius": {
+    "base": 18,
+    "sm": 12
+  },
+  "shadow": "soft",
+  "type": {
+    "scale": "large",
+    "headingWeight": 700,
+    "headingTracking": "normal"
+  },
+  "layout": {
+    "nav": "bottom-nav",
+    "density": "airy",
+    "maxWidth": "medium",
+    "home": "cards",
+    "cards": "elevated",
+    "buttons": "pill",
+    "header": "centered"
+  },
+  "light": {
+    "background": "#fbf4ea",
+    "foreground": "#2b2118",
+    "card": "#fffdf9",
+    "muted": "#6c5b4b",
+    "line": "#ebdfcd",
+    "lineStrong": "#cdb89d",
+    "accent": "#c24a24",
+    "accentContrast": "#ffffff",
+    "focus": "#c24a24",
+    "danger": "#a8201a",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#1b1612",
+    "foreground": "#f6ebdd",
+    "card": "#261f19",
+    "muted": "#b8a794",
+    "line": "#382e25",
+    "lineStrong": "#50433a",
+    "accent": "#f08a63",
+    "accentContrast": "#2a1208",
+    "focus": "#f08a63",
+    "danger": "#f27a73",
+    "dangerContrast": "#2a0b09"
+  }
+}

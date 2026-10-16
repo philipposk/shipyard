@@ -1,0 +1,56 @@
+{
+  "id": "editorial",
+  "name": "Editorial",
+  "description": "Paper-white pages, ink-black text, big serif headings, top links and plain outlined buttons. Made for reading.",
+  "goodFor": "blogs, writing, news, content-first apps",
+  "defaultTheme": "light",
+  "font": {
+    "body": "Source Sans 3",
+    "heading": "Fraunces"
+  },
+  "radius": {
+    "base": 4,
+    "sm": 2
+  },
+  "shadow": "none",
+  "type": {
+    "scale": "large",
+    "headingWeight": 600,
+    "headingTracking": "tight"
+  },
+  "layout": {
+    "nav": "top-nav",
+    "density": "airy",
+    "maxWidth": "narrow",
+    "home": "editorial",
+    "cards": "flat",
+    "buttons": "outline",
+    "header": "plain"
+  },
+  "light": {
+    "background": "#faf7f0",
+    "foreground": "#1a1816",
+    "card": "#fffdf8",
+    "muted": "#5f574b",
+    "line": "#e5ddcc",
+    "lineStrong": "#bdb29b",
+    "accent": "#1d3f72",
+    "accentContrast": "#ffffff",
+    "focus": "#1d3f72",
+    "danger": "#b3261e",
+    "dangerContrast": "#ffffff"
+  },
+  "dark": {
+    "background": "#151310",
+    "foreground": "#efe9dc",
+    "card": "#1d1a16",
+    "muted": "#aba292",
+    "line": "#2e2a23",
+    "lineStrong": "#453f34",
+    "accent": "#8fb2e8",
+    "accentContrast": "#0c1626",
+    "focus": "#8fb2e8",
+    "danger": "#f2877d",
+    "dangerContrast": "#2a0b09"
+  }
+}

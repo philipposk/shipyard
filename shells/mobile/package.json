@@ -1,0 +1,21 @@
+{
+  "name": "app-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Phone app (iOS and Android) around the live website.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "sync": "cap sync",
+    "add:ios": "cap add ios --packagemanager SPM",
+    "add:android": "cap add android",
+    "open:ios": "cap open ios",
+    "open:android": "cap open android",
+    "icons": "node scripts/generate-icons.mjs",
+    "apply-native": "node scripts/apply-native-config.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
