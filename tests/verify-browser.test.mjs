@@ -18,6 +18,7 @@ exports.chromium = {
     return {
       async newContext(opts) {
         const handlers = {};
+        let initTheme = null;
         const page = {
           on(evt, cb) { handlers[evt] = cb; },
           async goto(url) {
@@ -27,11 +28,15 @@ exports.chromium = {
             for (const b of s.responses ?? []) handlers.response?.({ status: () => b.status, url: () => 'http://x.test' + b.path });
             for (const f of s.requestFailures ?? []) handlers.requestfailed?.({ failure: () => ({ errorText: f.why }), url: () => 'http://x.test' + f.path });
           },
-          async evaluate() { return { scrollWidth: (s.scrollWidth?.[opts.colorScheme]) ?? 390, innerWidth: opts.viewport.width }; },
+          async evaluate() { return { scrollWidth: (s.scrollWidth?.[opts.colorScheme]) ?? 390, innerWidth: opts.viewport.width, theme: s.stuckTheme ?? initTheme }; },
           async screenshot({ path: p }) { fs.writeFileSync(p, 'png'); },
         };
         globalThis.__viewports = (globalThis.__viewports ?? []).concat([[opts.viewport.width, opts.viewport.height, opts.colorScheme]]);
-        return { async newPage() { return page; }, async close() {} };
+        return {
+          async addInitScript(fn, arg) { initTheme = arg; globalThis.__initThemes = (globalThis.__initThemes ?? []).concat([arg]); },
+          async newPage() { return page; },
+          async close() {},
+        };
       },
       async close() {},
     };
@@ -120,4 +125,19 @@ test('a page that does not load is reported for both themes', async (t) => {
   assert.equal(r.ok, false);
   assert.match(r.problems.join('\n'), /light: the home page did not load/);
   assert.match(r.problems.join('\n'), /dark: the home page did not load/);
+});
+
+test('switches the app itself to each theme (not only the OS colour scheme)', async (t) => {
+  globalThis.__initThemes = [];
+  const dir = await appWithPlaywright(t, {});
+  const r = await run(dir);
+  assert.equal(r.ok, true);
+  assert.deepEqual(globalThis.__initThemes, ['light', 'dark']);
+});
+
+test('fails when the page stays light in the dark pass', async (t) => {
+  const dir = await appWithPlaywright(t, { stuckTheme: 'light' });
+  const r = await run(dir);
+  assert.equal(r.ok, false);
+  assert.ok(r.problems.some((d) => /dark: the page stayed in light mode/.test(d)), JSON.stringify(r.problems));
 });

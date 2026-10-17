@@ -30,6 +30,12 @@ const shortUrl = (u) => {
 
 async function visit(browser, url, scheme, shotPath) {
   const context = await browser.newContext({ viewport: VIEWPORT, colorScheme: scheme });
+  // The app keeps its own theme choice in localStorage ("theme": light | dark | system) and its
+  // no-flash script reads it before paint. The OS colour scheme alone is ignored when that choice is
+  // "light" (the default), so set the choice itself, or the "dark" pass would just be light again.
+  await context.addInitScript((t) => {
+    try { window.localStorage.setItem('theme', t); } catch {}
+  }, scheme);
   const page = await context.newPage();
   const errors = [];
   const bad = [];
@@ -69,6 +75,7 @@ async function visit(browser, url, scheme, shotPath) {
     scroll = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       innerWidth: window.innerWidth,
+      theme: document.documentElement.getAttribute('data-theme'),
     }));
     await page.screenshot({ path: shotPath });
   }
@@ -113,6 +120,9 @@ export async function check(ctx) {
         continue;
       }
       screens.push(path.relative(ctx.appDir, file).split(path.sep).join('/'));
+      if (r.scroll.theme && r.scroll.theme !== scheme) {
+        problems.push(`${scheme}: the page stayed in ${r.scroll.theme} mode, so ${scheme} mode was not really shown (check the theme script in src/app/layout.tsx)`);
+      }
       if (r.scroll.scrollWidth > r.scroll.innerWidth + 1) {
         problems.push(`${scheme}: the page scrolls sideways on a phone (content is ${r.scroll.scrollWidth}px wide, the screen is ${r.scroll.innerWidth}px)`);
       }
