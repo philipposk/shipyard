@@ -8,6 +8,7 @@ process.env.SHIPYARD_HOME = mkdtempSync(path.join(os.tmpdir(), 'shipyard-verify-
 
 const util = await import('../scripts/verify/util.mjs');
 const { formatReport, tally, summarizeForProfile, labelFor } = await import('../scripts/verify/format.mjs');
+const { isVerified } = await import('../scripts/verify.mjs');
 const { normalizeUrl } = await import('../scripts/verify.mjs');
 const { readStringList } = await import('../scripts/verify/proxy.mjs');
 const { supabaseFromEnv, randomPassword, randomTestEmail, isIdentifier } = await import('../scripts/verify/supabase.mjs');
@@ -122,9 +123,28 @@ test('formatReport shows pass, fail, skipped and the not-checked list', () => {
   assert.match(text, /emails/);
 });
 
-test('formatReport says all good when nothing failed', () => {
-  const lines = formatReport(sampleResult([util.pass('proxy', 'ok'), util.skip('auth', 'no web address')]));
-  assert.ok(lines.some((l) => l.kind === 'ok' && /All 1 checks that ran passed, 1 could not run/.test(l.text)));
+test('formatReport: green tick only when every check ran; skips are never shown as a clean pass', () => {
+  const all = formatReport(sampleResult([util.pass('proxy', 'ok'), util.pass('auth', 'ok')]));
+  assert.ok(all.some((l) => l.kind === 'ok' && /All 2 checks passed\./.test(l.text)));
+
+  const partial = formatReport(sampleResult([util.pass('proxy', 'ok'), util.skip('auth', 'no web address')]));
+  assert.ok(!partial.some((l) => l.kind === 'ok' && /All /.test(l.text)));
+  assert.ok(partial.some((l) => l.kind === 'warn' && /NOT FULLY VERIFIED: 1 check passed, 1 could not run \(Sign-in\)/.test(l.text)));
+
+  const none = formatReport(sampleResult([util.skip('routes', 'no web address')], { ok: false }));
+  assert.ok(none.some((l) => l.kind === 'fail' && /NOT VERIFIED: no check could run/.test(l.text)));
+
+  const asked = formatReport(sampleResult([util.pass('proxy', 'ok'), util.skip('auth', 'no web address')], { ok: false }));
+  assert.ok(asked.some((l) => l.kind === 'fail' && /NOT VERIFIED: 1 check passed, but these checks you asked for could not run: Sign-in/.test(l.text)));
+});
+
+test('isVerified: nothing ran or a picked check was skipped is not success', () => {
+  assert.equal(isVerified({ passed: 3, failed: 0, skipped: 5 }, false), true);
+  assert.equal(isVerified({ passed: 0, failed: 0, skipped: 8 }, false), false);
+  assert.equal(isVerified({ passed: 0, failed: 0, skipped: 0 }, true), false);
+  assert.equal(isVerified({ passed: 1, failed: 0, skipped: 1 }, true), false);
+  assert.equal(isVerified({ passed: 2, failed: 0, skipped: 0 }, true), true);
+  assert.equal(isVerified({ passed: 2, failed: 1, skipped: 0 }, true), false);
 });
 
 test('tally and summarizeForProfile', () => {

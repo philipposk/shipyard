@@ -34,12 +34,14 @@ function fakeResend({ status = 'verified', keys = [], failCreate = false } = {})
 
 function fakeSupabase() {
   const state = { config: { site_url: 'https://tea.example', smtp_host: '' }, patches: [] };
+  const calls = [];
   const fetch = async (url, init = {}) => {
     const method = init.method ?? 'GET';
+    calls.push(`${method} ${url}`);
     if (method === 'PATCH') { const body = JSON.parse(init.body); state.patches.push(body); Object.assign(state.config, body); }
     return { ok: true, status: 200, text: async () => JSON.stringify(state.config), headers: new Map() };
   };
-  return { state, fetch };
+  return { state, fetch, calls };
 }
 
 async function emailSetup(t, config = {}) {
@@ -194,6 +196,43 @@ test('launch-email --switch-to-verified: an app without the email list gets no c
   const r = await launchEmail({ appDir: app.dir, switchToVerified: true }, deps());
   assert.ok(!vercel.set.some((e) => e.name === 'NEWSLETTER_CONSENT_NOT_BEFORE'));
   assert.deepEqual(r.warnings, []);
+});
+
+test('launch-email on an app that shares its Supabase project: the project\'s sign-up email settings are never touched', async (t) => {
+  for (const flag of [{ shared: true, schema: 'app_tea' }, { supabaseShared: true }]) {
+    const { app, vercel, supabase, deps } = await emailSetup(t, flag);
+    const asked = [];
+    const d = deps({ getSecret: async (name) => { asked.push(name); return name === 'RESEND_API_KEY' ? FULL : 'sbp_' + 'x'.repeat(30); } });
+    const r = await launchEmail({ appDir: app.dir }, d);
+    // No call to the Supabase auth settings at all: not a read, not a PATCH.
+    assert.deepEqual(supabase.state.patches, []);
+    assert.equal(supabase.calls.length, 0, 'Supabase was not called');
+    assert.ok(!asked.includes('SUPABASE_ACCESS_TOKEN'), 'the Supabase token was not even read');
+    assert.equal(r.smtpConfigured, false);
+    assert.equal(r.supabaseSkipped, 'shared-project');
+    assert.ok(r.warnings.some((w) => /shares its Supabase project/.test(w)));
+    // The app\'s own emails still work: the sending key and sender are set on Vercel.
+    assert.deepEqual(vercel.set.map((e) => e.name).sort(), ['RESEND_API_KEY', 'RESEND_FROM']);
+    assert.equal(r.vercelUpdated, true);
+    assert.equal((await readConfig(app.dir)).launch.email.smtp, false);
+  }
+});
+
+test('launch-email --switch-to-verified on a shared app is refused before anything is changed anywhere', async (t) => {
+  const { app, vercel, supabase, deps } = await emailSetup(t, { shared: true, schema: 'app_tea' });
+  const resend = fakeResend();
+  const touched = [];
+  for (const name of Object.keys(resend)) {
+    if (typeof resend[name] === 'function') { const original = resend[name]; resend[name] = async (...a) => { touched.push(name); return original(...a); }; }
+  }
+  await assert.rejects(
+    () => launchEmail({ appDir: app.dir, switchToVerified: true }, deps({ resend })),
+    (e) => e.data.reason === 'shared-project' && /does not change the project's sign-up email settings/.test(e.message),
+  );
+  assert.deepEqual(touched, []);
+  assert.deepEqual(vercel.set, []);
+  assert.equal(supabase.calls.length, 0);
+  assert.deepEqual(supabase.state.patches, []);
 });
 
 // ---------------------------------------------------------------- domain

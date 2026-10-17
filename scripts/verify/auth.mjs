@@ -3,12 +3,17 @@
 // signs out and deletes the user. The password is random and never printed.
 import { request, joinUrl, pass, failed, skip } from './util.mjs';
 import { createSupabase, supabaseFromEnv, randomPassword, randomTestEmail } from './supabase.mjs';
+import { sharedProjectGate } from './shared-guard.mjs';
 
 export async function check(ctx) {
   const name = 'auth';
   if (!ctx.url) return skip(name, 'no web address given (pass --url, or deploy first)');
   const env = supabaseFromEnv(ctx.secrets);
   if (!env.ok) return skip(name, env.reason);
+
+  // In a project shared with other apps: the schema setting must be right, and test users only on request.
+  const gate = await sharedProjectGate(ctx, env, name);
+  if (gate.stop) return gate.stop;
 
   const sb = createSupabase(env);
   const email = randomTestEmail();
@@ -51,6 +56,7 @@ export async function check(ctx) {
       } else {
         details.push('the app recognises the signed-in user');
         if (body.profile && body.profile.id === userId) details.push('the profile row was created automatically at sign-up');
+        else if (env.schema && env.schema !== 'public') problems.push('the signed-in user has no profile row (in a shared project the app must create it itself, with ensureProfile, the first time it needs it)');
         else problems.push('the signed-in user has no profile row (the database trigger from migration 0001 did not run)');
       }
     }
@@ -82,6 +88,6 @@ export async function check(ctx) {
     }
   }
 
-  if (problems.length > 0) return failed(name, `${problems.length} problem${problems.length === 1 ? '' : 's'} with sign-in`, problems, { details });
-  return pass(name, 'sign-in works end to end', details);
+  if (problems.length > 0) return failed(name, `${problems.length} problem${problems.length === 1 ? '' : 's'} with sign-in`, problems, { details, warnings: gate.warnings });
+  return pass(name, 'sign-in works end to end', details, { warnings: gate.warnings });
 }

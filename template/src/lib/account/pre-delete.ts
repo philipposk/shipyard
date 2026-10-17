@@ -26,3 +26,20 @@ export interface PreDeleteHook {
  * `on delete cascade` is emptied automatically when the account is deleted.
  */
 export const PRE_DELETE_HOOKS: PreDeleteHook[] = [];
+
+/** A table that holds one person's rows, and the column that says whose they are. */
+export interface AccountDataTable {
+  table: string;
+  column: string;
+}
+
+/**
+ * Where this app keeps a person's data. Used only when the app shares its Supabase project with other apps
+ * (schema other than `public`): then "delete my account" must NOT delete the sign-in user (the other apps use that
+ * login too), so it deletes the person's rows from these tables instead. Add every table that holds personal data:
+ * `{ table: "notes", column: "user_id" }`. Modules append their own tables. `profiles` is always deleted last.
+ */
+export const ACCOUNT_DATA_TABLES: AccountDataTable[] = [
+  { table: "items", column: "user_id" },
+  { table: "profiles", column: "id" },
+];

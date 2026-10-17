@@ -1,6 +1,7 @@
 // Create (or find) the app's Vercel project, copy its settings over, open the site to
 // visitors and connect it to GitHub. Safe to run again.
 import path from 'node:path';
+import { readFile, writeFile } from 'node:fs/promises';
 import * as realVercel from '../lib/vercel.mjs';
 import { readSecrets as realReadSecrets, parseEnv, ACCOUNT_LEVEL_SECRETS, LIVE_ONLY_SECRETS, PER_APP_SECRETS } from '../lib/secrets.mjs';
 import { run as realRun } from '../lib/run.mjs';
@@ -13,9 +14,30 @@ import { readEnvText } from './envfile.mjs';
 
 const REQUIRED_SUPABASE = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
 const SITE_URL_NAME = 'NEXT_PUBLIC_SITE_URL';
+const SCHEMA_ENV_NAME = 'NEXT_PUBLIC_SUPABASE_SCHEMA';
 // Once the app takes real payments, production holds the live Stripe values. A later run of this script must not put
 // the test ones back over them, so these names are only refreshed in the development environment from then on.
 const PAYMENT_NAMES = new Set(['STRIPE_SECRET_KEY', 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PORTAL_CONFIGURATION']);
+
+/**
+ * 'vercel link' appends a bare '.env*' line to .gitignore, which would also hide .env.example-style files.
+ * Replace it with '.env*.local' (what the app needs) unless the file already keeps .env.example visible.
+ */
+export async function fixGitignore(appDir) {
+  const file = path.join(appDir, '.gitignore');
+  let text;
+  try { text = await readFile(file, 'utf8'); } catch { return false; }
+  const lines = text.split(/\r?\n/);
+  if (!lines.some((l) => l.trim() === '.env*')) return false;
+  if (lines.some((l) => l.trim() === '!.env.example')) return false;
+  const out = [];
+  for (const l of lines) {
+    if (l.trim() !== '.env*') { out.push(l); continue; }
+    if (!lines.some((x) => x.trim() === '.env*.local') && !out.some((x) => x.trim() === '.env*.local')) out.push('.env*.local');
+  }
+  await writeFile(file, out.join('\n'));
+  return true;
+}
 
 /** Check the app is a git repo with a GitHub remote and a pushed main branch. Returns the remote address. */
 export async function checkPushed(run, appDir) {
@@ -43,6 +65,9 @@ export async function checkPushed(run, appDir) {
  */
 export async function collectEnv({ appDir, config, readSecrets }) {
   const names = appEnvNames(config);
+  // An app in its own schema inside a shared Supabase project needs the schema name in production too, or it would
+  // read the public schema (which belongs to the other apps).
+  if (config.shared && !names.includes(SCHEMA_ENV_NAME)) names.push(SCHEMA_ENV_NAME);
   const liveNames = names.filter((n) => LIVE_ONLY_SECRETS.has(n));
   if (liveNames.length > 0) {
     throw new ProvisionError(
@@ -95,7 +120,7 @@ export async function provisionVercel(opts, deps = {}) {
   log.ok('The main branch is on GitHub.');
 
   const { values, missing } = await collectEnv({ appDir, config, readSecrets });
-  const lacking = REQUIRED_SUPABASE.filter((n) => !values.has(n));
+  const lacking = [...REQUIRED_SUPABASE, ...(config.shared ? [SCHEMA_ENV_NAME] : [])].filter((n) => !values.has(n));
   if (lacking.length > 0) {
     throw new ProvisionError(`The Supabase settings are not in .env.local yet (${lacking.join(', ')}). Run provision-supabase.mjs on this folder first.`);
   }
@@ -111,6 +136,7 @@ export async function provisionVercel(opts, deps = {}) {
   const linked = await vercel.link({ cwd: appDir, project: slug, scope, run });
   if (!linked.ok) throw new ProvisionError(`Vercel could not create or link the project. ${linked.error}`);
   log.ok('Project linked.');
+  await fixGitignore(appDir);
 
   // The address is only known after the first deploy. Vercel's usual one is <name>.vercel.app;
   // deploy.mjs corrects it if Vercel picked another.

@@ -162,6 +162,7 @@ test('esc, formatTime, describeVerify', () => {
   assert.equal(formatTime(new Date(2026, 0, 5, 7, 8)), '5 Jan 2026, 07:08');
   assert.match(describeVerify(null).html, /Not checked yet/);
   assert.match(describeVerify({ failed: 0 }).html, /Passed/);
+  assert.match(describeVerify({ ok: false, failed: 0 }).html, /Not verified/);
   assert.match(describeVerify({ status: 'FAILED', failures: [1] }).html, /Failed, 1 problem</);
   assert.match(describeVerify({}).html, /Checked/);
 });

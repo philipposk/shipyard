@@ -209,3 +209,139 @@ test('isolation: if user B can not be created and cleanup works, nothing is left
   assert.ok(!r.problems.join('\n').includes('NOT deleted'));
   assert.equal(fake.state.users.size, 0);
 });
+
+// ---------- apps in their own schema (shared Supabase project) ----------
+
+const withSchema = (ctx, schema) => {
+  const secrets = new Map(ctx.secrets);
+  secrets.set('NEXT_PUBLIC_SUPABASE_SCHEMA', schema);
+  return { ...ctx, secrets };
+};
+
+test('isolation: an app in its own schema sends Accept-Profile on reads and Content-Profile on writes, every time', async (t) => {
+  const { fake, ctx } = await setup(t);
+  const r = await isolation(withSchema(ctx, 'app_notes'));
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const calls = fake.state.restHeaders;
+  assert.ok(calls.length > 20, 'the check made many database calls');
+  for (const c of calls) {
+    if (c.method === 'GET' || c.method === 'HEAD') {
+      assert.equal(c.accept, 'app_notes', `${c.method} ${c.path} must name the schema`);
+      assert.equal(c.content, null);
+    } else {
+      assert.equal(c.content, 'app_notes', `${c.method} ${c.path} must name the schema`);
+      assert.equal(c.accept, null);
+    }
+  }
+  assert.ok(calls.some((c) => c.method === 'POST') && calls.some((c) => c.method === 'PATCH') && calls.some((c) => c.method === 'DELETE'));
+  noKeysIn(r);
+});
+
+test('isolation: an app on the public schema sends no profile headers at all', async (t) => {
+  const { fake, ctx } = await setup(t);
+  assert.equal((await isolation(ctx)).ok, true);
+  assert.ok(fake.state.restHeaders.length > 0);
+  assert.ok(fake.state.restHeaders.every((c) => c.accept === null && c.content === null));
+  fake.state.restHeaders.length = 0;
+  assert.equal((await isolation(withSchema(ctx, 'public'))).ok, true);
+  assert.ok(fake.state.restHeaders.every((c) => c.accept === null && c.content === null), 'public means no header');
+});
+
+test('auth: works for an app in its own schema, and a missing profile row points at ensureProfile', async (t) => {
+  const { fake, ctx } = await setup(t, { noProfileTrigger: true });
+  const r = await auth(withSchema(ctx, 'app_notes'));
+  assert.equal(r.ok, false);
+  assert.match(r.problems.join('\n'), /no profile row/);
+  assert.match(r.problems.join('\n'), /ensureProfile/);
+  assert.ok(!/trigger from migration 0001/.test(r.problems.join('\n')));
+  assert.equal(fake.state.users.size, 0);
+});
+
+test('a bad schema name in .env.local is reported, not used', async (t) => {
+  const { ctx } = await setup(t);
+  const r = await isolation(withSchema(ctx, 'bad name; drop'));
+  assert.equal(r.skipped, true);
+  assert.match(r.reason, /NEXT_PUBLIC_SUPABASE_SCHEMA/);
+});
+
+// ---------- apps in a project shared with other apps ----------
+
+const sharedApp = { slug: 'notes', shared: true, schema: 'app_notes', supabaseRef: 'abcdefghijklmnopqrst' };
+
+test('shared project: auth and isolation make no test user unless --allow-test-users is given', async (t) => {
+  const { fake, ctx } = await setup(t);
+  const shared = withSchema({ ...ctx, app: sharedApp }, 'app_notes');
+  for (const check of [auth, isolation]) {
+    const r = await check(shared);
+    assert.equal(r.skipped, true, JSON.stringify(r));
+    assert.match(r.reason, /shares its Supabase project/);
+    assert.match(r.reason, /--allow-test-users/);
+  }
+  assert.equal(fake.state.users.size, 0);
+  assert.deepEqual(fake.state.requests, [], 'nothing at all was sent to Supabase or the app');
+});
+
+test('shared project: with --allow-test-users it runs, names the number of other apps\' sign-up triggers, and cleans up', async (t) => {
+  const { fake, ctx } = await setup(t);
+  const shared = { ...withSchema({ ...ctx, app: sharedApp }, 'app_notes'), allowTestUsers: true, countAuthTriggers: async () => 5 };
+  for (const check of [auth, isolation]) {
+    const r = await check(shared);
+    assert.equal(r.ok, true, JSON.stringify(r));
+    assert.ok(r.warnings.some((w) => /5 sign-up triggers/.test(w) && /may leave a row behind/.test(w)), JSON.stringify(r.warnings));
+    noKeysIn(r);
+  }
+  assert.equal(fake.state.users.size, 0);
+  // When the count can not be read, the warning still says it.
+  const unknown = await auth({ ...shared, countAuthTriggers: async () => null });
+  assert.ok(unknown.warnings.some((w) => /other apps' sign-up triggers/.test(w)));
+  const one = await auth({ ...shared, countAuthTriggers: async () => 1 });
+  assert.ok(one.warnings.some((w) => /1 sign-up trigger from/.test(w)));
+});
+
+test('shared project: a schema setting that is missing or wrong fails auth and isolation before any user is made', async (t) => {
+  const { fake, ctx } = await setup(t);
+  for (const schema of [null, 'public', 'app_other']) {
+    const secrets = new Map(ctx.secrets);
+    if (schema) secrets.set('NEXT_PUBLIC_SUPABASE_SCHEMA', schema); else secrets.delete('NEXT_PUBLIC_SUPABASE_SCHEMA');
+    const shared = { ...ctx, secrets, app: sharedApp, allowTestUsers: true, countAuthTriggers: async () => 1 };
+    for (const check of [auth, isolation]) {
+      const r = await check(shared);
+      assert.equal(r.ok, false, `${schema}: ${JSON.stringify(r)}`);
+      assert.match(r.problems.join('\n'), /NEXT_PUBLIC_SUPABASE_SCHEMA in \.env\.local must be app_notes/);
+      assert.match(r.problems.join('\n'), /Run provision-supabase\.mjs again/);
+    }
+  }
+  assert.deepEqual(fake.state.requests, []);
+});
+
+test('an app of its own (not shared) is not affected by the shared-project rules', async (t) => {
+  const { fake, ctx } = await setup(t);
+  const r = await auth({ ...ctx, app: { slug: 'solo', supabaseRef: 'abcdefghijklmnopqrst' } });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.ok(!r.warnings || r.warnings.length === 0);
+  assert.equal(fake.state.users.size, 0);
+});
+
+test('the number of auth.users triggers is read through the Management API, and is null when it can not be', async () => {
+  const { countAuthTriggers } = await import('../scripts/verify/shared-guard.mjs');
+  const seen = [];
+  const fetch = async (url, init) => {
+    seen.push([init.method, new URL(url).pathname, JSON.parse(init.body).query]);
+    return new Response(JSON.stringify([{ tgname: 'a', fn: 'x' }, { tgname: 'b', fn: 'y' }]), { status: 200 });
+  };
+  assert.equal(await countAuthTriggers(sharedApp, { getSecret: async () => `sbp_${'a1b2c3d4'.repeat(5)}`, fetch }), 2);
+  assert.equal(seen[0][0], 'POST');
+  assert.match(seen[0][1], /\/database\/query$/);
+  assert.match(seen[0][2], /^select tgname/);
+  assert.equal(await countAuthTriggers(sharedApp, { getSecret: async () => { throw new Error('no token'); }, fetch }), null);
+  assert.equal(await countAuthTriggers({ slug: 'x' }, { getSecret: async () => 'x', fetch }), null);
+});
+
+test('verify --help mentions --allow-test-users', async () => {
+  const { main } = await import('../scripts/verify.mjs');
+  const out = [];
+  const original = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (chunk) => { out.push(String(chunk)); return true; };
+  try { assert.equal(await main(['--help']), 0); } finally { process.stdout.write = original; }
+  assert.match(out.join(''), /--allow-test-users/);
+});

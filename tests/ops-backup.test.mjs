@@ -349,3 +349,53 @@ test('the restore steps say Claude does not open the files, and the sign-in list
   assert.match(withAuth, /ids, emails, sign-up dates/);
   assert.match(withAuth, /no passwords, phone numbers or names/);
 });
+
+// ---------------------------------------------------------------- an app in a shared Supabase project
+
+test('shared project: the backup reads the app\'s own schema and never the public one (another app\'s tables)', async () => {
+  const app = await makeApp();
+  await updateAppConfig(app.dir, { shared: true, schema: 'app_bk' });
+  const queries = [];
+  const tables = { profiles: rowsOf(2), items: rowsOf(3) };
+  const api = {
+    async runSql(auth, ref, query) {
+      queries.push(query);
+      if (query.includes('information_schema.tables')) {
+        assert.match(query, /table_schema = 'app_bk'/);
+        return Object.keys(tables).map((table_name) => ({ table_name }));
+      }
+      if (query.includes('_shipyard_migrations')) return [{ name: '0001_profiles.sql' }];
+      let m = /count\(\*\)::int as n from "app_bk"\."([^"]+)"/.exec(query);
+      if (m) return [{ n: tables[m[1]].length }];
+      m = /count\(\*\)::int as n from \(select u\.\* from auth\.users u where exists \(select 1 from "app_bk"\.profiles p where p\.id = u\.id\)\) as users/.exec(query);
+      if (m) return [{ n: 2 }];
+      m = /from "app_bk"\."([^"]+)"(?: order by (.+?))? limit (\d+) offset (\d+)\) t/.exec(query);
+      if (m) return [{ rows: tables[m[1]].slice(Number(m[4]), Number(m[4]) + Number(m[3])) }];
+      m = /from \(select u\.\* from auth\.users u .* as users order by "id" limit (\d+) offset (\d+)\) t/.exec(query);
+      if (m) return [{ rows: [{ id: 'a', email: 'a@example.com' }, { id: 'b', email: 'b@example.com' }] }];
+      throw new Error(`unexpected SQL: ${query}`);
+    },
+  };
+  const r = await B.exportBackup({ appDir: app.dir, includeAuth: true }, { api, getSecret: async () => TOKEN, homeDir: sandbox.home });
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.tables.map((t) => [t.name, t.rows]).sort(), [['auth_users', 2], ['items', 3], ['profiles', 2]]);
+  assert.deepEqual(await readJson(r.folder, 'profiles.json'), rowsOf(2));
+  for (const q of queries) {
+    assert.ok(!/\bpublic\b/i.test(q), `a query names public: ${q.slice(0, 100)}`);
+    assert.ok(q.includes('app_bk') || q.includes('auth.users'), q.slice(0, 100));
+  }
+  // The login list holds every app's people: only those with a profile here are saved.
+  assert.ok(queries.some((q) => /exists \(select 1 from "app_bk"\.profiles p where p\.id = u\.id\)/.test(q)));
+  assert.equal((await readJson(r.folder, 'manifest.json')).schema, 'app_bk');
+});
+
+test('shared project: a schema name that is missing or not valid stops the backup before any query', async () => {
+  const app = await makeApp();
+  await updateAppConfig(app.dir, { shared: true });
+  const queries = [];
+  const api = { runSql: async (a, r, q) => { queries.push(q); return []; } };
+  await assert.rejects(() => B.exportBackup({ appDir: app.dir }, { api, getSecret: async () => TOKEN, homeDir: sandbox.home }), /schema name is not recorded/);
+  await updateAppConfig(app.dir, { schema: 'public' });
+  await assert.rejects(() => B.exportBackup({ appDir: app.dir }, { api, getSecret: async () => TOKEN, homeDir: sandbox.home }), { name: 'ProvisionError' });
+  assert.deepEqual(queries, []);
+});

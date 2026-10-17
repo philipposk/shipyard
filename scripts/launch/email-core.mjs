@@ -14,6 +14,8 @@ import { normalizeDomain, formatRecordTable } from './domain-core.mjs';
 import { parseCountry, isEea, isUk } from './countries.mjs';
 import { recordLaunch, addEnvNames, sleepMs, scrub } from './common.mjs';
 
+export const SHARED_EMAIL_MESSAGE = 'This app shares its Supabase project with other apps, so Shipyard does not change the project\'s sign-up email settings (they belong to every app there): not the email server, not the sender, and not whether sign-ups need a confirmed email. Change them by hand in the Supabase dashboard (Authentication) if you really want to. The app\'s own emails (RESEND_API_KEY on Vercel) still work.';
+
 export const SMTP = { host: 'smtp.resend.com', port: '465', user: 'resend' };
 const REGIONS = ['us-east-1', 'eu-west-1', 'sa-east-1', 'ap-northeast-1'];
 
@@ -114,6 +116,12 @@ export async function launchEmail(opts, deps = {}) {
   const profile = await profileApi.loadProfile();
   const scope = profile.accounts?.vercel?.scope || undefined;
   const appName = config.name || config.slug;
+  // An app that shares its Supabase project with other apps must not touch the project's sign-up email settings: they
+  // belong to every app there (the email server and sender, and whether sign-ups need a confirmed email).
+  const sharedProject = Boolean(config.shared || config.supabaseShared);
+  if (sharedProject && opts.switchToVerified) {
+    throw new ProvisionError(SHARED_EMAIL_MESSAGE, { reason: 'shared-project' });
+  }
 
   const baseDomain = config.launch?.domain?.name || (profile.domain?.choice === 'own' ? profile.domain?.name : '') || '';
   const sending = normalizeDomain(opts.domain || (baseDomain ? `send.${baseDomain}` : ''));
@@ -230,37 +238,47 @@ export async function launchEmail(opts, deps = {}) {
 
   // ---- Supabase: real sign-up emails
   const refStep = opts.check ? 4 : 3;
-  log.step(refStep, total, 'Connecting Supabase to Resend, so sign-up emails go out');
-  const ref = config.supabaseRef || (profile.apps ?? []).find((a) => a.slug === config.slug)?.supabaseRef;
-  if (!ref) throw new ProvisionError('This app has no Supabase project yet. Run provision-supabase.mjs on the app folder first.');
-  const token = await getSecret('SUPABASE_ACCESS_TOKEN');
-  const auth = { token, fetch: deps.supabase?.fetch, sleep: deps.supabase?.sleep };
-  const safe = async (fn) => {
-    try {
-      return await fn();
-    } catch (err) {
-      if (err?.name === 'ApiError') throw new ProvisionError(scrub(err.message, [key, token, ...secretValues]));
-      throw err;
-    }
-  };
-  const before = (await safe(() => supabaseApi.getAuthConfig(auth, ref))) ?? {};
-  if (before.smtp_host && before.smtp_host !== SMTP.host) log.warn(`Replacing the custom email settings Supabase had (${before.smtp_host}).`);
+  let after = {};
+  let supabaseCall = null;
   const from = `noreply@${sending}`;
-  await safe(() => supabaseApi.patchAuthConfig(auth, ref, {
-    external_email_enabled: true,
-    smtp_host: SMTP.host,
-    smtp_port: SMTP.port,
-    smtp_user: SMTP.user,
-    smtp_pass: appKey.token,
-    smtp_admin_email: from,
-    smtp_sender_name: senderName(appName),
-  }));
-  const after = (await safe(() => supabaseApi.getAuthConfig(auth, ref))) ?? {};
-  if (after.smtp_host !== SMTP.host || after.smtp_admin_email !== from) {
-    throw new ProvisionError('Supabase accepted the email settings but does not show them back. Open Supabase > Authentication > Emails > SMTP Settings and check them.');
+  if (sharedProject) {
+    log.step(refStep, total, 'Skipping the Supabase email settings (this app shares its project with other apps)');
+    log.warn(SHARED_EMAIL_MESSAGE);
+    result.warnings.push(SHARED_EMAIL_MESSAGE);
+    result.supabaseSkipped = 'shared-project';
+  } else {
+    log.step(refStep, total, 'Connecting Supabase to Resend, so sign-up emails go out');
+    const ref = config.supabaseRef || (profile.apps ?? []).find((a) => a.slug === config.slug)?.supabaseRef;
+    if (!ref) throw new ProvisionError('This app has no Supabase project yet. Run provision-supabase.mjs on the app folder first.');
+    const token = await getSecret('SUPABASE_ACCESS_TOKEN');
+    const auth = { token, fetch: deps.supabase?.fetch, sleep: deps.supabase?.sleep };
+    const safe = async (fn) => {
+      try {
+        return await fn();
+      } catch (err) {
+        if (err?.name === 'ApiError') throw new ProvisionError(scrub(err.message, [key, token, ...secretValues]));
+        throw err;
+      }
+    };
+    supabaseCall = { ref, auth, safe };
+    const before = (await safe(() => supabaseApi.getAuthConfig(auth, ref))) ?? {};
+    if (before.smtp_host && before.smtp_host !== SMTP.host) log.warn(`Replacing the custom email settings Supabase had (${before.smtp_host}).`);
+    await safe(() => supabaseApi.patchAuthConfig(auth, ref, {
+      external_email_enabled: true,
+      smtp_host: SMTP.host,
+      smtp_port: SMTP.port,
+      smtp_user: SMTP.user,
+      smtp_pass: appKey.token,
+      smtp_admin_email: from,
+      smtp_sender_name: senderName(appName),
+    }));
+    after = (await safe(() => supabaseApi.getAuthConfig(auth, ref))) ?? {};
+    if (after.smtp_host !== SMTP.host || after.smtp_admin_email !== from) {
+      throw new ProvisionError('Supabase accepted the email settings but does not show them back. Open Supabase > Authentication > Emails > SMTP Settings and check them.');
+    }
+    result.smtpConfigured = true;
+    log.ok(`Supabase now sends its emails from ${from} through Resend.`);
   }
-  result.smtpConfigured = true;
-  log.ok(`Supabase now sends its emails from ${from} through Resend.`);
 
   // ---- Vercel: the app's own emails (password reset, newsletter)
   const fromHeader = `${senderName(appName)} <${from}>`;
@@ -270,7 +288,7 @@ export async function launchEmail(opts, deps = {}) {
     if (!r.ok) failures.push(`${name}: ${scrub(r.error, secretValues)}`);
   }
   if (failures.length > 0) {
-    throw new ProvisionError(`Supabase is ready, but Vercel did not accept the email settings (${failures.join('; ')}). Run provision-vercel.mjs, then this again.`, { ...info(), reason: 'vercel' });
+    throw new ProvisionError(`${sharedProject ? 'The sending key is ready' : 'Supabase is ready'}, but Vercel did not accept the email settings (${failures.join('; ')}). Run provision-vercel.mjs, then this again.`, { ...info(), reason: 'vercel' });
   }
   result.vercelUpdated = true;
 
@@ -295,7 +313,7 @@ export async function launchEmail(opts, deps = {}) {
   await addEnvNames(appDir, ['RESEND_API_KEY', 'RESEND_FROM']);
   log.ok('RESEND_API_KEY and RESEND_FROM are set on Vercel.');
 
-  await recordLaunch(appDir, { email: { sendingDomain: sending, from: fromHeader, verified: true, verifiedAt: new Date().toISOString(), smtp: true, region: region ?? null } }, { profile: profileApi });
+  await recordLaunch(appDir, { email: { sendingDomain: sending, from: fromHeader, verified: true, verifiedAt: new Date().toISOString(), smtp: !sharedProject, region: region ?? null } }, { profile: profileApi });
   const saved = await profileApi.loadProfile();
   saved.accounts = { ...(saved.accounts ?? {}), resend: { ...(saved.accounts?.resend ?? {}), ok: true, domain: sending } };
   await profileApi.saveProfile(saved);
@@ -308,6 +326,7 @@ export async function launchEmail(opts, deps = {}) {
     }
     originOf(siteUrl);
     const mail = confirmationEmail(appName);
+    const { ref, auth, safe } = supabaseCall;
     await safe(() => supabaseApi.patchAuthConfig(auth, ref, {
       mailer_autoconfirm: false,
       mailer_subjects_confirmation: mail.subject,

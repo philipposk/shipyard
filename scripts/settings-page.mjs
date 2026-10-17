@@ -276,6 +276,7 @@ export function describeVerify(lv) {
   const when = formatTime(lv.at ?? lv.checkedAt ?? lv.time ?? lv.date ?? lv.timestamp ?? lv.ranAt);
   let html;
   if (passed === true) html = mark.yes('Passed');
+  else if (passed === false && lv.failed === 0) html = mark.need('Not verified');
   else if (passed === false) html = mark.need(problems ? `Failed, ${problems} ${problems === 1 ? 'problem' : 'problems'}` : 'Failed');
   else html = esc('Checked');
   return { html, when };

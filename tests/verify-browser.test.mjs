@@ -11,9 +11,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 const scenario = () => JSON.parse(fs.readFileSync(path.join(__dirname, 'scenario.json'), 'utf8'));
 exports.chromium = {
-  async launch() {
+  async launch(o = {}) {
     const s = scenario();
-    if (s.launchError) throw new Error(s.launchError);
+    globalThis.__launches = (globalThis.__launches ?? []).concat([o.channel ?? 'bundled']);
+    if (s.launchError && !(o.channel === 'chrome' && s.chromeWorks)) throw new Error(s.launchError);
     return {
       async newContext(opts) {
         const handlers = {};
@@ -97,6 +98,13 @@ test('a missing Chromium download is a skip with the install command', async (t)
   const r = await run(dir);
   assert.equal(r.skipped, true);
   assert.match(r.reason, /npx playwright install chromium/);
+});
+
+test('a missing bundled Chromium falls back to the installed Google Chrome', async (t) => {
+  const dir = await appWithPlaywright(t, { launchError: "browserType.launch: Executable doesn't exist at /x", chromeWorks: true });
+  const r = await run(dir);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.deepEqual(globalThis.__launches.slice(-2), ['bundled', 'chrome']);
 });
 
 test('another launch error fails with a short message', async (t) => {

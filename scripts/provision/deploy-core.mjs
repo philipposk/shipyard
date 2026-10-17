@@ -198,7 +198,7 @@ export async function deploy(opts, deps = {}) {
   try {
     const r = await setAuthUrls({ appDir, url: finalUrl });
     authUrls = { ok: true, changed: r.changed };
-    log.ok('Sign-in addresses updated.');
+    log.ok(r.changed ? 'Sign-in addresses updated.' : 'Sign-in addresses were already up to date.');
   } catch (err) {
     authUrls = { ok: false, error: err.message };
     log.fail(`The site is live, but sign-in will not work until the address is added in Supabase. ${err.message}`);

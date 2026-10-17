@@ -12,6 +12,7 @@ import * as log from '../lib/log.mjs';
 import { run as realRun } from '../lib/run.mjs';
 import { ProvisionError, readAppConfig, atomicWrite } from '../provision/common.mjs';
 import { loadModule } from '../modules/core.mjs';
+import { schemaIdent, sqlLiteral } from '../provision/shared-sql.mjs';
 import { backupStamp, recordOps } from './common.mjs';
 
 export const TABLE_RE = /^[a-z_][a-z0-9_]*$/;
@@ -146,13 +147,21 @@ export async function exportBackup(opts, deps = {}) {
   const stamp = backupStamp(deps.now ? deps.now() : new Date());
   await assertSafeBackupFolder(path.join(homeDir, 'backups', slug, stamp), appDir, { run: deps.run ?? realRun, userHome: deps.userHome });
 
+  // An app in a shared Supabase project keeps its tables in its own schema. The `public` schema there belongs to other apps.
+  if (config.shared && !config.schema) {
+    throw new ProvisionError('This app shares its Supabase project but its schema name is not recorded in .shipyard-app.json. Run provision-supabase.mjs again, then the backup.');
+  }
+  const schema = config.shared ? String(config.schema) : 'public';
+  const where = config.shared ? schemaIdent(schema) : 'public'; // a shared app's name is validated (never `public`) and quoted
+  const isShared = Boolean(config.shared);
+
   const token = await getSecret('SUPABASE_ACCESS_TOKEN');
   const auth = { token, fetch: deps.fetch, sleep: deps.sleep };
   const sql = async (query) => api.runSql(auth, ref, query);
 
   log.step(1, 3, 'Reading the list of tables');
   const wanted = await wantedTables(appDir, config, { modulesDir: deps.modulesDir });
-  const listed = await sql("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by table_name");
+  const listed = await sql(`select table_name from information_schema.tables where table_schema = ${sqlLiteral(schema)} and table_type = 'BASE TABLE' order by table_name`);
   const actual = (Array.isArray(listed) ? listed : []).map((r) => r.table_name).filter((n) => typeof n === 'string');
   const exportNames = wanted.names.filter((n) => actual.includes(n));
   const missing = wanted.names.filter((n) => !actual.includes(n));
@@ -166,7 +175,7 @@ export async function exportBackup(opts, deps = {}) {
 
   let migrations = [];
   try {
-    const m = await sql('select name from public._shipyard_migrations order by name');
+    const m = await sql(`select name from ${where}._shipyard_migrations order by name`);
     migrations = (Array.isArray(m) ? m : []).map((r) => r.name).filter((n) => typeof n === 'string');
   } catch {
     // the app was set up some other way: the manifest just has no schema version
@@ -176,12 +185,13 @@ export async function exportBackup(opts, deps = {}) {
   const written = [];
   try {
     log.step(2, 3, `Copying ${exportNames.length} table${exportNames.length === 1 ? '' : 's'}${opts.includeAuth ? ' and the sign-in list' : ''}`);
-    const jobs = exportNames.map((name) => ({ name, file: `${name}.json`, from: `public.${q(name)}`, pk: null, schema: 'public' }));
+    const jobs = exportNames.map((name) => ({ name, file: `${name}.json`, from: `${where}.${q(name)}`, pk: null, schema }));
     if (opts.includeAuth) {
       jobs.push({
         name: 'auth_users', file: 'auth_users.json', schema: 'auth',
-        from: 'auth.users', // Only what is needed to link the saved rows back to people: no phone numbers, names or profile data.
-        columns: 'id, email, created_at, email_confirmed_at', order: 'id',
+        // In a shared project the login list holds every app's people: only those who have a profile in this app's schema are saved.
+        from: !isShared ? 'auth.users' : `(select u.* from auth.users u where exists (select 1 from ${where}.profiles p where p.id = u.id)) as users`,
+        columns: 'id, email, created_at, email_confirmed_at', order: 'id', // Only what is needed to link the saved rows back to people: no phone numbers, names or profile data.
       });
     }
     for (const job of jobs) {
@@ -195,6 +205,7 @@ export async function exportBackup(opts, deps = {}) {
     const manifest = {
       app: slug,
       projectRef: ref,
+      ...(isShared ? { schema } : {}),
       createdAt: new Date().toISOString(),
       tool: 'Shipyard backup-export',
       pageSize,
@@ -243,7 +254,7 @@ async function copyTable({ sql, dir, job, pageSize }) {
   if (!order && expected > pageSize) {
     const pk = await sql(
       `select a.attname as col from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any(i.indkey) `
-      + `where i.indrelid = 'public.${q(job.name)}'::regclass and i.indisprimary order by array_position(i.indkey::int2[], a.attnum)`,
+      + `where i.indrelid = '${job.from}'::regclass and i.indisprimary order by array_position(i.indkey::int2[], a.attnum)`,
     ).catch(() => []);
     const cols = (Array.isArray(pk) ? pk : []).map((r) => r.col).filter(Boolean);
     order = cols.length > 0 ? cols.map(q).join(', ') : 'ctid';

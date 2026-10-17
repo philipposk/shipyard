@@ -135,6 +135,16 @@
       "skipIfFileMissing": true,
       "note": "Add the newsletter checks to the Health page: spread newsletterHealthChecks (from @/lib/newsletter/health) into the list of checks.",
       "array": "HEALTH_CHECKS"
+    },
+    {
+      "id": "newsletter-delete-subscriber",
+      "file": "src/lib/account/pre-delete.ts",
+      "kind": "array",
+      "array": "ACCOUNT_DATA_TABLES",
+      "entry": "{ table: \"newsletter_subscribers\", column: \"user_id\" }",
+      "already": "\"newsletter_subscribers\"",
+      "skipIfFileMissing": true,
+      "note": "List this table of personal data for account deletion in a shared Supabase project: add { table: \"newsletter_subscribers\", column: \"user_id\" } to ACCOUNT_DATA_TABLES in src/lib/account/pre-delete.ts."
     }
   ],
   "next": [

@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { SUPABASE_SCHEMA } from "@/lib/supabase/schema.mjs";
 
 /**
  * Supabase with the secret server key. It skips every privacy rule (RLS), so use it only in
@@ -15,6 +16,7 @@ export function createSupabaseAdmin() {
 
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
+    db: { schema: SUPABASE_SCHEMA },
   });
 }
 

@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pass, failed, skip } from './util.mjs';
 import { createSupabase, supabaseFromEnv, randomPassword, randomTestEmail, isIdentifier } from './supabase.mjs';
+import { sharedProjectGate } from './shared-guard.mjs';
 
 const MARK = 'shipyard-isolation-test';
 const SKIP_COLUMNS = new Set(['id', 'created_at', 'updated_at']);
@@ -153,6 +154,10 @@ export async function check(ctx) {
   const env = supabaseFromEnv(ctx.secrets);
   if (!env.ok) return skip(name, env.reason);
 
+  // In a project shared with other apps: the schema setting must be right, and test users only on request.
+  const gate = await sharedProjectGate(ctx, env, name);
+  if (gate.stop) return gate.stop;
+
   const parsed = await readEntries(ctx.appDir);
   if (parsed.error) return failed(name, 'isolation list problem', [parsed.error]);
 
@@ -160,7 +165,7 @@ export async function check(ctx) {
   const users = [];
   const details = [];
   const problems = [];
-  const warnings = [];
+  const warnings = [...gate.warnings];
   const touched = [];
   let early = null; // set when the test can not go on; the result is built AFTER cleanup so cleanup problems are included
 

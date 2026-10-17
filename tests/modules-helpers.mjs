@@ -54,6 +54,11 @@ export const HEALTH_CHECKS: HealthCheck[] = [
 export const HOOKS_TS = `import "server-only";
 
 export const PRE_DELETE_HOOKS: PreDeleteHook[] = [];
+
+export const ACCOUNT_DATA_TABLES: AccountDataTable[] = [
+  { table: "items", column: "user_id" },
+  { table: "profiles", column: "id" },
+];
 `;
 
 export async function writeTree(root, files) {

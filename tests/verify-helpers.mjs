@@ -59,7 +59,7 @@ export async function copyTemplateDir(dir) {
  */
 export async function startFake(opts = {}) {
   const leak = new Set(opts.leak ?? []);
-  const state = { users: new Map(), items: [], profiles: [], subs: [], requests: [] };
+  const state = { users: new Map(), items: [], profiles: [], subs: [], requests: [], restHeaders: [] };
   const PROFILE_COLUMNS = new Set(['display_name', 'bio', 'onboarding_complete']);
 
   const send = (res, status, body, headers = {}) => {
@@ -98,6 +98,9 @@ export async function startFake(opts = {}) {
     const u = new URL(req.url, 'http://x');
     const p = u.pathname;
     state.requests.push(`${req.method} ${p}`);
+    if (p.startsWith('/rest/v1/')) {
+      state.restHeaders.push({ method: req.method, path: p, accept: req.headers['accept-profile'] ?? null, content: req.headers['content-profile'] ?? null });
+    }
 
     // ----- Supabase auth -----
     if (p === '/auth/v1/admin/users' && req.method === 'POST') {

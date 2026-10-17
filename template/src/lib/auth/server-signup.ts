@@ -1,6 +1,7 @@
 import "server-only";
 import { createSupabaseAdmin } from "@/lib/admin";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { ensureProfile } from "@/lib/auth/ensure-profile";
 import { GOOGLE_SIGNIN_ENABLED, SIGNUP_MODE, SITE_URL } from "@/lib/constants";
 import { confirmRedirectUrl, isHiddenExistingUser, signupErrorToResult } from "@/lib/auth/signup-mode.mjs";
 
@@ -54,6 +55,9 @@ async function starterSignup(email: string, password: string): Promise<SignupRes
     }
     return { ok: false, status: 400, error: "Could not create the account. Check the email and try again." };
   }
+
+  // The sign-up trigger normally makes the profile row; without it (shared project) make it now.
+  if (data.user?.id) await ensureProfile(data.user.id, email);
 
   return { ok: true, userId: data.user?.id, needsConfirmation: false };
 }

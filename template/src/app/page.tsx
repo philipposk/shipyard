@@ -35,6 +35,11 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           Your account has been deleted.
         </p>
       ) : null}
+      {notice === "account-data-deleted" ? (
+        <p className="card card-pad mt-0 mb-4" role="status">
+          Your data in this app has been deleted. Your login stays, because other apps use it too.
+        </p>
+      ) : null}
       <Home />
     </AppShell>
   );

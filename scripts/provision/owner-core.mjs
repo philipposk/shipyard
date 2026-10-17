@@ -12,6 +12,7 @@ import { spawn } from 'node:child_process';
 import { ProvisionError, readAppConfig, originOf } from './common.mjs';
 import { parseEnv } from '../lib/secrets.mjs';
 import { createSupabase, supabaseFromEnv, randomPassword } from '../verify/supabase.mjs';
+import { schemaMismatchMessage } from '../verify/shared-guard.mjs';
 import { loadProfile } from '../lib/profile.mjs';
 
 const EMAIL_RE = /^[^\s@'"$#]+@[^\s@'"$#]+\.[^\s@'"$#]+$/;
@@ -58,8 +59,17 @@ export async function makeOwner({ appDir, email, url, open = true, resetPassword
   }
   if (!EMAIL_RE.test(ownerEmail)) throw new ProvisionError(`"${ownerEmail}" does not look like an email address.`);
 
+  // In a shared project this account also signs in to the other apps there. Replacing its password would lock the
+  // owner out of those apps, so it is never done here.
+  if (resetPassword && (config.shared || config.supabaseShared)) {
+    throw new ProvisionError('This app shares its Supabase project (and so its list of accounts) with other apps, so the owner\'s password is not replaced here: it would also change the password for those apps. If you did not make that account yourself, remove it in the Supabase dashboard (Authentication > Users) and run this again.');
+  }
+
   const keys = supabaseFromEnv(env);
   if (!keys.ok) throw new ProvisionError(`Cannot reach this app's database yet: ${keys.reason}.`);
+  // A shared app's tables are in its own schema. Without the schema setting the calls below would go to `public`,
+  // which in a shared project belongs to another app (and would make the owner email an admin there).
+  if (config.shared && keys.schema !== config.schema) throw new ProvisionError(schemaMismatchMessage(config.schema));
   const sb = createSupabase(keys);
   const fail = (what, detail) => new ProvisionError(`${what}${detail ? ` (${sb.redact(detail)})` : ''}`);
 

@@ -1,6 +1,6 @@
 # Verify
 
-Run: `node "${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs" <appDir>` (add `--url <address>` if the address is not saved yet, `--only routes,auth` to re-run some checks). It prints a tick or cross per check, plus what it could not check and why. It saves `<appDir>/.shipyard/verify.json` and writes the result to the profile.
+Run: `node "${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs" <appDir>` (add `--url <address>` if the address is not saved yet, `--only routes,auth` to re-run some checks). It prints a tick or cross per check, plus what it could not check and why. It saves `<appDir>/.shipyard/verify.json` and writes the result to the profile. Exit 0 = every check that ran passed; exit 1 = a check failed, or nothing could be verified (no check ran, or a check you picked with `--only` was skipped). A line that says NOT VERIFIED or NOT FULLY VERIFIED is not a pass: do not tell the student the app works. An app that shares its Supabase project with other apps (`--shared`) skips the `auth` and `isolation` checks unless you add `--allow-test-users`: a test user runs the other apps' sign-up triggers, so it only happens when the owner agrees. Say so; do not call those checks passed.
 
 Re-run after every fix. "Vercel says ready" is not proof; only the real address passing is.
 

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { authCookieOptions } from "./cookies";
+import { SUPABASE_SCHEMA } from "./schema.mjs";
 
 /** Supabase for server code that acts as the signed-in visitor (public key + their login cookie). */
 export async function createSupabaseServer() {
@@ -10,6 +11,7 @@ export async function createSupabaseServer() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: authCookieOptions,
+      db: { schema: SUPABASE_SCHEMA },
       cookies: {
         getAll() {
           return cookieStore.getAll();

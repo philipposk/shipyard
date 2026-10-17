@@ -94,6 +94,16 @@
       "already": "/admin/logs",
       "skipIfFileMissing": true,
       "note": "Link the Health page to the error log: add a link to /admin/logs above the list of checks."
+    },
+    {
+      "id": "errors-delete-own-log",
+      "file": "src/lib/account/pre-delete.ts",
+      "kind": "array",
+      "array": "ACCOUNT_DATA_TABLES",
+      "entry": "{ table: \"error_log\", column: \"user_id\" }",
+      "already": "\"error_log\"",
+      "skipIfFileMissing": true,
+      "note": "List this table of personal data for account deletion in a shared Supabase project: add { table: \"error_log\", column: \"user_id\" } to ACCOUNT_DATA_TABLES in src/lib/account/pre-delete.ts."
     }
   ],
   "next": [

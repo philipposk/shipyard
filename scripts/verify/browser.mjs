@@ -85,14 +85,20 @@ export async function check(ctx) {
   const screensDir = path.join(ctx.appDir, '.shipyard', 'screens');
   await mkdir(screensDir, { recursive: true });
 
+  const missingBuild = (err) => /Executable doesn't exist|playwright install/i.test(String(err?.message));
   let browser;
   try {
     browser = await playwright.chromium.launch({ headless: true });
   } catch (err) {
-    if (/Executable doesn't exist|playwright install|browserType\.launch/i.test(String(err?.message))) {
-      return skip(name, 'the Chromium browser is not installed (run: npx playwright install chromium)');
+    if (!missingBuild(err) && !/browserType\.launch/i.test(String(err?.message))) {
+      return failed(name, 'could not start the browser', [String(err?.message ?? '').split('\n')[0].slice(0, 160)]);
     }
-    return failed(name, 'could not start the browser', [String(err?.message ?? '').split('\n')[0].slice(0, 160)]);
+    // The bundled Chromium is missing or too old for this Playwright: try the Google Chrome already installed.
+    try {
+      browser = await playwright.chromium.launch({ headless: true, channel: 'chrome' });
+    } catch {
+      return skip(name, 'no browser is available (run: npx playwright install chromium, or install Google Chrome)');
+    }
   }
 
   const details = [];

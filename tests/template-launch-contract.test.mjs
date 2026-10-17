@@ -94,10 +94,14 @@ test('account deletion: login + same site + typed DELETE, hooks before the delet
   assert.ok(!/body\??\.(?:userId|user_id|id)\b/.test(route), 'the person to delete is never taken from the request');
   assert.match(route, /deleteAccount\(user\)/);
   assert.match(route, /AUTH_COOKIE_NAME/);
-  const lib = await read('src/lib/auth/delete-account.ts');
+  const wrapper = await read('src/lib/auth/delete-account.ts');
+  assert.match(wrapper, /deleteAccountCore\(/);
+  assert.doesNotMatch(wrapper, /deleteUser/, 'the sign-in user is only ever deleted inside the core, behind the schema check');
+  const lib = await read('src/lib/account/delete-account-core.mjs');
   assert.ok(lib.indexOf('runPreDeleteHooks(') < lib.indexOf('auth.admin.deleteUser('), 'hooks run before the user is deleted');
+  assert.ok(lib.indexOf('schema !== "public"') < lib.indexOf('auth.admin.deleteUser('), 'a shared project returns before the user could be deleted');
   assert.match(lib, /is_admin/);
-  assert.match(lib, /if \(!hooks\.ok\)[\s\S]*?return/);
+  assert.match(lib, /if \(!ran\.ok\)[\s\S]*?return/);
   const hooks = await read('src/lib/account/pre-delete.ts');
   assert.match(hooks, /export const PRE_DELETE_HOOKS: PreDeleteHook\[\] = \[/);
   const settings = await read('src/app/settings/page.tsx');

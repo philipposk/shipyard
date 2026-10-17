@@ -107,6 +107,33 @@ test('getApiKeys with no usable keys throws a friendly error', async () => {
   await assert.rejects(() => S.getApiKeys(auth(fakeFetch([{ status: 200, body: [] }])), 'r'), /did not return the project keys/);
 });
 
+test('getPublicKey asks without reveal, returns only the public key, and never sees a server key', async () => {
+  const f = fakeFetch([{ status: 200, body: [
+    { type: 'publishable', name: 'default', api_key: 'PUB_KEY' },
+    { type: 'secret', name: 'default', api_key: 'sb_secret_****' },
+  ] }]);
+  const k = await S.getPublicKey(auth(f), 'abcdefghijklmnopqrst');
+  assert.deepEqual(k, { publicKey: 'PUB_KEY', kind: 'publishable' });
+  assert.ok(f.calls[0].url.endsWith('/projects/abcdefghijklmnopqrst/api-keys'), 'no ?reveal=true');
+  const legacy = fakeFetch([{ status: 200, body: [{ type: 'legacy', name: 'anon', api_key: 'LEGACY_ANON' }, { type: 'legacy', name: 'service_role', api_key: 'LEGACY_SERVICE' }] }]);
+  const l = await S.getPublicKey(auth(legacy), 'r');
+  assert.deepEqual(l, { publicKey: 'LEGACY_ANON', kind: 'legacy' });
+  assert.ok(!JSON.stringify(l).includes('LEGACY_SERVICE'));
+  await assert.rejects(() => S.getPublicKey(auth(fakeFetch([{ status: 200, body: [] }])), 'r'), /public key/);
+  await assert.rejects(() => S.getPublicKey(auth(fakeFetch([{ status: 400, body: { message: 'secret detail: PUB_KEY_VALUE' } }])), 'r'), (e) => !e.message.includes('PUB_KEY_VALUE'));
+});
+
+test('getPostgrestConfig keeps only db_schema: the JWT secret in the answer is dropped and never copied into an error', async () => {
+  const f = fakeFetch([{ status: 200, body: { db_schema: 'public,graphql_public', jwt_secret: 'super-secret-jwt-value', max_rows: 1000 } }]);
+  const cfg = await S.getPostgrestConfig(auth(f), 'abcdefghijklmnopqrst');
+  assert.deepEqual(cfg, { dbSchema: 'public,graphql_public' });
+  assert.ok(!JSON.stringify(cfg).includes('super-secret'));
+  assert.ok(f.calls[0].url.endsWith('/projects/abcdefghijklmnopqrst/postgrest'));
+  assert.equal(f.calls[0].method, 'GET');
+  assert.deepEqual(await S.getPostgrestConfig(auth(fakeFetch([{ status: 200, body: {} }])), 'r'), { dbSchema: '' });
+  await assert.rejects(() => S.getPostgrestConfig(auth(fakeFetch([{ status: 400, body: { message: 'jwt_secret=super-secret-jwt-value' } }])), 'r'), (e) => !e.message.includes('super-secret'));
+});
+
 test('runSql posts { query } and returns rows', async () => {
   const f = fakeFetch([{ status: 201, body: [{ n: 1 }] }]);
   const rows = await S.runSql(auth(f), 'r', 'select 1 as n');

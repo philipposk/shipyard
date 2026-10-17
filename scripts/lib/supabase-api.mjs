@@ -51,7 +51,7 @@ function safeMessage(status, bodyText, path) {
   const base = STATUS_HELP[status] ?? (status >= 500
     ? 'Supabase is having trouble right now. Try again in a few minutes.'
     : 'Supabase refused the request.');
-  if (path.includes('/api-keys')) return `${base} (HTTP ${status})`;
+  if (path.includes('/api-keys') || path.includes('/postgrest')) return `${base} (HTTP ${status})`;
   let detail = '';
   try {
     const parsed = JSON.parse(bodyText);
@@ -199,6 +199,32 @@ export async function getApiKeys(auth, ref) {
   const service = list.find((k) => k.name === 'service_role' && k.api_key);
   if (anon && service) return { publicKey: anon.api_key, serverKey: service.api_key, kind: 'legacy' };
   throw new ApiError(0, 'Supabase did not return the project keys yet. Wait a minute and try again.');
+}
+
+/**
+ * Only the project's public (publishable or legacy anon) key, for read-only look-ups. The list is asked for WITHOUT
+ * `reveal`, so the secret server key is not sent at all. Returns { publicKey, kind }.
+ */
+export async function getPublicKey(auth, ref) {
+  const keys = await request(auth, 'GET', `/projects/${seg(ref)}/api-keys`);
+  const list = Array.isArray(keys) ? keys : [];
+  const withKey = (pred) => list.filter((k) => pred(k) && typeof k.api_key === 'string' && k.api_key);
+  const publishable = withKey((k) => k.type === 'publishable');
+  const pub = publishable.find((k) => k.name === 'default') ?? publishable[0];
+  if (pub) return { publicKey: pub.api_key, kind: 'publishable' };
+  const anon = withKey((k) => k.name === 'anon')[0];
+  if (anon) return { publicKey: anon.api_key, kind: 'legacy' };
+  throw new ApiError(0, 'Supabase did not return the project\'s public key. Wait a minute and try again.');
+}
+
+/**
+ * The schemas the project's API serves by default (the platform's own setting, used when the database role does not
+ * override it). The response also holds the JWT secret: this keeps ONLY `db_schema` and drops the rest right here.
+ * Returns { dbSchema: string }.
+ */
+export async function getPostgrestConfig(auth, ref) {
+  const cfg = await request(auth, 'GET', `/projects/${seg(ref)}/postgrest`);
+  return { dbSchema: typeof cfg?.db_schema === 'string' ? cfg.db_schema : '' };
 }
 
 /** Run SQL as the database owner. Resolves to the result rows (an array). */

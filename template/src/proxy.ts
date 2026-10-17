@@ -5,6 +5,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { authCookieOptions } from "@/lib/supabase/cookies";
+import { SUPABASE_SCHEMA } from "@/lib/supabase/schema.mjs";
 import { SITE_SLUG } from "@/lib/constants";
 import { safeNext } from "@/lib/safe-next.mjs";
 
@@ -47,6 +48,7 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
 function createProxySupabase(req: NextRequest, res: NextResponse) {
   return createServerClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
     cookieOptions: authCookieOptions,
+    db: { schema: SUPABASE_SCHEMA },
     cookies: {
       getAll() {
         return req.cookies.getAll();
@@ -59,7 +61,8 @@ function createProxySupabase(req: NextRequest, res: NextResponse) {
   });
 }
 
-async function isOnboarded(supabase: ReturnType<typeof createServerClient>, userId: string): Promise<boolean> {
+// A person with no profile row yet counts as not finished: they go to /profile/edit, which creates the row.
+async function isOnboarded(supabase: ReturnType<typeof createProxySupabase>, userId: string): Promise<boolean> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("onboarding_complete")

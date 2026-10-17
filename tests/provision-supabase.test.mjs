@@ -15,7 +15,7 @@ log.setQuiet(true);
 const P = await import('../scripts/provision/supabase-core.mjs');
 const { scaffold } = await import('../scripts/provision/scaffold-core.mjs');
 const { loadProfile, saveProfile, defaultProfile } = await import('../scripts/lib/profile.mjs');
-const { readAppConfig } = await import('../scripts/provision/common.mjs');
+const { readAppConfig, updateAppConfig } = await import('../scripts/provision/common.mjs');
 
 const TOKEN = `sbp_${'a1b2c3d4'.repeat(5)}`;
 const PUBLIC_KEY = `sb_publishable_${'P'.repeat(30)}`;
@@ -235,11 +235,13 @@ test('the free plan limit stops before creating anything and lists the active pr
       assert.match(e.message, /old-two/);
       assert.ok(!/paused-one/.test(e.message));
       assert.match(e.message, /other-org/); // the limit counts every organization
-      assert.match(e.message, /--reuse/);
-      assert.match(e.message, /Pause/);
-      assert.ok(!/safe because every table/.test(e.message), 'must not claim that sharing is safe');
-      assert.match(e.message, /share one list of users/);
-      assert.match(e.message, /profiles/);
+      assert.match(e.message, /Pause a project/);
+      assert.ok(e.message.indexOf('Pause a project') < e.message.indexOf('--shared'), 'pausing is offered first');
+      assert.match(e.message, /dashboard/);
+      assert.match(e.message, /--shared <project id>/);
+      assert.match(e.message, /safe: the app gets its own space/);
+      assert.match(e.message, /does not touch the other apps/);
+      assert.ok(!/--reuse/.test(e.message), 'the old unsafe option is gone');
       assert.equal(e.data.reason, 'free-limit');
       assert.deepEqual(e.data.activeProjects.map((p) => p.name), ['old-one', 'old-two', 'other-org']);
       return true;
@@ -271,7 +273,7 @@ test('the limit counts projects in other organizations too, before anything is c
   }); // the chosen org ("my-org") is empty, but the account is already full
   await assert.rejects(
     () => P.provisionSupabase({ appDir: dir }, deps(fake)),
-    (e) => e.data.reason === 'free-limit' && /another organization/.test(e.message) && /--reuse/.test(e.message),
+    (e) => e.data.reason === 'free-limit' && /another organization/.test(e.message) && /--shared <project id>/.test(e.message) && !/--reuse/.test(e.message),
   );
   assert.equal(fake.count('POST /projects'), 0);
 });
@@ -301,14 +303,31 @@ test('projects in a paid organization do not count toward the free limit', async
   assert.equal(fake.count('POST /projects'), 1);
 });
 
-test('--reuse shares an existing project and leaves another app\'s main address alone', async () => {
-  const { slug, dir } = await makeApp();
+/** An app made before shared-schema mode: it sits in the public schema of a project other apps use. */
+async function makeLegacySharedApp(shared) {
+  const made = await makeApp();
+  await updateAppConfig(made.dir, { supabaseRef: shared, supabaseShared: true });
+  return made;
+}
+
+test('--reuse is gone: the core refuses it and points to --shared', async () => {
+  const { dir } = await makeApp();
+  const fake = makeSupabase();
+  await assert.rejects(
+    () => P.provisionSupabase({ appDir: dir, reuse: 'zzzzzzzzzzzzzzzzzzzz' }, deps(fake)),
+    (e) => /--reuse was removed/.test(e.message) && /--shared <project id>/.test(e.message),
+  );
+  assert.equal(fake.state.calls.length, 0, 'nothing was asked of Supabase');
+});
+
+test('an older shared app (supabaseShared) still leaves another app\'s main address alone', async () => {
   const shared = 'zzzzzzzzzzzzzzzzzzzz';
+  const { slug, dir } = await makeLegacySharedApp(shared);
   const fake = makeSupabase({
     projects: [{ id: shared, ref: shared, name: 'shared-db', organization_slug: 'my-org', status: 'ACTIVE_HEALTHY' }],
     authConfig: { site_url: 'https://first-app.vercel.app', uri_allow_list: 'https://first-app.vercel.app/**' },
   });
-  const result = await P.provisionSupabase({ appDir: dir, reuse: shared }, deps(fake));
+  const result = await P.provisionSupabase({ appDir: dir }, deps(fake));
   assert.equal(result.ref, shared);
   assert.equal(result.shared, true);
   assert.equal(result.created, false);
@@ -317,36 +336,29 @@ test('--reuse shares an existing project and leaves another app\'s main address 
   assert.ok(fake.state.authConfig.uri_allow_list.split(',').includes('https://first-app.vercel.app/**'));
   assert.ok(!fake.state.authConfig.uri_allow_list.includes('*.vercel.app'), 'no wildcard preview address');
   assert.ok(!fake.state.authConfig.uri_allow_list.includes(`${slug}-*`));
-  const cfg = await readAppConfig(dir);
-  assert.equal(cfg.supabaseRef, shared);
-  assert.equal(cfg.supabaseShared, true);
-  // The shared flag sticks on later runs.
-  const again = await P.provisionSupabase({ appDir: dir }, deps(fake));
-  assert.equal(again.shared, true);
-  assert.equal(again.ref, shared);
 });
 
-test('--reuse into a project another app already uses is refused when table names overlap, and nothing is changed', async () => {
-  const { dir } = await makeApp();
+test('an older shared app is refused when table names overlap, and nothing is changed', async () => {
   const shared = 'zzzzzzzzzzzzzzzzzzzz';
+  const { dir } = await makeLegacySharedApp(shared);
   const fake = makeSupabase({ projects: [{ id: shared, ref: shared, name: 'shared-db', organization_slug: 'my-org', status: 'ACTIVE_HEALTHY' }] });
   fake.state.applied.add('first-app/0001_profiles.sql');
   fake.state.tables = ['profiles', 'items', '_shipyard_migrations'];
   await assert.rejects(
-    () => P.provisionSupabase({ appDir: dir, reuse: shared }, deps(fake)),
-    (e) => e.data.reason === 'shared-overlap' && /first-app/.test(e.message) && /profiles/.test(e.message) && /items/.test(e.message) && /Nothing was changed/.test(e.message),
+    () => P.provisionSupabase({ appDir: dir }, deps(fake)),
+    (e) => e.data.reason === 'shared-overlap' && /first-app/.test(e.message) && /profiles/.test(e.message) && /items/.test(e.message) && /Nothing was changed/.test(e.message) && !/--reuse/.test(e.message),
   );
   assert.equal(fake.state.sql.filter((q) => q.includes('public.profiles')).length, 0, 'no migration ran');
   assert.equal(fake.state.patches.length, 0, 'sign-in settings untouched');
 });
 
-test('--reuse with another app but no overlapping table names goes ahead with a warning in the result', async () => {
-  const { dir } = await makeApp();
+test('an older shared app with no overlapping table names goes ahead with a warning in the result', async () => {
   const shared = 'zzzzzzzzzzzzzzzzzzzz';
+  const { dir } = await makeLegacySharedApp(shared);
   const fake = makeSupabase({ projects: [{ id: shared, ref: shared, name: 'shared-db', organization_slug: 'my-org', status: 'ACTIVE_HEALTHY' }] });
   fake.state.applied.add('first-app/0001_notes.sql');
   fake.state.tables = ['notes'];
-  const result = await P.provisionSupabase({ appDir: dir, reuse: shared }, deps(fake));
+  const result = await P.provisionSupabase({ appDir: dir }, deps(fake));
   assert.equal(result.shared, true);
   assert.deepEqual(result.sharedWith, ['first-app']);
 });
@@ -358,28 +370,25 @@ test('tablesCreatedBy finds public tables and ignores other schemas and comments
   assert.deepEqual(found.sort(), ['items', 'notes', 'profiles']);
 });
 
-test('--reuse with an unknown or paused project is refused', async () => {
+test('a bad region is refused before anything is created', async () => {
   const { dir } = await makeApp();
-  const fake = makeSupabase({ projects: [{ id: 'yyyyyyyyyyyyyyyyyyyy', ref: 'yyyyyyyyyyyyyyyyyyyy', name: 'sleepy', organization_slug: 'my-org', status: 'INACTIVE' }] });
-  await assert.rejects(() => P.provisionSupabase({ appDir: dir, reuse: 'nnnnnnnnnnnnnnnnnnnn' }, deps(fake)), /was not found/);
-  await assert.rejects(() => P.provisionSupabase({ appDir: dir, reuse: 'yyyyyyyyyyyyyyyyyyyy' }, deps(fake)), /paused/);
-  await assert.rejects(() => P.provisionSupabase({ appDir: dir, reuse: 'short' }, deps(fake)), /not a Supabase project id/);
+  const fake = makeSupabase();
   await assert.rejects(() => P.provisionSupabase({ appDir: dir, region: 'Mars' }, deps(fake)), /region/);
   assert.equal(fake.count('POST /projects'), 0);
 });
 
-test('--reuse will not silently move an app that already has its own project', async () => {
+test('--schema and --dry-run without --shared are refused', async () => {
   const { dir } = await makeApp();
   const fake = makeSupabase();
-  await P.provisionSupabase({ appDir: dir }, deps(fake));
-  await assert.rejects(() => P.provisionSupabase({ appDir: dir, reuse: 'qqqqqqqqqqqqqqqqqqqq' }, deps(fake)), /already connected to the Supabase project/);
-  assert.equal((await readAppConfig(dir)).supabaseRef, REF);
+  await assert.rejects(() => P.provisionSupabase({ appDir: dir, dryRun: true }, deps(fake)), /--shared/);
+  await assert.rejects(() => P.provisionSupabase({ appDir: dir, schema: 'app_x' }, deps(fake)), /--shared/);
+  assert.equal(fake.state.calls.length, 0);
 });
 
 test('a project with the app\'s name that is not recorded is not adopted silently', async () => {
   const { slug, dir } = await makeApp();
   const fake = makeSupabase({ projects: [{ id: 'eeeeeeeeeeeeeeeeeeee', ref: 'eeeeeeeeeeeeeeeeeeee', name: slug, organization_slug: 'my-org', status: 'ACTIVE_HEALTHY' }] });
-  await assert.rejects(() => P.provisionSupabase({ appDir: dir }, deps(fake)), (e) => /already exists/.test(e.message) && /--reuse eeeeeeeeeeeeeeeeeeee/.test(e.message));
+  await assert.rejects(() => P.provisionSupabase({ appDir: dir }, deps(fake)), (e) => /already exists/.test(e.message) && /eeeeeeeeeeeeeeeeeeee/.test(e.message) && /supabaseRef/.test(e.message) && !/--reuse/.test(e.message));
   assert.equal(fake.count('POST /projects'), 0);
 });
 
@@ -459,7 +468,7 @@ test('--url only touches the sign-in settings and never removes an address', asy
   assert.ok(list.includes('http://localhost:3000/**'));
   assert.equal(new Set(list).size, list.length);
   const newCalls = fake.state.calls.slice(before).map((c) => c.route);
-  assert.deepEqual(newCalls, ['GET /projects/' + REF + '/config/auth', 'PATCH /projects/' + REF + '/config/auth']);
+  assert.deepEqual(newCalls, ['GET /projects/' + REF + '/config/auth', 'PATCH /projects/' + REF + '/config/auth', 'GET /projects/' + REF + '/config/auth']);
 
   // Same address again: nothing to change.
   const same = await P.provisionSupabase({ appDir: dir, url: `https://${slug}.vercel.app` }, deps(fake));
@@ -511,11 +520,69 @@ function cli(args) {
 test('provision-supabase.mjs: --help exits 0, missing folder exits 2, unknown folder exits 1', () => {
   const help = cli(['--help']);
   assert.equal(help.status, 0);
-  assert.match(help.stdout, /--reuse/);
+  assert.match(help.stdout, /--shared/);
+  assert.match(help.stdout, /--dry-run/);
+  assert.ok(!/--reuse/.test(help.stdout), 'the old option is gone from the help');
+  assert.equal(cli(['x', '--reuse', 'zzzzzzzzzzzzzzzzzzzz']).status, 2);
+  assert.match(cli(['x', '--reuse', 'zzzzzzzzzzzzzzzzzzzz', '--json']).stdout, /--shared/);
+  assert.equal(cli(['x', '--dry-run']).status, 2);
+  assert.equal(cli(['x', '--url', 'https://a.example', '--shared', 'zzzzzzzzzzzzzzzzzzzz']).status, 2);
   assert.equal(cli([]).status, 2);
   assert.equal(cli(['a', 'b']).status, 2);
   assert.equal(cli(['x', '--nope']).status, 2);
   const missing = cli([path.join(tmp, 'does-not-exist'), '--json']);
   assert.equal(missing.status, 1);
   assert.equal(JSON.parse(missing.stdout).ok, false);
+});
+
+test('updateAuthUrls re-checks after the write and retries when another app overwrote the list', async () => {
+  const { slug, dir } = await makeApp();
+  const fake = makeSupabase({ authConfig: { uri_allow_list: 'https://a.example/**' } });
+  await P.provisionSupabase({ appDir: dir }, deps(fake));
+  const inner = fake.fetch;
+  let raced = false;
+  fake.fetch = async (url, init = {}) => {
+    const res = await inner(url, init);
+    // Another app's write lands right after ours and replaces the list with its own older copy plus its address.
+    if (!raced && init.method === 'PATCH' && String(url).endsWith('/config/auth')) {
+      raced = true;
+      fake.state.authConfig.uri_allow_list = 'https://a.example/**,https://racer.example/**';
+    }
+    return res;
+  };
+  await P.provisionSupabase({ appDir: dir, url: `https://${slug}.vercel.app` }, deps(fake));
+  const list = fake.state.authConfig.uri_allow_list.split(',');
+  assert.ok(raced);
+  assert.ok(list.includes('https://racer.example/**'), 'the other app address survives');
+  assert.ok(list.includes(`https://${slug}.vercel.app/**`), 'ours was put back');
+  assert.ok(list.includes('https://a.example/**'));
+});
+
+test('updateAuthUrls gives up with the lost addresses after 3 tries', async () => {
+  const { slug, dir } = await makeApp();
+  const fake = makeSupabase();
+  await P.provisionSupabase({ appDir: dir }, deps(fake));
+  const inner = fake.fetch;
+  fake.fetch = async (url, init = {}) => {
+    const res = await inner(url, init);
+    if (init.method === 'PATCH' && String(url).endsWith('/config/auth')) fake.state.authConfig.uri_allow_list = 'https://z.example/**';
+    return res;
+  };
+  await assert.rejects(() => P.provisionSupabase({ appDir: dir, url: `https://${slug}.vercel.app` }, deps(fake)), /lost/);
+});
+
+test('updateAuthUrls does not rewrite the shared list when only spacing differs', async () => {
+  const { slug, dir } = await makeApp();
+  const fake = makeSupabase();
+  await P.provisionSupabase({ appDir: dir }, deps(fake));
+  fake.state.authConfig.uri_allow_list = fake.state.authConfig.uri_allow_list.split(',').join(' , ') + ',';
+  const patches = fake.state.patches.length;
+  const r = await P.provisionSupabase({ appDir: dir, url: `https://${slug}.vercel.app` }, deps(fake));
+  assert.equal(fake.state.patches.length, patches + 1, 'first --url adds the real address');
+  const again = fake.state.patches.length;
+  fake.state.authConfig.uri_allow_list = fake.state.authConfig.uri_allow_list.split(',').join(' , ');
+  const r2 = await P.provisionSupabase({ appDir: dir, url: `https://${slug}.vercel.app` }, deps(fake));
+  assert.equal(r2.changed, false);
+  assert.equal(fake.state.patches.length, again);
+  assert.ok(r);
 });

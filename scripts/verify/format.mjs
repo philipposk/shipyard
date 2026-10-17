@@ -35,13 +35,21 @@ export function formatReport(result) {
   }
 
   const t = tally(result.checks);
+  const skippedNames = result.checks.filter((c) => c.skipped).map((c) => labelFor(c.name)).join(', ');
+  let summary;
+  if (t.failed > 0) {
+    summary = { kind: 'fail', text: `${t.failed} of ${t.passed + t.failed} checks failed. Fix these and run verify again.` };
+  } else if (!result.ok && t.passed === 0) {
+    summary = { kind: 'fail', text: 'NOT VERIFIED: no check could run, so nothing was checked. See "What verify did not check" below.' };
+  } else if (!result.ok) {
+    summary = { kind: 'fail', text: `NOT VERIFIED: ${t.passed} ${t.passed === 1 ? 'check' : 'checks'} passed, but these checks you asked for could not run: ${skippedNames}.` };
+  } else if (t.skipped > 0) {
+    summary = { kind: 'warn', text: `NOT FULLY VERIFIED: ${t.passed} ${t.passed === 1 ? 'check' : 'checks'} passed, ${t.skipped} could not run (${skippedNames}).` };
+  } else {
+    summary = { kind: 'ok', text: `All ${t.passed} checks passed.` };
+  }
   lines.push({ kind: 'blank', text: '' });
-  lines.push({
-    kind: result.ok ? 'ok' : 'fail',
-    text: result.ok
-      ? `All ${t.passed} checks that ran passed${t.skipped ? `, ${t.skipped} could not run` : ''}.`
-      : `${t.failed} of ${t.passed + t.failed} checks failed. Fix these and run verify again.`,
-  });
+  lines.push(summary);
 
   const notChecked = [
     ...result.checks.filter((c) => c.skipped).map((c) => `${labelFor(c.name)}: ${c.reason}`),

@@ -333,3 +333,47 @@ test('provision-vercel.mjs: --help exits 0, wrong options exit 2, unknown folder
   assert.equal(missing.status, 1);
   assert.equal(JSON.parse(missing.stdout).ok, false);
 });
+
+test('an app in a shared Supabase project sends its schema name to Vercel too', async () => {
+  const { dir } = await makeApp();
+  await updateEnvFile(path.join(dir, '.env.local'), { NEXT_PUBLIC_SUPABASE_SCHEMA: 'app_notes' });
+  await updateAppConfig(dir, { shared: true, schema: 'app_notes' });
+  const r = makeRun();
+  const result = await V.provisionVercel({ appDir: dir }, { run: r.fn, readSecrets: noSecrets });
+  assert.ok(result.envSet.includes('NEXT_PUBLIC_SUPABASE_SCHEMA'));
+  const adds = r.vercelCalls().filter((c) => c.rest[0] === 'env' && c.rest[1] === 'add' && c.rest[2] === 'NEXT_PUBLIC_SUPABASE_SCHEMA');
+  assert.deepEqual(adds.map((c) => [c.rest[3], c.input]), [['production', 'app_notes'], ['development', 'app_notes']]);
+});
+
+test('a shared app without its schema name in .env.local is not sent to Vercel (it would read the public schema)', async () => {
+  const { dir } = await makeApp();
+  await updateAppConfig(dir, { shared: true, schema: 'app_notes' });
+  const r = makeRun();
+  await assert.rejects(
+    () => V.provisionVercel({ appDir: dir }, { run: r.fn, readSecrets: noSecrets }),
+    /NEXT_PUBLIC_SUPABASE_SCHEMA/,
+  );
+  assert.equal(r.vercelCalls().filter((c) => c.rest[0] === 'env').length, 0);
+});
+
+test('an app with its own Supabase project does not get a schema setting', async () => {
+  const { dir } = await makeApp();
+  const r = makeRun();
+  const result = await V.provisionVercel({ appDir: dir }, { run: r.fn, readSecrets: noSecrets });
+  assert.ok(!result.envSet.includes('NEXT_PUBLIC_SUPABASE_SCHEMA'));
+});
+
+test('fixGitignore swaps the bare .env* line that vercel link adds for .env*.local', async () => {
+  const { fixGitignore } = await import('../scripts/provision/vercel-core.mjs');
+  const d = await mkdtemp(path.join(os.tmpdir(), 'gi-'));
+  try {
+    await writeFile(path.join(d, '.gitignore'), 'node_modules\n.env*.local\n.vercel\n.env*\n');
+    assert.equal(await fixGitignore(d), true);
+    assert.equal(await readFile(path.join(d, '.gitignore'), 'utf8'), 'node_modules\n.env*.local\n.vercel\n');
+    assert.equal(await fixGitignore(d), false);
+    await writeFile(path.join(d, '.gitignore'), '.env*\n!.env.example\n');
+    assert.equal(await fixGitignore(d), false);
+  } finally {
+    await rm(d, { recursive: true, force: true });
+  }
+});

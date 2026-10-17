@@ -159,6 +159,26 @@
       "skipIfFileMissing": true,
       "note": "Cancel the Stripe subscription when someone deletes their account: add cancelBillingOnDelete (from @/lib/billing/pre-delete) to the list of things done before an account is deleted.",
       "array": "PRE_DELETE_HOOKS"
+    },
+    {
+      "id": "billing-delete-customers",
+      "file": "src/lib/account/pre-delete.ts",
+      "kind": "array",
+      "array": "ACCOUNT_DATA_TABLES",
+      "entry": "{ table: \"billing_customers\", column: \"user_id\" }",
+      "already": "\"billing_customers\"",
+      "skipIfFileMissing": true,
+      "note": "List this table of personal data for account deletion in a shared Supabase project: add { table: \"billing_customers\", column: \"user_id\" } to ACCOUNT_DATA_TABLES in src/lib/account/pre-delete.ts."
+    },
+    {
+      "id": "billing-delete-subscriptions",
+      "file": "src/lib/account/pre-delete.ts",
+      "kind": "array",
+      "array": "ACCOUNT_DATA_TABLES",
+      "entry": "{ table: \"subscriptions\", column: \"user_id\" }",
+      "already": "\"subscriptions\"",
+      "skipIfFileMissing": true,
+      "note": "List this table of personal data for account deletion in a shared Supabase project: add { table: \"subscriptions\", column: \"user_id\" } to ACCOUNT_DATA_TABLES in src/lib/account/pre-delete.ts."
     }
   ],
   "next": [

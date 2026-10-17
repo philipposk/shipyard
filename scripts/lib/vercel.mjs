@@ -24,7 +24,7 @@ const clean = (s) => String(s ?? '').replace(ANSI, '');
 
 /** Short, safe text from CLI output for error messages. */
 function tail(text, value) {
-  let t = clean(text).trim();
+  let t = clean(text).replace(/<\/?[A-Za-z][^>]*>/g, '').trim();
   if (value) t = t.split(value).join('***');
   const lines = t.split(/\r?\n/).filter((l) => l.trim() && !/^Vercel CLI \d/.test(l.trim()) && !/EBADENGINE/.test(l));
   return lines.slice(-4).join(' ').slice(0, 400);
@@ -152,5 +152,7 @@ export async function protectionDisable({ cwd, project, scope, run } = {}) {
 /** Connect the linked project to its GitHub repo (deploys on push). */
 export async function gitConnect({ cwd, scope, run } = {}) {
   const r = await vercel(['git', 'connect', '--yes'], { cwd, scope, run });
-  return r.code === 0 ? { ok: true } : failure(r);
+  if (r.code === 0) return { ok: true };
+  if (/already connected/i.test(`${clean(r.stdout)}\n${clean(r.stderr)}`)) return { ok: true, already: true };
+  return failure(r);
 }

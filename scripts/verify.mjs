@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Shipyard verify: checks that an app really works before anyone says "done".
 //   node verify.mjs <appDir> [--url <address>] [--only a,b] [--json]
-// Exit code: 0 all checks that ran passed, 1 a check failed, 2 wrong usage.
+// Exit code: 0 all checks that ran passed, 1 a check failed or nothing could be verified
+// (no check ran, or a check asked for with --only was skipped), 2 wrong usage.
 import { stat, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
 import path from 'node:path';
@@ -13,7 +14,7 @@ import { CHECK_NAMES, loadCheck } from './verify/index.mjs';
 import { formatReport, summarizeForProfile, tally } from './verify/format.mjs';
 import { readAppFile, makeRedactor } from './verify/util.mjs';
 
-const HELP = `Usage: node verify.mjs <appDir> [--url <address>] [--only <checks>] [--json]
+const HELP = `Usage: node verify.mjs <appDir> [--url <address>] [--only <checks>] [--allow-test-users] [--json]
 
 Checks that your app works: pages open, sign-in works, users cannot see each
 other's data, nothing leaks keys, and the home page looks right on a phone.
@@ -22,12 +23,17 @@ other's data, nothing leaks keys, and the home page looks right on a phone.
   --url <address> the live address (default: the one saved for this app)
   --only <list>   run only some checks, separated by commas
                   (${CHECK_NAMES.join(', ')})
+  --allow-test-users
+                  an app that shares its Supabase project with other apps skips the
+                  checks that make test users (sign-in, privacy), because a test user
+                  runs the other apps' sign-up triggers. This switch allows it.
   --json          print the result as JSON
   --help          show this text
 
 Checks that need a web address are skipped when there is none.
 The result is saved to <appDir>/.shipyard/verify.json.
-Exit code: 0 = all good, 1 = a check failed, 2 = wrong usage.`;
+Exit code: 0 = all good, 1 = a check failed or nothing could be verified
+(no check ran, or a check you asked for with --only was skipped), 2 = wrong usage.`;
 
 /** Make a web address usable: add https:// if missing, drop trailing slashes. Returns null if it is not http(s). */
 export function normalizeUrl(input) {
@@ -53,6 +59,15 @@ async function readEnvLocal(appDir) {
   }
 }
 
+/**
+ * "Ok" means something was really verified: nothing failed, at least one check ran, and
+ * (when the caller picked checks with --only) none of the picked checks was skipped.
+ * Without this, "verified nothing" would look like success to a script or CI gate.
+ */
+export function isVerified(t, askedForSome) {
+  return t.failed === 0 && t.passed > 0 && !(askedForSome && t.skipped > 0);
+}
+
 /** Run the chosen checks one after another. Never throws: a crashing check becomes a failed result. */
 export async function runChecks(ctx, names) {
   const redact = makeRedactor([...ctx.secrets.values()]);
@@ -74,7 +89,7 @@ export async function runChecks(ctx, names) {
 export async function main(argv) {
   let args;
   try {
-    args = log.parseArgs(argv, { boolean: ['json', 'help'], string: ['url', 'only'], alias: { h: 'help' } });
+    args = log.parseArgs(argv, { boolean: ['json', 'help', 'allow-test-users'], string: ['url', 'only'], alias: { h: 'help' } });
   } catch (err) {
     process.stderr.write(`${err.message}\n\n${HELP}\n`);
     return 2;
@@ -127,6 +142,7 @@ export async function main(argv) {
     url,
     app: Object.keys(app).length > 0 ? app : null,
     secrets: await readEnvLocal(appDir),
+    allowTestUsers: Boolean(args['allow-test-users']),
     log,
   };
 
@@ -139,7 +155,7 @@ export async function main(argv) {
     app: app.slug ?? path.basename(appDir),
     url,
     ranAt: new Date().toISOString(),
-    ok: t.failed === 0,
+    ok: isVerified(t, args.only !== undefined),
     passed: t.passed,
     failed: t.failed,
     skipped: t.skipped,

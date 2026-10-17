@@ -31,5 +31,6 @@ create policy "items delete own" on public.items
 
 revoke all on public.items from anon;
 grant select, insert, update, delete on public.items to authenticated;
+grant all on public.items to service_role;
 
 create index if not exists items_user_id_idx on public.items (user_id);

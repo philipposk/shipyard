@@ -103,23 +103,49 @@ test('--url overrides the saved address', async (t) => {
   assert.equal(JSON.parse(r.stdout).url, fake.url);
 });
 
-test('without any web address the live checks are skipped, not failed', async (t) => {
+test('without any web address the live checks are skipped, not failed (full run still exits 0 but is not shown as fully verified)', async (t) => {
   const { dir, home } = await fixture(t, {}, { withProfile: false });
-  const r = await verify([dir, '--json', '--only', 'routes,protection,auth,browser,isolation'], home);
+  const r = await verify([dir, '--json'], home);
   assert.equal(r.code, 0, r.stdout);
   const result = JSON.parse(r.stdout);
-  const skipped = result.checks.filter((c) => c.skipped).map((c) => c.name);
-  assert.deepEqual(skipped, ['routes', 'protection', 'auth', 'browser']);
+  assert.deepEqual(result.checks.filter((c) => c.skipped).map((c) => c.name), ['routes', 'protection', 'auth', 'browser']);
   assert.equal(result.checks.find((c) => c.name === 'isolation').ok, true);
+  const human = await verify([dir], home);
+  assert.equal(human.code, 0);
+  assert.match(human.stdout, /NOT FULLY VERIFIED: \d+ checks passed, 4 could not run/);
+  assert.doesNotMatch(human.stdout, /All \d+ checks passed/);
   // Not in the profile: nothing is written there.
   await assert.rejects(readFile(path.join(home, 'profile.json'), 'utf8'));
 });
 
-test('no .env.local: the Supabase checks are skipped with a reason', async (t) => {
+test('--only with a check that was skipped exits 1 and says NOT VERIFIED', async (t) => {
+  const { dir, home } = await fixture(t, {}, { withProfile: false });
+  const r = await verify([dir, '--json', '--only', 'routes,protection,auth,browser,isolation'], home);
+  assert.equal(r.code, 1, r.stdout);
+  const result = JSON.parse(r.stdout);
+  assert.equal(result.ok, false);
+  assert.equal(result.failed, 0);
+  assert.deepEqual(result.checks.filter((c) => c.skipped).map((c) => c.name), ['routes', 'protection', 'auth', 'browser']);
+  const human = await verify([dir, '--only', 'routes,protection,auth,browser,isolation'], home);
+  assert.equal(human.code, 1);
+  assert.match(human.stdout, /NOT VERIFIED: 1 check passed, but these checks you asked for could not run/);
+  assert.doesNotMatch(human.stdout, /All \d+ checks/);
+});
+
+test('--only routes with no web address: nothing ran, exit 1', async (t) => {
+  const { dir, home } = await fixture(t, {}, { withProfile: false });
+  const r = await verify([dir, '--only', 'routes'], home);
+  assert.equal(r.code, 1, r.stdout);
+  assert.match(r.stdout, /NOT VERIFIED: no check could run/);
+  assert.doesNotMatch(r.stdout, /All \d+ checks/);
+});
+
+test('no .env.local: the Supabase checks are skipped with a reason (and exit 1 since nothing ran)', async (t) => {
   const { dir, home } = await fixture(t, {}, { withEnv: false });
   const r = await verify([dir, '--json', '--only', 'auth,isolation'], home);
-  assert.equal(r.code, 0);
+  assert.equal(r.code, 1);
   const result = JSON.parse(r.stdout);
+  assert.equal(result.ok, false);
   assert.ok(result.checks.every((c) => c.skipped && /missing from \.env\.local/.test(c.reason)));
 });
 

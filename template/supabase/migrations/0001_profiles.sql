@@ -34,8 +34,15 @@ revoke insert, update on public.profiles from authenticated;
 grant select on public.profiles to authenticated;
 grant insert (id, display_name, bio, onboarding_complete) on public.profiles to authenticated;
 grant update (display_name, bio, onboarding_complete) on public.profiles to authenticated;
+-- The server (secret key) role needs its own grant: a schema other than public does not give it one automatically.
+grant all on public.profiles to service_role;
 
+-- shipyard:auth-trigger:start
 -- Creates the profile row automatically when someone signs up.
+-- Everything between these two marker lines is left out when the app shares a Supabase project with other apps
+-- (Shipyard "shared" mode): a trigger on auth.users runs for every app's sign-ups, so an app there must not add one.
+-- The app creates the row itself instead (ensureProfile in src/lib/auth/ensure-profile.ts). Do not add other
+-- auth.users triggers, and keep them inside these markers if you ever must.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -63,3 +70,4 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+-- shipyard:auth-trigger:end

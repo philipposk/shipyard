@@ -49,6 +49,10 @@ $$;
 revoke execute on function public.error_log_delete_old() from public, anon, authenticated;
 grant execute on function public.error_log_delete_old() to service_role;
 
+-- shipyard:project-wide:start
+-- Everything between these two marker lines changes the whole Supabase project (extensions and the shared Cron list),
+-- so it is left out when the app shares a project with other apps (Shipyard "shared" mode). There the scheduled
+-- health check deletes the old rows instead.
 -- Daily at 03:41 UTC with Supabase Cron (the pg_cron extension). Supabase's own install line is
 -- "create extension pg_cron with schema pg_catalog" (or Dashboard, Integrations, Cron). If the extension is not
 -- there and cannot be switched on from here, this only prints a notice. Running it again updates the same job.
@@ -74,3 +78,4 @@ begin
   end if;
 end;
 $$;
+-- shipyard:project-wide:end

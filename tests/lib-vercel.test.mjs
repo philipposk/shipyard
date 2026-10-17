@@ -138,6 +138,14 @@ test('gitConnect runs vercel git connect --yes', async () => {
   assert.equal((await V.gitConnect({ run: fakeRun([bad('Failed to connect')]).fn })).ok, false);
 });
 
+test('gitConnect treats "already connected" as success and strips markup from errors', async () => {
+  const ok = await V.gitConnect({ run: fakeRun([bad('philipposk/x is already connected to your project.')]).fn });
+  assert.deepEqual(ok, { ok: true, already: true });
+  const f = await V.gitConnect({ run: fakeRun([bad('Failed <claude-code-hint v="1" type="x" />to connect')]).fn });
+  assert.equal(f.ok, false);
+  assert.doesNotMatch(f.error, /</);
+});
+
 test('a missing npx gives a plain-English error', async () => {
   const out = await V.whoami({ run: fakeRun([bad('Command not found: npx', 127)]).fn });
   assert.match(out.error, /setup/);

@@ -236,3 +236,44 @@ test('template: the rules about unverified emails are written down for the codin
   assert.match(agents, /Starter-mode emails are not verified/);
   assert.match(agents, /NEXT_PUBLIC_GOOGLE_SIGNIN_ENABLED=true/);
 });
+
+test('--reset-password is refused in a shared Supabase project (it would change the password for the other apps)', async () => {
+  const fake = await fakeSupabase({ users: [{ id: randomUUID(), email: OWNER, password: 'theirs' }] });
+  try {
+    const dir = await makeApp(fake);
+    const { updateAppConfig } = await import('../scripts/provision/common.mjs');
+    await updateAppConfig(dir, { shared: true, schema: 'app_notes' });
+    await assert.rejects(() => makeOwner({ appDir: dir, resetPassword: true, open: false }), /shares its Supabase project/);
+    assert.equal(fake.state.requests.length, 0, 'nothing was asked of Supabase');
+    // Without the reset the existing account is simply reused (the schema setting is in place).
+    await updateEnvFile(path.join(dir, '.env.local'), { NEXT_PUBLIC_SUPABASE_SCHEMA: 'app_notes' });
+    const result = await makeOwner({ appDir: dir, open: false });
+    assert.equal(result.created, false);
+    assert.equal(result.passwordReset, false);
+  } finally {
+    await fake.close();
+  }
+});
+
+test('a shared app without its schema in .env.local is refused before any call (it would make the owner an admin in another app\'s public table)', async () => {
+  const fake = await fakeSupabase({ users: [{ id: randomUUID(), email: OWNER, password: 'theirs' }] });
+  try {
+    const dir = await makeApp(fake);
+    const { updateAppConfig } = await import('../scripts/provision/common.mjs');
+    await updateAppConfig(dir, { shared: true, schema: 'app_notes' });
+    // 1. The setting is missing (it would default to public).
+    await assert.rejects(() => makeOwner({ appDir: dir, open: false }), (e) => /NEXT_PUBLIC_SUPABASE_SCHEMA in \.env\.local must be app_notes/.test(e.message) && /Run provision-supabase\.mjs again/.test(e.message));
+    // 2. The setting names another schema.
+    await updateEnvFile(path.join(dir, '.env.local'), { NEXT_PUBLIC_SUPABASE_SCHEMA: 'app_other' });
+    await assert.rejects(() => makeOwner({ appDir: dir, open: false }), /must be app_notes/);
+    // 3. The setting says public.
+    await updateEnvFile(path.join(dir, '.env.local'), { NEXT_PUBLIC_SUPABASE_SCHEMA: 'public' });
+    await assert.rejects(() => makeOwner({ appDir: dir, open: false }), /must be app_notes/);
+    assert.equal(fake.state.requests.length, 0, 'nothing was asked of Supabase, in particular nothing was written to profiles');
+    // An app of its own (not shared) is not affected.
+    const own = await makeApp(fake);
+    await makeOwner({ appDir: own, open: false });
+  } finally {
+    await fake.close();
+  }
+});

@@ -45,7 +45,8 @@ export async function POST(request: Request) {
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });
 
   // The account is gone: also drop the login cookies from this browser.
-  const response = NextResponse.json({ ok: true });
+  // keptLogin: the app shares its project with other apps, so only this app's data was deleted and the login stays.
+  const response = NextResponse.json({ ok: true, keptLogin: result.keptLogin });
   await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
   for (const c of (await cookies()).getAll()) {
     if (c.name.startsWith(AUTH_COOKIE_NAME)) response.cookies.set(c.name, "", { path: "/", maxAge: 0 });

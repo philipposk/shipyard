@@ -43,7 +43,7 @@ Follow the app's `AGENTS.md`. Small steps. Every piece of logic gets a test. Eve
 ## 5. Database
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/provision-supabase.mjs" <appDir>`
-It creates the Supabase project, applies the migrations and writes `.env.local`. If it says two projects are already active (free limit), explain the two choices in plain words: pause an old project in the dashboard (the safe choice), or share an existing one with `--reuse <ref>` (the apps then share one list of users, and it stops if table names overlap, which they do for apps from the standard template). Then run `npm run build` to check the app builds.
+It creates the Supabase project, applies the migrations and writes `.env.local`. If it says two projects are already active (free limit), explain the two choices in plain words: pause a project the student does not use (dashboard link in the message), or put this app in an existing project with `--shared <project id>`. Shared is safe for the other apps: the app gets its own space (a separate schema) and nothing of theirs is touched. Before any shared run, read `references/shared-project.md` and do the dry run first. Then run `npm run build` to check the app builds.
 
 ## 6. Save to GitHub
 
@@ -62,7 +62,7 @@ Read `references/verify.md` for what each check means and how to fix a failure. 
 ## 9. Owner account
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/make-owner.mjs" <appDir> --url <address>`
-It makes the student's own account (their email from the profile) with the app's secret key, switches on the admin flag and opens a one-time sign-in window in their browser. The app refuses sign-ups with that email on purpose: starter-mode sign-up does not check that the person owns the email, so a stranger could otherwise take the owner's address first. Admin is the `is_admin` flag only, never an email. Never print or paste the link. If the account already existed and the student did not make it, run it again with `--reset-password`.
+It makes the student's own account (their email from the profile) with the app's secret key, switches on the admin flag and opens a one-time sign-in window in their browser. The app refuses sign-ups with that email on purpose: starter-mode sign-up does not check that the person owns the email, so a stranger could otherwise take the owner's address first. Admin is the `is_admin` flag only, never an email. Never print or paste the link. If the account already existed and the student did not make it, run it again with `--reset-password` (not allowed in a shared project: the account is shared with the other apps there).
 
 ## 10. Hand off
 

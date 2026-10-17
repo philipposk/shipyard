@@ -1,5 +1,6 @@
-// Create (or reuse) the app's Supabase project, build its database, set the sign-in
-// addresses and write the keys into .env.local. Safe to run again at any time.
+// Create the app's Supabase project (or, with --shared, put the app in its own schema inside an existing
+// project: see shared-core.mjs), build its database, set the sign-in addresses and write the keys into .env.local.
+// Safe to run again at any time.
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as api from '../lib/supabase-api.mjs';
@@ -13,7 +14,7 @@ import {
 import { updateEnvFile, readEnvText } from './envfile.mjs';
 
 export const DEFAULT_REGION = 'eu-central-1';
-const REF_RE = /^[a-z0-9]{20}$/;
+export const REF_RE = /^[a-z0-9]{20}$/;
 const REGION_RE = /^[a-z]{2}(?:-[a-z]+)+-\d+$/;
 const FREE_PLAN_ACTIVE_LIMIT = 2;
 const LOCAL_SITE = 'http://localhost:3000';
@@ -104,8 +105,8 @@ function freeLimitError(active, orgId = '', { fromSupabase = false } = {}) {
   return new ProvisionError(
     first
     + 'Pick one:\n'
-    + '  (a) Pause an old project you do not use: Supabase dashboard > the project > Settings > General > Pause project. Then run this again. This is the safe choice.\n'
-    + '  (b) Share one of them with this app: run this again with --reuse <project id>. Think twice: the apps then share one list of users (anyone who signed up in one app can sign in to the other, and the admin flag carries over), and tables with the same name are shared too. Every app made by Shipyard starts with "profiles" and "items", so Shipyard stops if it finds a table name that is already taken.',
+    + '  (a) Pause a project you do not use: open https://supabase.com/dashboard, pick the project, Settings > General > Pause project. Then run this again.\n'
+    + '  (b) Put this app in an existing project: run this again with --shared <project id>. This is safe: the app gets its own space in that project and does not touch the other apps. (They share one list of sign-in accounts, so the same email and password work in each app there.)',
     { reason: 'free-limit', activeProjects: active.map((p) => ({ name: p.name, ref: refOf(p) })) },
   );
 }
@@ -132,33 +133,53 @@ function sharedOverlapError(others, overlap) {
   return new ProvisionError(
     `This Supabase project is already used by ${others.length === 1 ? 'another app' : 'other apps'} (${others.join(', ')}), and these table names are already taken there: ${overlap.join(', ')}.\n`
     + 'Running this app here would rewrite the privacy rules of those tables, so a change in one app could show the other app\'s data. Nothing was changed.\n'
-    + 'Pause an old project in the Supabase dashboard (Settings > General > Pause project) and run this again without --reuse, or rename the tables in this app\'s supabase/migrations first.',
+    + 'Pause an old project in the Supabase dashboard (Settings > General > Pause project) and make a new project for this app, or rename the tables in this app\'s supabase/migrations first.',
     { reason: 'shared-overlap', apps: others, tables: overlap },
   );
 }
 
 /**
  * Add the app's addresses to the project's sign-in settings. Never removes an address.
- * keepForeignSiteUrl: in a shared project, leave another app's main address alone.
+ * keepForeignSiteUrl: leave another app's main address alone.
+ * leaveSiteUrl: never change the main address at all (shared-schema mode: it belongs to the other apps).
  */
-export async function updateAuthUrls(auth, ref, { appUrl, keepForeignSiteUrl = false }) {
-  const current = (await api.getAuthConfig(auth, ref)) ?? {};
-  const currentList = String(current.uri_allow_list ?? '');
-  const currentSite = String(current.site_url ?? '');
+export async function updateAuthUrls(auth, ref, { appUrl, keepForeignSiteUrl = false, leaveSiteUrl = false }) {
   const additions = buildAllowList({ appUrl });
-  const mergedList = api.mergeUriAllowList(currentList, additions);
+  const entries = (list) => String(list ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const MAX_TRIES = 3;
+  let lost = [];
+  for (let attempt = 1; attempt <= MAX_TRIES; attempt += 1) {
+    const current = (await api.getAuthConfig(auth, ref)) ?? {};
+    const currentList = String(current.uri_allow_list ?? '');
+    const currentSite = String(current.site_url ?? '');
+    const mergedList = api.mergeUriAllowList(currentList, additions);
 
-  let siteUrl = appUrl || LOCAL_SITE;
-  const foreign = currentSite && !isLocalOrigin(currentSite) && currentSite.replace(/\/$/, '') !== siteUrl;
-  if (foreign && (keepForeignSiteUrl || !appUrl)) siteUrl = currentSite;
+    let siteUrl = appUrl || LOCAL_SITE;
+    const foreign = currentSite && !isLocalOrigin(currentSite) && currentSite.replace(/\/$/, '') !== siteUrl;
+    if (leaveSiteUrl || (foreign && (keepForeignSiteUrl || !appUrl))) siteUrl = currentSite;
 
-  const patch = {};
-  if (siteUrl !== currentSite) patch.site_url = siteUrl;
-  if (mergedList !== currentList) patch.uri_allow_list = mergedList;
-  const known = new Set(currentList.split(',').map((s) => s.trim()));
-  const added = additions.filter((a) => !known.has(a));
-  if (Object.keys(patch).length > 0) await api.patchAuthConfig(auth, ref, patch);
-  return { changed: Object.keys(patch).length > 0, siteUrl, added };
+    const patch = {};
+    if (!leaveSiteUrl && siteUrl !== currentSite) patch.site_url = siteUrl;
+    // Compare the sets of addresses, not the strings: separators or spaces alone must not rewrite the shared list.
+    const known = new Set(entries(currentList));
+    const added = additions.filter((a) => !known.has(a));
+    if (added.length > 0) patch.uri_allow_list = mergedList;
+    if (Object.keys(patch).length === 0) return { changed: false, siteUrl, added };
+
+    await api.patchAuthConfig(auth, ref, patch);
+    if (!patch.uri_allow_list) return { changed: true, siteUrl, added };
+
+    // Another app may have written at the same moment. Check nothing we read, and nothing we added, was dropped.
+    const after = (await api.getAuthConfig(auth, ref)) ?? {};
+    const present = new Set(entries(after.uri_allow_list));
+    lost = [...known, ...additions].filter((u) => !present.has(u));
+    if (lost.length === 0) return { changed: true, siteUrl, added };
+    // Loop: the next read includes the entries that were lost, and the merge puts them back.
+  }
+  throw new ProvisionError(
+    `Another app changed the shared sign-in addresses at the same moment, and these addresses were lost: ${lost.join(', ')}. Run this again to put them back.`,
+    { reason: 'auth-urls-race', lost },
+  );
 }
 
 async function connect(deps) {
@@ -179,6 +200,7 @@ async function profileFacts(profileApi, slug) {
 }
 
 async function saveRef({ appDir, profileApi, slug, ref, shared }) {
+  // `supabaseShared` marks an app that sits in the public schema of a project other apps use (made before shared-schema mode).
   await updateAppConfig(appDir, { supabaseRef: ref, ...(shared ? { supabaseShared: true } : {}) });
   await profileApi.upsertApp({ slug, supabaseRef: ref });
 }
@@ -195,12 +217,17 @@ export async function setAuthUrlsForApp({ appDir, url }, deps = {}) {
   if (!ref) throw new ProvisionError('This app has no Supabase project yet. Run provision-supabase.mjs on the app folder first.');
   const appUrl = originOf(url);
   const auth = await connect(deps);
-  const result = await updateAuthUrls(auth, ref, { appUrl, keepForeignSiteUrl: Boolean(config.supabaseShared) });
+  const schemaShared = Boolean(config.shared);
+  const result = await updateAuthUrls(auth, ref, {
+    appUrl,
+    keepForeignSiteUrl: Boolean(config.supabaseShared) || schemaShared,
+    leaveSiteUrl: schemaShared,
+  });
   return { ok: true, ref, ...result };
 }
 
 /**
- * opts: { appDir, reuse, region, url }
+ * opts: { appDir, shared (a project id), schema, dryRun, region, url }
  * deps: { fetch, sleep, getSecret, run, profile } (all optional, for tests)
  */
 export async function provisionSupabase(opts, deps = {}) {
@@ -218,11 +245,22 @@ export async function provisionSupabase(opts, deps = {}) {
     return result;
   }
 
+  if (opts.reuse) {
+    throw new ProvisionError('--reuse was removed because it shared the other app\'s tables and sign-up trigger. Use --shared <project id> instead: the app gets its own space in that project and does not touch the other apps.');
+  }
+  // An app that lives in a shared project always goes through the shared flow, even when this is run without
+  // --shared (for example to add the tables of a new module): the normal flow would write into the public schema.
+  const sharedRef = opts.shared || (config.shared ? config.supabaseRef : '');
+  if (sharedRef) {
+    const { provisionShared } = await import('./shared-core.mjs');
+    return provisionShared({ ...opts, shared: sharedRef, schema: opts.schema ?? config.schema }, deps);
+  }
+  if (opts.schema || opts.dryRun) {
+    throw new ProvisionError('--schema and --dry-run belong to shared mode. Add --shared <project id>.');
+  }
+
   if (opts.region && !REGION_RE.test(opts.region)) {
     throw new ProvisionError(`"${opts.region}" does not look like a Supabase region. Use something like eu-central-1 or us-east-1.`);
-  }
-  if (opts.reuse && !REF_RE.test(opts.reuse)) {
-    throw new ProvisionError(`"${opts.reuse}" is not a Supabase project id. It is 20 lowercase letters and numbers, shown in the project's address in the dashboard.`);
   }
 
   const { orgId, region: profileRegion, app } = await profileFacts(profileApi, slug);
@@ -242,12 +280,9 @@ export async function provisionSupabase(opts, deps = {}) {
   const projects = (await api.listProjects(auth)) ?? [];
   const inOrg = projects.filter((p) => !orgOf(p) || orgOf(p) === orgId);
   const recordedRef = config.supabaseRef || app?.supabaseRef || '';
-  if (opts.reuse && recordedRef && recordedRef !== opts.reuse) {
-    throw new ProvisionError(`This app is already connected to the Supabase project ${recordedRef}. To point it at ${opts.reuse} instead, remove "supabaseRef" from ${APP_CONFIG_FILE} (and from the app's entry in your Shipyard profile) first.`);
-  }
-  let ref = opts.reuse || recordedRef;
+  let ref = recordedRef;
   let created = false;
-  let shared = Boolean(opts.reuse) || Boolean(config.supabaseShared);
+  let shared = Boolean(config.supabaseShared);
 
   if (ref) {
     const found = projects.find((p) => refOf(p) === ref);
@@ -257,11 +292,11 @@ export async function provisionSupabase(opts, deps = {}) {
     if (found.status === 'INACTIVE') {
       throw new ProvisionError(`The Supabase project "${found.name}" is paused. Open it in the Supabase dashboard, press Restore project, wait a minute, then run this again.`);
     }
-    log.ok(`${opts.reuse ? 'Using the shared project' : 'Using the project'} "${found.name}" (${ref}).`);
+    log.ok(`Using the project "${found.name}" (${ref}).`);
   } else {
     const sameName = inOrg.find((p) => p.name === slug && p.status !== 'REMOVED');
     if (sameName) {
-      throw new ProvisionError(`A Supabase project called "${slug}" already exists (${refOf(sameName)}). If it is the one for this app, run this again with --reuse ${refOf(sameName)}. Otherwise pick another app name.`);
+      throw new ProvisionError(`A Supabase project called "${slug}" already exists (${refOf(sameName)}). If it is the one for this app, put its id (${refOf(sameName)}) as "supabaseRef" in ${APP_CONFIG_FILE} and run this again. Otherwise pick another app name.`);
     }
     // The free limit is per person, across every FREE organization (paid organizations do not count).
     const planOf = async (slugOrg) => {
@@ -286,14 +321,13 @@ export async function provisionSupabase(opts, deps = {}) {
       throw err;
     }
     ref = refOf(project);
-    if (!ref) throw new ProvisionError('Supabase created the project but did not tell us its id. Check the dashboard, then run this again with --reuse <project id>.');
+    if (!ref) throw new ProvisionError(`Supabase created the project but did not tell us its id. Find its id in the dashboard, put it as "supabaseRef" in ${APP_CONFIG_FILE}, then run this again.`);
     created = true;
     shared = false;
     // Save at once: if anything below stops, a re-run continues with this project.
     await saveRef({ appDir, profileApi, slug, ref, shared });
     log.ok(`Created the project "${slug}" (${ref}) in ${region}.`);
   }
-  if (opts.reuse) await saveRef({ appDir, profileApi, slug, ref, shared: true });
 
   log.info('Waiting for the project to start (this can take a few minutes the first time)...');
   await api.waitHealthy(auth, ref, { timeoutMs: created ? 8 * 60_000 : 3 * 60_000 });

@@ -8,8 +8,12 @@ const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export const isIdentifier = (s) => typeof s === 'string' && IDENT.test(s);
 
 const looksLikeJwt = (key) => /^eyJ/.test(key);
+const SCHEMA_RE = /^[a-z][a-z0-9_]{2,40}$/;
 
-/** Pull the three Supabase values out of the app's env (a Map). Returns { ok, ...values } or { ok:false, reason }. */
+/**
+ * Pull the Supabase values out of the app's env (a Map). Returns { ok, ...values } or { ok:false, reason }.
+ * `schema` is the app's database schema: NEXT_PUBLIC_SUPABASE_SCHEMA, or "public" when it is not set.
+ */
 export function supabaseFromEnv(env) {
   const get = (k) => (env?.get?.(k) ?? '').trim();
   const rawUrl = get('NEXT_PUBLIC_SUPABASE_URL').replace(/\/+$/, '');
@@ -31,7 +35,11 @@ export function supabaseFromEnv(env) {
   if (!['http:', 'https:'].includes(parsed.protocol)) {
     return { ok: false, reason: 'NEXT_PUBLIC_SUPABASE_URL in .env.local is not a web address' };
   }
-  return { ok: true, url: rawUrl, anonKey, serverKey };
+  const schema = get('NEXT_PUBLIC_SUPABASE_SCHEMA') || 'public';
+  if (schema !== 'public' && !SCHEMA_RE.test(schema)) {
+    return { ok: false, reason: 'NEXT_PUBLIC_SUPABASE_SCHEMA in .env.local is not a valid schema name (lowercase letters, digits and underscores)' };
+  }
+  return { ok: true, url: rawUrl, anonKey, serverKey, schema };
 }
 
 /** A password with letters, digits and the awkward characters ($ and !) that break sloppy shell quoting. */
@@ -47,8 +55,15 @@ export function randomTestEmail() {
  * Small client over the Supabase HTTP API.
  * `redact` hides the keys in any message built from a response.
  */
-export function createSupabase({ url, anonKey, serverKey, extraSecrets = [] }) {
+export function createSupabase({ url, anonKey, serverKey, schema = 'public', extraSecrets = [] }) {
   const redact = makeRedactor([anonKey, serverKey, ...extraSecrets]);
+
+  // An app that lives in its own schema (shared Supabase project) must say so on every database call:
+  // Accept-Profile for reads, Content-Profile for writes. Without it the API would look in the public schema.
+  const profileHeaders = (method) => {
+    if (!schema || schema === 'public') return {};
+    return ['GET', 'HEAD'].includes(String(method).toUpperCase()) ? { 'accept-profile': schema } : { 'content-profile': schema };
+  };
 
   // New-style keys (sb_secret_..., sb_publishable_...) go in `apikey` only. Old JWT keys also go in Authorization.
   const keyHeaders = (key, bearer) => {
@@ -70,6 +85,7 @@ export function createSupabase({ url, anonKey, serverKey, extraSecrets = [] }) {
     redact,
     describe,
     json,
+    schema,
 
     async createUser(email, password) {
       const res = await request(`${url}/auth/v1/admin/users`, {
@@ -86,7 +102,7 @@ export function createSupabase({ url, anonKey, serverKey, extraSecrets = [] }) {
     async userIdByEmail(email) {
       const res = await request(`${url}/rest/v1/rpc/auth_user_id_by_email`, {
         method: 'POST',
-        headers: keyHeaders(serverKey),
+        headers: { ...keyHeaders(serverKey), ...profileHeaders('POST') },
         body: JSON.stringify({ email }),
       });
       const body = json(res);
@@ -155,6 +171,7 @@ export function createSupabase({ url, anonKey, serverKey, extraSecrets = [] }) {
         ? keyHeaders(serverKey)
         : { apikey: anonKey, 'content-type': 'application/json', ...(as.token ? { authorization: `Bearer ${as.token}` } : {}) };
       if (prefer) headers.prefer = prefer;
+      Object.assign(headers, profileHeaders(method));
       const res = await request(`${url}/rest/v1/${table}${query ? `?${query}` : ''}`, {
         method,
         headers,
