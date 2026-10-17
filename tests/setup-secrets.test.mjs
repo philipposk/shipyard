@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HOME = await mkdtemp(path.join(os.tmpdir(), 'secrets-test-'));
 process.env.SHIPYARD_HOME = HOME; // before the scripts load their paths
-const { checkSecrets, liveCheck, interpretStatus } = await import('../scripts/secrets-check.mjs');
+const { checkSecrets, liveCheck, interpretStatus, orgsLine } = await import('../scripts/secrets-check.mjs');
 const { editorCommand } = await import('../scripts/secrets-init.mjs');
 
 after(() => rm(HOME, { recursive: true, force: true }));
@@ -174,13 +174,31 @@ test('live: results update the profile, orgs are listed, no value leaks', async 
   assert.ok(seen.every((s) => s.auth?.startsWith('Bearer ')));
 
   const p = JSON.parse(await readFile(PROFILE, 'utf8'));
-  assert.equal(p.accounts.supabase.ok, true);
+  assert.equal(p.accounts.supabase.ok, false); // key works, but no organization is saved yet
   assert.equal(p.accounts.openrouter.ok, false);
   assert.equal(p.accounts.openai.ok, true);
   assert.equal(p.accounts.resend.ok, true);
   assert.equal(p.accounts.resend.domain, 'example.com');
   assert.equal(p.accounts.stripe.ok, true);
   assert.equal(p.accounts.stripe.mode, 'test');
+});
+
+test('live: Supabase is marked connected only once an organization is saved', async () => {
+  await reset();
+  await writeFile(SECRETS, `SUPABASE_ACCESS_TOKEN=${V.sb}\n`);
+  const fetchImpl = fakeFetch({ 'https://api.supabase.com/': reply(200, [{ id: 'abc', slug: 'abc', name: 'My Org' }]) });
+  await checkSecrets({ live: true, fetchImpl });
+  assert.equal(JSON.parse(await readFile(PROFILE, 'utf8')).accounts.supabase.ok, false);
+  const p = JSON.parse(await readFile(PROFILE, 'utf8'));
+  p.accounts.supabase.orgId = 'abc';
+  await writeFile(PROFILE, JSON.stringify(p));
+  await checkSecrets({ live: true, fetchImpl });
+  assert.equal(JSON.parse(await readFile(PROFILE, 'utf8')).accounts.supabase.ok, true);
+});
+
+test('organizations are printed as "name: slug=<id>"', () => {
+  const line = orgsLine([{ slug: 'vercel_icfg_x', name: "Team's projects" }, { slug: 'abc', name: 'Main' }]);
+  assert.match(line, /Team's projects: slug=vercel_icfg_x; Main: slug=abc/);
 });
 
 test('live: everything accepted gives ok', async () => {

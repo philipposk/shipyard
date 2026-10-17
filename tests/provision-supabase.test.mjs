@@ -25,7 +25,7 @@ const getSecret = async () => TOKEN;
 const sleep = async () => {};
 
 /** A tiny in-memory stand-in for the Supabase Management API. */
-function makeSupabase({ projects = [], authConfig, keys, failSql } = {}) {
+function makeSupabase({ projects = [], authConfig, keys, failSql, orgPlans } = {}) {
   const state = {
     projects: projects.map((p) => ({ ...p })),
     authConfig: { site_url: 'http://localhost:3000', uri_allow_list: '', ...(authConfig ?? {}) },
@@ -42,6 +42,8 @@ function makeSupabase({ projects = [], authConfig, keys, failSql } = {}) {
     const body = init.body ? JSON.parse(init.body) : undefined;
     state.calls.push({ route, auth: init.headers?.Authorization, body, search: u.search });
     if (route === 'GET /projects') return json(state.projects);
+    const om = /^GET \/organizations\/([^/]+)$/.exec(route);
+    if (om && orgPlans) return orgPlans[om[1]] ? json({ slug: om[1], plan: orgPlans[om[1]] }) : json({ message: 'not found' }, 404);
     if (route === 'POST /projects') {
       const project = { id: REF, ref: REF, name: body.name, organization_slug: body.organization_slug, status: 'COMING_UP', region: body.region_selection?.code };
       state.projects.push(project);
@@ -231,32 +233,72 @@ test('the free plan limit stops before creating anything and lists the active pr
     (e) => {
       assert.match(e.message, /old-one/);
       assert.match(e.message, /old-two/);
-      assert.ok(!/paused-one|other-org/.test(e.message));
+      assert.ok(!/paused-one/.test(e.message));
+      assert.match(e.message, /other-org/); // the limit counts every organization
       assert.match(e.message, /--reuse/);
       assert.match(e.message, /Pause/);
       assert.ok(!/safe because every table/.test(e.message), 'must not claim that sharing is safe');
       assert.match(e.message, /share one list of users/);
       assert.match(e.message, /profiles/);
       assert.equal(e.data.reason, 'free-limit');
-      assert.deepEqual(e.data.activeProjects.map((p) => p.name), ['old-one', 'old-two']);
+      assert.deepEqual(e.data.activeProjects.map((p) => p.name), ['old-one', 'old-two', 'other-org']);
       return true;
     },
   );
   assert.equal(fake.count('POST /projects'), 0);
 });
 
-test('one active project plus paused and foreign ones is under the limit', async () => {
+test('one active project plus a paused one is under the limit', async () => {
   const { dir } = await makeApp();
   const fake = makeSupabase({
     projects: [
       { id: 'aaaaaaaaaaaaaaaaaaaa', ref: 'aaaaaaaaaaaaaaaaaaaa', name: 'old-one', organization_slug: 'my-org', status: 'ACTIVE_HEALTHY' },
       { id: 'cccccccccccccccccccc', ref: 'cccccccccccccccccccc', name: 'paused-one', organization_slug: 'my-org', status: 'INACTIVE' },
-      { id: 'dddddddddddddddddddd', ref: 'dddddddddddddddddddd', name: 'other-org', organization_slug: 'someone-else', status: 'ACTIVE_HEALTHY' },
     ],
   });
   const result = await P.provisionSupabase({ appDir: dir, region: 'us-east-1' }, deps(fake));
   assert.equal(result.created, true);
   assert.equal(fake.state.calls.find((c) => c.route === 'POST /projects').body.region_selection.code, 'us-east-1');
+});
+
+test('the limit counts projects in other organizations too, before anything is created', async () => {
+  const { dir } = await makeApp();
+  const fake = makeSupabase({
+    projects: [
+      { id: 'aaaaaaaaaaaaaaaaaaaa', ref: 'aaaaaaaaaaaaaaaaaaaa', name: 'full-org-a', organization_slug: 'full-org', status: 'ACTIVE_HEALTHY' },
+      { id: 'bbbbbbbbbbbbbbbbbbbb', ref: 'bbbbbbbbbbbbbbbbbbbb', name: 'full-org-b', organization_slug: 'full-org', status: 'ACTIVE_HEALTHY' },
+    ],
+  }); // the chosen org ("my-org") is empty, but the account is already full
+  await assert.rejects(
+    () => P.provisionSupabase({ appDir: dir }, deps(fake)),
+    (e) => e.data.reason === 'free-limit' && /another organization/.test(e.message) && /--reuse/.test(e.message),
+  );
+  assert.equal(fake.count('POST /projects'), 0);
+});
+
+test('a limit refusal from Supabase itself becomes the friendly message', async () => {
+  const { dir } = await makeApp();
+  const fake = makeSupabase();
+  const inner = fake.fetch;
+  fake.fetch = async (url, init = {}) => (init.method === 'POST' && new URL(url).pathname === '/v1/projects'
+    ? new Response(JSON.stringify({ message: 'The following organization members have reached their maximum limits for the number of active free projects (someone (2 project limit)).' }), { status: 400 })
+    : inner(url, init));
+  await assert.rejects(
+    () => P.provisionSupabase({ appDir: dir }, deps(fake)),
+    (e) => e.data?.reason === 'free-limit' && /Pause/.test(e.message) && !/HTTP 400/.test(e.message) && !/you already have 0/.test(e.message),
+  );
+});
+
+test('projects in a paid organization do not count toward the free limit', async () => {
+  const { dir } = await makeApp();
+  const pro = (n, c) => ({ id: c.repeat(20), ref: c.repeat(20), name: n, organization_slug: 'pro-org', status: 'ACTIVE_HEALTHY' });
+  const fake = makeSupabase({
+    projects: [pro('p1', 'a'), pro('p2', 'b'), pro('p3', 'c')],
+    orgPlans: { 'pro-org': 'pro', 'my-org': 'free' },
+  });
+  const result = await P.provisionSupabase({ appDir: dir }, deps(fake));
+  assert.equal(result.created, true);
+  assert.equal(fake.count('POST /projects'), 1);
 });
 
 test('--reuse shares an existing project and leaves another app\'s main address alone', async () => {

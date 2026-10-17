@@ -140,7 +140,10 @@ export async function checkSecrets({ live = false, fetchImpl = fetch, save = tru
       entry.live = await liveCheck(def.name, value, fetchImpl);
       const acct = ACCOUNT_OF[def.name];
       if (entry.live && !entry.live.inconclusive && profile.accounts?.[acct]) {
-        profile.accounts[acct].ok = entry.live.ok;
+        // Supabase counts as connected only once an organization is chosen (the setup step saves it).
+        const needsOrg = acct === 'supabase' && !profile.accounts.supabase.orgId;
+        const newOk = entry.live.ok && !needsOrg;
+        profile.accounts[acct].ok = newOk;
         profileChanged = true;
         if (entry.live.ok && acct === 'stripe' && entry.live.details?.mode) profile.accounts.stripe.mode = entry.live.details.mode;
         if (entry.live.ok && acct === 'resend' && !profile.accounts.resend.domain) {
@@ -163,6 +166,9 @@ export async function checkSecrets({ live = false, fetchImpl = fetch, save = tru
   if (orgs) result.orgs = orgs;
   return result;
 }
+
+/** One plain line naming each Supabase organization and its slug (the short id to save). */
+export const orgsLine = (orgs) => `Supabase organizations (save the slug as the organization id): ${orgs.map((o) => `${o.name}: slug=${o.slug}`).join('; ')}`;
 
 function printHuman(result) {
   for (const k of result.keys) {
@@ -193,7 +199,7 @@ function printHuman(result) {
   }
   if (result.orgs) {
     if (result.orgs.length === 0) warn('Your Supabase account has no organization yet. Create one in the Supabase dashboard.');
-    else info(`Supabase organizations: ${result.orgs.map((o) => `${o.name} (${o.slug})`).join(', ')}`);
+    else info(orgsLine(result.orgs));
   }
   if (result.ok) ok('Keys look good.');
   else fail('Fix the keys above in your keys file, then run this again.');

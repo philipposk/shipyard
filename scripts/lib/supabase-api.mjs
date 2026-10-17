@@ -116,6 +116,7 @@ async function request(auth, method, path, body) {
 const seg = (ref) => encodeURIComponent(ref);
 
 export const listOrganizations = (auth) => request(auth, 'GET', '/organizations');
+export const getOrganization = (auth, slug) => request(auth, 'GET', `/organizations/${seg(slug)}`);
 export const listProjects = (auth) => request(auth, 'GET', '/projects');
 export const getProject = (auth, ref) => request(auth, 'GET', `/projects/${seg(ref)}`);
 

@@ -96,16 +96,22 @@ export async function envLocalIsIgnored(run, appDir) {
   return text.split(/\r?\n/).map((l) => l.trim()).some((l) => ['.env.local', '.env*.local', '.env.*', '.env*', '*.local'].includes(l));
 }
 
-function freeLimitError(active) {
-  const list = active.map((p) => `${p.name} (${refOf(p)})`).join(', ');
+function freeLimitError(active, orgId = '', { fromSupabase = false } = {}) {
+  const list = active.map((p) => `${p.name} (${refOf(p)})${orgId && orgOf(p) && orgOf(p) !== orgId ? ' in another organization' : ''}`).join(', ');
+  const first = fromSupabase && active.length < FREE_PLAN_ACTIVE_LIMIT
+    ? `Supabase says you have reached the free plan limit of ${FREE_PLAN_ACTIVE_LIMIT} active projects (it also counts projects in organizations this token cannot see${active.length ? `; the ones visible here: ${list}` : ''}).\n`
+    : `Your Supabase free plan allows ${FREE_PLAN_ACTIVE_LIMIT} active projects in total, across all your organizations, and you already have ${active.length}: ${list}.\n`;
   return new ProvisionError(
-    `Your Supabase free plan allows ${FREE_PLAN_ACTIVE_LIMIT} active projects, and you already have ${active.length}: ${list}.\n`
+    first
     + 'Pick one:\n'
     + '  (a) Pause an old project you do not use: Supabase dashboard > the project > Settings > General > Pause project. Then run this again. This is the safe choice.\n'
     + '  (b) Share one of them with this app: run this again with --reuse <project id>. Think twice: the apps then share one list of users (anyone who signed up in one app can sign in to the other, and the admin flag carries over), and tables with the same name are shared too. Every app made by Shipyard starts with "profiles" and "items", so Shipyard stops if it finds a table name that is already taken.',
     { reason: 'free-limit', activeProjects: active.map((p) => ({ name: p.name, ref: refOf(p) })) },
   );
 }
+
+/** Supabase answers HTTP 400 "... (2 project limit)" when the free-project limit is hit. */
+const isFreeLimitRefusal = (err) => err instanceof api.ApiError && err.status === 400 && /project limit|maximum limits/i.test(err.message);
 
 /** Table names a set of migration files would create in the public schema. */
 export function tablesCreatedBy(migrations) {
@@ -257,10 +263,28 @@ export async function provisionSupabase(opts, deps = {}) {
     if (sameName) {
       throw new ProvisionError(`A Supabase project called "${slug}" already exists (${refOf(sameName)}). If it is the one for this app, run this again with --reuse ${refOf(sameName)}. Otherwise pick another app name.`);
     }
-    const active = inOrg.filter(countsAsActive);
-    if (active.length >= FREE_PLAN_ACTIVE_LIMIT) throw freeLimitError(active);
+    // The free limit is per person, across every FREE organization (paid organizations do not count).
+    const planOf = async (slugOrg) => {
+      try { return (await api.getOrganization(auth, slugOrg))?.plan ?? 'free'; } catch { return 'free'; }
+    };
+    const chosenPlan = await planOf(orgId);
+    let active = projects.filter(countsAsActive);
+    if (chosenPlan === 'free') {
+      const slugs = [...new Set(projects.map(orgOf).filter(Boolean))];
+      const freeOrgs = new Set();
+      for (const o of slugs) if (o === orgId ? true : (await planOf(o)) === 'free') freeOrgs.add(o);
+      active = projects.filter((p) => countsAsActive(p) && (!orgOf(p) || freeOrgs.has(orgOf(p))));
+      if (active.length >= FREE_PLAN_ACTIVE_LIMIT) throw freeLimitError(active, orgId);
+    }
     const region = opts.region || profileRegion || DEFAULT_REGION;
-    const project = await api.createProject(auth, { name: slug, organization_slug: orgId, region });
+    let project;
+    try {
+      project = await api.createProject(auth, { name: slug, organization_slug: orgId, region });
+    } catch (err) {
+      // Safety net: Supabase may count projects we cannot see here. Show the same friendly help.
+      if (isFreeLimitRefusal(err)) throw freeLimitError(active, orgId, { fromSupabase: true });
+      throw err;
+    }
     ref = refOf(project);
     if (!ref) throw new ProvisionError('Supabase created the project but did not tell us its id. Check the dashboard, then run this again with --reuse <project id>.');
     created = true;
