@@ -404,24 +404,39 @@ button.link { background: none; border: 0; padding: 0; font: inherit; cursor: po
 .hm-point-title { margin: 0 0 4px; font-size: 1rem; }
 .hm-point-text { margin: 0; color: var(--muted); font-size: 0.9375rem; text-wrap: pretty; }
 
-/* split: words on the left, a preview of the app on the right */
+/* split: words on the left, a picture of the app on the right, the three points underneath */
 .hm-split-wrap { container-type: inline-size; }
 .hm-split { display: grid; gap: calc(var(--gap) * 2.5); padding-block: calc(var(--gap) * 2) 0; }
 .hm-split-text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--gap); }
 .hm-split-text .hm-actions { margin-top: var(--gap); }
+.hm-split-points { margin-top: calc(var(--gap) * 2.5); grid-template-columns: minmax(0, 1fr); }
 @container (min-width: 700px) {
-  .hm-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: calc(var(--gap) * 4); padding-block: calc(var(--gap) * 3); }
+  .hm-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: calc(var(--gap) * 4); padding-block: calc(var(--gap) * 3) 0; }
+  .hm-split-points { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: calc(var(--gap) * 4); }
 }
-.hm-preview { padding: var(--pad-card); display: flex; flex-direction: column; gap: var(--gap); pointer-events: none; user-select: none; }
-.hm-preview-head { display: flex; align-items: center; justify-content: space-between; gap: var(--gap); }
-.hm-preview-title { margin: 0; font-size: var(--h3-size); }
-.hm-preview-add { display: flex; gap: calc(var(--space) * 2); }
-.hm-preview-field { flex: 1; display: flex; align-items: center; color: var(--muted); }
-.hm-preview-list { padding: 0; margin: 0; list-style: none; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
-.hm-preview-list .list-row { padding-block: calc(var(--space) * 1.5); }
-.hm-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
-.hm-preview-row-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hm-preview-row-meta { flex: none; color: var(--muted); font-size: 0.8125rem; }
+/* The picture of the app: a browser window with sample rows. No inputs, no buttons, nothing that can be clicked. */
+.hm-figure { margin: 0; min-width: 0; display: flex; flex-direction: column; gap: calc(var(--space) * 1.5); pointer-events: none; user-select: none; cursor: default; }
+.hm-window { overflow: hidden; font-size: 0.875rem; }
+.hm-window-bar {
+  display: flex; align-items: center; gap: calc(var(--space) * 2);
+  padding: calc(var(--space) * 1.5) var(--pad-card); border-bottom: 1px solid var(--line); background: var(--background);
+}
+.hm-window-dots { flex: none; display: inline-flex; gap: var(--space); }
+.hm-window-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
+.hm-window-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.75rem; }
+.hm-window-body { padding: var(--pad-card); display: flex; flex-direction: column; gap: var(--space); }
+.hm-window-title { margin: 0; font-family: var(--heading-font); font-weight: var(--heading-weight); font-size: 1rem; line-height: 1.3; }
+.hm-window-rows { margin: 0; padding: 0; list-style: none; }
+.hm-window-row { display: flex; align-items: center; gap: var(--gap); padding-block: calc(var(--space) * 1.5); border-bottom: 1px solid var(--line); }
+.hm-window-row:last-child { border-bottom: 0; }
+.hm-window-row-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.hm-chip {
+  flex: none; padding: 1px calc(var(--space) * 1.5); border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent-text); font-size: 0.75rem; font-weight: 600; line-height: 1.5;
+}
+[data-cards="tinted"] .hm-chip { background: var(--card); }
+.hm-caption { color: var(--muted); font-size: 0.8125rem; text-align: center; }
 
 /* editorial: a big headline and a list that reads like contents */
 .hm-editorial { container-type: inline-size; padding-block: calc(var(--gap) * 2); }

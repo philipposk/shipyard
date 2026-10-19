@@ -40,6 +40,8 @@ Add `--private` if the app is for the student only (hidden from search engines),
 
 Follow the app's `AGENTS.md`. Small steps. Every piece of logic gets a test. Every new table follows the database rules (row level security, an entry in `supabase/isolation.json`, a numbered migration file). Run `npm install` first, then `npm run typecheck`, `npm run lint` and `npm test` after each feature.
 
+Before the first deploy, always write `src/lib/home-content.ts` for this app: the headline, the subline, the three points, and the `preview` rows (3 to 5 sample rows of the app's real main feature, for example a note and its day). The template's stand-in words must never reach a live homepage.
+
 ## 5. Database
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/provision-supabase.mjs" <appDir>`

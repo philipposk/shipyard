@@ -1,9 +1,8 @@
 import { HOME, type HomeContent } from "@/lib/home-content";
-import { HomeActions } from "./parts";
+import { HomeActions, HomePreview } from "./parts";
 
-/** Words on the left, a small preview of the app on the right. Stacks on phones. */
+/** Words on the left, a picture of the app on the right, then the three points as cards. Stacks on phones. */
 export function HomeSplit({ content = HOME }: { content?: HomeContent }) {
-  const rows = content.entries.slice(0, 3);
   return (
     <div className="hm-split-wrap">
       <div className="hm-split">
@@ -12,26 +11,17 @@ export function HomeSplit({ content = HOME }: { content?: HomeContent }) {
           <p className="hm-sub">{content.subline}</p>
           <HomeActions content={content} />
         </section>
-        {/* A picture of the app, built from its own pieces. Nothing in it can be clicked. */}
-        <div className="card hm-preview" aria-hidden="true" inert>
-          <div className="hm-preview-head">
-            <h2 className="hm-preview-title">Items</h2>
-          </div>
-          <div className="hm-preview-add">
-            <div className="input hm-preview-field">Add an item</div>
-            <span className="btn btn-primary">Add</span>
-          </div>
-          <ul className="hm-preview-list">
-            {rows.map((row) => (
-              <li key={row.title} className="list-row">
-                <span className="hm-dot" />
-                <span className="hm-preview-row-title">{row.title}</span>
-                <span className="hm-preview-row-meta">{row.kicker}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* A picture of the app (sample rows in a browser window). Nothing in it can be clicked. */}
+        <HomePreview content={content} />
       </div>
+      <ul className="hm-points hm-split-points">
+        {content.points.map((point) => (
+          <li key={point.title} className="hm-point card card-pad">
+            <h2 className="hm-point-title">{point.title}</h2>
+            <p className="hm-point-text">{point.text}</p>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

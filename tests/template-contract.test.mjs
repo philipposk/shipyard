@@ -101,7 +101,7 @@ test('home: five patterns, picked by HOME_STYLE, all words from home-content.ts'
   const page = await read('src/app/page.tsx');
   assert.ok(page.includes('HOME_PATTERNS[HOME_STYLE]'));
   const content = await read('src/lib/home-content.ts');
-  for (const field of ['headline', 'subline', 'ctaPrimary', 'ctaSecondary', 'points', 'entries']) assert.ok(new RegExp(`\\b${field}\\b`).test(content), field);
+  for (const field of ['headline', 'subline', 'ctaPrimary', 'ctaSecondary', 'points', 'entries', 'preview']) assert.ok(new RegExp(`\\b${field}\\b`).test(content), field);
   const points = /points:\s*\[([\s\S]*?)\n\s*\],/.exec(content)?.[1] ?? '';
   assert.equal((points.match(/title:/g) ?? []).length, 3, 'exactly three points');
   assert.ok(content.includes('BRAND'), 'defaults are built from BRAND');

@@ -24,6 +24,24 @@ export interface HomeEntry {
   icon: NavIconName;
 }
 
+/** One line in the picture of the app: what the row says and a short word on the right (a day, a state). */
+export interface HomePreviewRow {
+  title: string;
+  meta: string;
+}
+
+/**
+ * The picture of the app on the home page (split pattern). Write what a signed-in person really sees on the
+ * app's main screen: sample content OF THE APP (a note, a task, a booking), never the site's own menu links.
+ * It is only a drawing, so nothing in it is clickable.
+ */
+export interface HomePreview {
+  /** The name of the main screen, for example "Your list". */
+  title: string;
+  /** Three to five rows. */
+  rows: readonly HomePreviewRow[];
+}
+
 export interface HomeContent {
   headline: string;
   subline: string;
@@ -33,6 +51,8 @@ export interface HomeContent {
   points: readonly [HomePoint, HomePoint, HomePoint];
   /** Three to six entries. */
   entries: readonly HomeEntry[];
+  /** Sample content of the app's main screen, drawn as a picture. */
+  preview: HomePreview;
 }
 
 export const HOME: HomeContent = {
@@ -50,4 +70,12 @@ export const HOME: HomeContent = {
     { kicker: "About", title: `What ${BRAND.name} is`, blurb: "A short description of this app.", href: "/about", icon: "info" },
     { kicker: "Help", title: "Questions and answers", blurb: "Find help signing in or get in touch.", href: "/help", icon: "help" },
   ],
+  preview: {
+    title: "Your list",
+    rows: [
+      { title: "Plan the week", meta: "Today" },
+      { title: "Book the dentist", meta: "Tomorrow" },
+      { title: "Ideas for the weekend", meta: "Saved" },
+    ],
+  },
 };
