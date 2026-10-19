@@ -2,7 +2,7 @@
 
 A Claude Code plugin that helps a beginner build and publish real web apps. You set up your accounts once, then describe an app and Shipyard builds it with Next.js, Supabase (database and sign-in) and Vercel (hosting), and checks it before calling it done.
 
-**Guide and course:** https://shipyard-guide.vercel.app (install, setup, ten short modules, costs, troubleshooting).
+**Guide and course:** https://shipyard.6x7.gr (install, setup, ten short modules, costs, troubleshooting).
 
 ## Install
 
