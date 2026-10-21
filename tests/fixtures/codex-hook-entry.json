@@ -1,0 +1,23 @@
+{
+  "darwin": {
+    "matcher": ".*",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "\"/usr/local/bin/node\" \"/Users/Jane Doe/.local/share/shipyard/scripts/guard-codex.mjs\"",
+        "timeout": 10
+      }
+    ]
+  },
+  "win32": {
+    "matcher": ".*",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "node \"C:/Users/Jane Doe/.local/share/shipyard/scripts/guard-codex.mjs\"",
+        "commandWindows": "node \"C:\\Users\\Jane Doe\\.local\\share\\shipyard\\scripts\\guard-codex.mjs\"",
+        "timeout": 10
+      }
+    ]
+  }
+}
