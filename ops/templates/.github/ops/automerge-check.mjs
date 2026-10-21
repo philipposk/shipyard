@@ -60,9 +60,14 @@ export const RISKY_PATHS = [
   "eslint.config.mjs",
   "tsconfig.json",
   ".coderabbit.yaml",
-  // The rules your coding agent follows.
+  // The rules your coding agent follows, and what it may read.
   "AGENTS.md",
   "CLAUDE.md",
+  ".cursorignore",
+  ".cursorrules",
+  ".cursor/",
+  ".codex/",
+  ".agents/",
 ];
 
 /** More than this many changed lines (not counting lock files) counts as big. */

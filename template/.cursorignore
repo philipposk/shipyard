@@ -1,0 +1,4 @@
+# Cursor: keep keys out of indexing, @-mentions and Tab.
+.env
+.env.*
+!.env.example
