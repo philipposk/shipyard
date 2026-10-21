@@ -9,6 +9,9 @@
 //           "permissionDecision": "deny", "permissionDecisionReason": "..."}} and exit 0
 //   allow   print nothing and exit 0 (normal permission flow continues)
 //
+// Codex and Cursor run their own entry files (guard-codex.mjs, guard-cursor.mjs). A payload that is not
+// in Claude Code's shape is read by scripts/agents/guard-input.mjs, loaded only for such payloads.
+//
 // It is a safety net, not a vault: it stops the common ways a key could end up
 // in the chat (reading the keys file, printing the environment). It fails OPEN:
 // if anything inside it breaks, the tool call is allowed. Built-ins only, no network.
@@ -648,19 +651,68 @@ async function readStdin(limitMs = 3000) {
   });
 }
 
+// Claude Code's own tool names. A call in Claude Code's shape goes straight to evaluate(), as it always has:
+// the Codex and Cursor adapter is never loaded for it.
+const CLAUDE_TOOLS = new Set([...FILE_TOOLS, ...SEARCH_TOOLS, 'Bash']);
+
+/** Is this payload in Claude Code's own shape (a known tool name, an object tool_input, a session folder)? */
+export function isClaudeShaped(i) {
+  const t = i?.tool_name;
+  const ti = i?.tool_input;
+  return (
+    typeof t === 'string' &&
+    (CLAUDE_TOOLS.has(t) || t.startsWith('mcp__')) &&
+    !!ti &&
+    typeof ti === 'object' &&
+    !Array.isArray(ti) &&
+    !Array.isArray(ti.command) &&
+    !('workdir' in ti) &&
+    typeof i.cwd === 'string' &&
+    i.cwd !== '' &&
+    !('cursor_version' in i)
+  );
+}
+
+const out = (text) => process.stdout.write(`${text}\n`);
+
 async function main() {
   if (process.argv.includes('--help') || process.argv.includes('-h')) {
     process.stdout.write(
       'Shipyard secrets guard (a Claude Code hook, not run by hand).\n' +
         'Reads a planned tool call as JSON on stdin. Prints a deny decision if it would expose your keys,\n' +
-        'otherwise prints nothing. Exit code is always 0.\n',
+        'otherwise prints nothing. Exit code is 0 (when Cursor runs it, a deny also exits 2).\n',
     );
     return;
   }
   try {
     const text = await readStdin();
-    const result = evaluate(JSON.parse(text));
-    if (result.deny) process.stdout.write(`${denyOutput(result.reason)}\n`);
+    const input = JSON.parse(text);
+    if (isClaudeShaped(input)) {
+      const result = evaluate(input);
+      if (result.deny) out(denyOutput(result.reason));
+      return;
+    }
+    // Not Claude Code's shape (for example Cursor running this hook from an imported Claude plugin).
+    // The adapter reads other agents' tool calls. If it cannot load, the old check still runs.
+    let adapter = null;
+    try {
+      adapter = await import('./agents/guard-input.mjs');
+    } catch {
+      adapter = null;
+    }
+    try {
+      adapter?.logShape(input, process.env, 'claude-hook');
+    } catch {
+      // The debug log never matters for the decision.
+    }
+    const result = adapter ? adapter.decide(input, process.env, 'claude-hook') : evaluate(input);
+    if (result.deny) {
+      out(denyOutput(result.reason));
+      if (adapter?.looksLikeCursor(input)) {
+        process.stderr.write(`${result.reason}\n`);
+        process.exitCode = 2;
+      }
+    }
   } catch {
     // Fail open: a bug in the guard must never block the session.
   }
