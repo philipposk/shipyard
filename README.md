@@ -1,6 +1,6 @@
 # Shipyard
 
-A Claude Code plugin that helps a beginner build and publish real web apps. You set up your accounts once, then describe an app and Shipyard builds it with Next.js, Supabase (database and sign-in) and Vercel (hosting), and checks it before calling it done.
+A plugin for Claude Code (beta: Codex and Cursor) that helps a beginner build and publish real web apps. You set up your accounts once, then describe an app and Shipyard builds it with Next.js, Supabase (database and sign-in) and Vercel (hosting), and checks it before calling it done.
 
 **Guide and course:** https://shipyard.6x7.gr (install, setup, ten short modules, costs, troubleshooting).
 
@@ -33,9 +33,48 @@ When the app is live and you want a real address, emails, legal pages or payment
 
 After installing, turn on updates: `/plugin`, then Marketplaces, then shipyard, then Enable auto-update.
 
+## Using Codex or Cursor (beta)
+
+Shipyard also runs in OpenAI Codex (the CLI, the IDE extension and the ChatGPT desktop app) and in Cursor (the editor and the Cursor CLI). It is a beta until it has been checked in real Codex and Cursor sessions.
+
+**You need:** Node 20 or newer, and Git (on Windows install Git for Windows from git-scm.com: Codex and Cursor do not install it). For Codex, the Codex CLI 0.163 or newer.
+
+**Install**, in a terminal (macOS and Linux Terminal, or Windows PowerShell; not cmd.exe), or paste these two lines into your agent and allow it to run them:
+
+```
+git clone --depth 1 https://github.com/philipposk/shipyard.git "$HOME/.local/share/shipyard"
+node "$HOME/.local/share/shipyard/scripts/install-agents.mjs"
+```
+
+It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent both`), shows every file it will change and asks first. It puts Shipyard's skills in `~/.agents/skills/shipyard-*` and adds the key guard to `~/.codex/hooks.json` and `~/.cursor/hooks.json`, keeping your own entries. It never touches Claude Code's files.
+
+**Then, in Codex:** run `codex` in a terminal, type `/hooks`, trust the entry whose command ends in `guard-codex.mjs`, quit, start a new session and type `$shipyard-setup`. Do the `/hooks` step once in the terminal even if you use the ChatGPT desktop app or the IDE extension.
+
+**Then, in Cursor:** open the Command Palette and choose "Developer: Reload Window" (or quit and reopen). In Agent chat type `/shipyard-setup`. In the Cursor CLI, run `agent` and then `/shipyard-setup`.
+
+**What to type:**
+
+| Skill | Claude Code | Codex | Cursor | Any agent |
+|---|---|---|---|---|
+| setup | `/shipyard:setup` | `$shipyard-setup` (or the `/skills` list) | `/shipyard-setup` | "Shipyard setup" |
+| settings page | `/shipyard:setup settings` | `$shipyard-setup settings` | `/shipyard-setup settings` | "Shipyard settings" |
+| new-app, design, launch, video, ops | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
+
+**The guard check.** Once per session, before anything touches keys, the agent runs a short check (`guard-check.mjs`) that proves the key guard is on: a test file with no key in it must be blocked, and the block message carries a code the script checks. If it says OFF, do the trust step (Codex) or reload the window (Cursor), then run `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --check` in a terminal.
+
+**Updating:** `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --update` about once a month. It says when Codex needs you to trust the hook again.
+
+**Fewer prompts in Codex:** when Codex asks to run `node ".../shipyard/scripts/..."`, choose the option that stops it asking again for that command. Or let the installer add a rules file for Shipyard's own scripts: `--codex-allow-scripts`.
+
+**Claude Code only:** auto-update, fixes inside GitHub Actions, and the `frontend-design` plugin.
+
+**Seeing Shipyard twice?** If your agent also imported the Claude Code plugin, use the `shipyard-*` skills. `--check` points out old copies.
+
+**Removing it:** `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --uninstall`, then delete the folder. If you deleted the folder first, remove the Shipyard lines from `~/.codex/hooks.json` and `~/.cursor/hooks.json` by hand (until then they block nothing).
+
 ## What you need
 
-You can start with $0 besides Claude Code Pro (about $20 a month): a free GitHub account, a free Vercel account, a free Supabase account and Node.js from nodejs.org. Setup walks you through each one.
+You can start with $0 besides Claude Code Pro (about $20 a month, or a ChatGPT plan for Codex, or a Cursor plan): a free GitHub account, a free Vercel account, a free Supabase account and Node.js from nodejs.org. Setup walks you through each one.
 
 | Stage | Cost |
 |---|---|
@@ -64,9 +103,14 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 ## Safety
 
 - Your keys live in `~/.shipyard/secrets.env` on your computer. You paste them there yourself. Never paste keys into the chat.
-- A guard hook blocks Claude from reading that file or your `.env` files. Shipyard scripts read keys directly and never print them.
+- A guard hook blocks your coding agent from reading that file or your `.env` files. Claude Code turns it on at install. For Codex and Cursor the installer adds it, and Codex asks you to trust it once. It is a safety net, not a vault. Shipyard scripts read keys directly and never print them.
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
+
+## What changed in 0.6.0
+
+- Shipyard runs in Codex and Cursor (beta), installed with `scripts/install-agents.mjs`. Nothing changes for Claude Code.
+- New apps get a `.cursorignore` that keeps `.env` files away from Cursor, and their `AGENTS.md` gains a rule never to open keys files plus two reworded lines (which agents read it, and the design skill's name in each agent). Auto-merge now waits for you on changes to `.cursor/`, `.codex/`, `.agents/`, `.cursorignore` and `.cursorrules`.
 
 ## Contributing
 
