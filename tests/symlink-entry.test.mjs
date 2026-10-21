@@ -22,6 +22,7 @@ const CASES = [
   ['guard-secrets.mjs', ['--help'], /secrets guard/i],
   ['guard-codex.mjs', ['--help'], /secrets guard for Codex/i],
   ['guard-cursor.mjs', ['--help'], /secrets guard for Cursor/i],
+  ['guard-check.mjs', ['--help'], /Usage/],
 ];
 
 for (const [script, args, expected] of CASES) {

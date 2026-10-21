@@ -141,7 +141,7 @@ test('the guard-check file is denied with a code through both entries', () => {
 // ---------- importing never runs a hook ----------
 
 test('importing an entry file runs nothing', () => {
-  for (const file of [CODEX, CURSOR]) {
+  for (const file of [CODEX, CURSOR, path.join(ROOT, 'scripts', 'guard-check.mjs')]) {
     const r = spawnSync(process.execPath, ['--input-type=module', '-e', `await import(${JSON.stringify(pathToFileURL(file).href)});`], {
       input: JSON.stringify(CURSOR_DENY.beforeShellExecution),
       encoding: 'utf8',
