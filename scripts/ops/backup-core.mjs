@@ -14,6 +14,7 @@ import { ProvisionError, readAppConfig, atomicWrite } from '../provision/common.
 import { loadModule } from '../modules/core.mjs';
 import { schemaIdent, sqlLiteral } from '../provision/shared-sql.mjs';
 import { backupStamp, recordOps } from './common.mjs';
+import { agentName, agentNameStart } from '../lib/agent.mjs';
 
 export const TABLE_RE = /^[a-z_][a-z0-9_]*$/;
 const INTERNAL_TABLES = new Set(['_shipyard_migrations']);
@@ -239,7 +240,7 @@ export async function exportBackup(opts, deps = {}) {
 
 export function restoreSteps(dir, includesAuth) {
   return [
-    'To restore: make sure the tables exist (run provision-supabase.mjs on the app), then ask Claude: "restore my backup of this app from this folder". Claude does not open the files (they hold your users\' personal data and stay out of the chat). It writes a small script on your computer that reads them and loads them table by table, the tables other tables point to first (for example profiles before items), without printing any row.',
+    `To restore: make sure the tables exist (run provision-supabase.mjs on the app), then ask ${agentName()}: "restore my backup of this app from this folder". ${agentNameStart()} does not open the files (they hold your users\' personal data and stay out of the chat). It writes a small script on your computer that reads them and loads them table by table, the tables other tables point to first (for example profiles before items), without printing any row.`,
     includesAuth
       ? 'The sign-in list (auth_users.json) has ids, emails, sign-up dates and whether the email was confirmed, but no passwords, phone numbers or names: people reset their password after a restore.'
       : 'People\'s sign-in accounts (emails and passwords) are not in this copy. Supabase Pro has automatic daily backups that include everything; the free plan does not. Add --include-auth to also save the sign-in list (ids, emails and sign-up dates; no passwords).',

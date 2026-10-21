@@ -6,6 +6,7 @@ import { readFacts, exists, readText } from './facts.mjs';
 import { validateAppId } from './appid.mjs';
 import { pngInfo } from '../../shells/mobile/scripts/png.mjs';
 import { PERMISSIONS, pbxBundleId, plistHasKey } from '../../shells/mobile/scripts/native-edit.mjs';
+import { agentName } from '../lib/agent.mjs';
 
 const ok = (id, message) => ({ id, status: 'ok', message });
 const fail = (id, message, next) => ({ id, status: 'fail', message, next });
@@ -307,6 +308,6 @@ export async function storeCheck(opts, deps = {}) {
   const deleteRoute = await exists(path.join(appDir, 'src', 'app', 'api', 'account', 'delete', 'route.ts'));
   checks.push(deleteRoute
     ? ok('account-deletion', 'People can delete their account inside the app (both stores require it).')
-    : fail('account-deletion', 'The web app has no account deletion route (src/app/api/account/delete/route.ts). Apple and Google require in-app account deletion.', 'Update the app to the newest template, or ask Claude to add "Delete my account" to Settings.'));
+    : fail('account-deletion', 'The web app has no account deletion route (src/app/api/account/delete/route.ts). Apple and Google require in-app account deletion.', `Update the app to the newest template, or ask ${agentName()} to add "Delete my account" to Settings.`));
   return { ok: !checks.some((c) => c.status === 'fail'), skipped: false, kinds, checks };
 }

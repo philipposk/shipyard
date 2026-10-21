@@ -7,6 +7,7 @@ import { loadProfile, STEP_IDS } from './lib/profile.mjs';
 import { listSecrets } from './lib/secrets.mjs';
 import { PROFILE_PATH, SECRETS_PATH, isMainModule } from './lib/paths.mjs';
 import { ok, fail, warn, info, json, parseArgs, setQuiet, UsageError } from './lib/log.mjs';
+import { currentAgent, skillHint } from './lib/agent.mjs';
 
 const HELP = `Usage: setup-status.mjs [--json]
 
@@ -24,7 +25,12 @@ export const STEP_INFO = {
   stripe: { title: 'Payments with Stripe (test mode)', optional: true },
   domain: { title: 'Your own web address', optional: true },
   profile: { title: 'About you', optional: false },
-  habits: { title: 'Good Claude habits', optional: true },
+  habits: {
+    get title() {
+      return currentAgent() === 'claude' ? 'Good Claude habits' : 'Good habits for your coding agent';
+    },
+    optional: true,
+  },
 };
 
 const keyState = (keys, name) => keys.find((k) => k.name === name) ?? { present: false, looksValid: false };
@@ -114,8 +120,8 @@ function printHuman(status) {
       info(`- ${s.title}${tag}: not started`);
     }
   }
-  if (status.allDone) ok('Setup is finished. You can build your first app with /shipyard:new-app.');
-  else info(`Next: ${STEP_INFO[status.nextStep].title}. Run /shipyard:setup to continue.`);
+  if (status.allDone) ok(`Setup is finished. You can build your first app with ${skillHint('new-app')}.`);
+  else info(`Next: ${STEP_INFO[status.nextStep].title}. Run ${skillHint('setup')} to continue.`);
   const missingRequired = status.keys.filter((k) => k.required && !k.present).map((k) => k.name);
   if (missingRequired.length > 0) warn(`Required key not saved yet: ${missingRequired.join(', ')} (file: ${SECRETS_PATH})`);
 }

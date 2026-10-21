@@ -5,6 +5,7 @@ import path from 'node:path';
 import { readAppConfig, isLocalOrigin, ProvisionError } from '../provision/common.mjs';
 import * as realProfile from '../lib/profile.mjs';
 import { parseHex } from '../../shells/mobile/scripts/png.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 export const exists = (p) => stat(p).then(() => true, () => false);
 export const readText = async (p) => {
@@ -160,5 +161,5 @@ export async function readFacts(appDir, deps = {}) {
 
 /** Plain-English refusal when the app is not live yet. */
 export function needLiveUrl() {
-  return new ProvisionError('This app has no live web address yet. Phone and desktop apps open your live website, so deploy first: run /shipyard:new-app until the app is live (or run deploy.mjs), then run this again.', { reason: 'not-live' });
+  return new ProvisionError(`This app has no live web address yet. Phone and desktop apps open your live website, so deploy first: run ${skillHint('new-app')} until the app is live (or run deploy.mjs), then run this again.`, { reason: 'not-live' });
 }

@@ -12,6 +12,7 @@ import { ProvisionError, readAppConfig, writeAppConfig, atomicWrite, DEFAULT_APP
 import { fillPlaceholders, shortNameOf } from '../provision/scaffold-core.mjs';
 import { mergeEnv, readEnvText } from '../provision/envfile.mjs';
 import { addImports, insertAtAnchor, addToArray, addNavItem } from './patch.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 export const MODULES_DIR = path.join(PLUGIN_ROOT, 'modules');
 
@@ -236,7 +237,7 @@ export async function planAddModule(opts, deps = {}) {
   }
   for (const rel of m.requiresFiles ?? []) {
     if (!(await readIfExists(path.join(appDir, ...rel.split('/'))))) {
-      plan.blockers.push(`This app is missing ${rel}, which the "${mod.name}" module needs. The app was made with an older Shipyard: bring it up to date first (the upgrade steps in /shipyard:new-app), then add the module.`);
+      plan.blockers.push(`This app is missing ${rel}, which the "${mod.name}" module needs. The app was made with an older Shipyard: bring it up to date first (the upgrade steps in ${skillHint('new-app')}), then add the module.`);
     }
   }
   for (const dep of m.dependsOn ?? []) {

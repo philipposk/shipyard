@@ -13,6 +13,7 @@ import { listPresets, listCustomLooks } from './design/presets.mjs';
 import { isHex } from './design/color.mjs';
 import { SETTINGS_HTML, HOME_DIR, ensureHomeDir, isMainModule } from './lib/paths.mjs';
 import { ok, info, warn, json, parseArgs, setQuiet, UsageError } from './lib/log.mjs';
+import { agentName, currentAgent } from './lib/agent.mjs';
 
 const HELP = `Usage: settings-page.mjs [--no-open] [--json]
 
@@ -473,10 +474,10 @@ ${rows.join('\n')}
 </article>`;
 }
 
-function appsSection(profile, looks) {
+function appsSection(profile, looks, agent) {
   const apps = Array.isArray(profile.apps) ? profile.apps : [];
   if (apps.length === 0) {
-    const empty = `<div class="empty card"><p><strong>No apps yet</strong></p><p class="muted">Tell Claude what you want to build.</p>
+    const empty = `<div class="empty card"><p><strong>No apps yet</strong></p><p class="muted">Tell ${agentName(agent)} what you want to build.</p>
 <button type="button" class="btn btn-primary" data-copy="Shipyard: build a new app">Start an app</button></div>`;
     return section('apps', 'Apps', empty);
   }
@@ -552,7 +553,7 @@ code{font:0.875em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-
 }
 `;
 
-const SCRIPT = `
+const script = (agent) => `
 (function () {
   var toast = document.getElementById('toast');
   var timer;
@@ -579,7 +580,7 @@ const SCRIPT = `
     if (!button) return;
     var value = button.getAttribute('data-copy');
     function finish(copied) {
-      show(copied ? 'Copied, paste it into Claude' : 'Could not copy. Select and copy this: ' + value);
+      show(copied ? 'Copied, paste it into ${agentName(agent)}' : 'Could not copy. Select and copy this: ' + value);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(value).then(function () { finish(true); }, function () { finish(legacyCopy(value)); });
@@ -596,7 +597,8 @@ const sha = (s) => `'sha256-${createHash('sha256').update(s).digest('base64')}'`
  * Build the whole page as a string. Pure: give it the profile, the key list
  * (names and yes/no only) and the time. Every value is HTML-escaped.
  */
-export function renderSettingsHtml({ profile, keys = [], now = new Date(), looks = {} }) {
+export function renderSettingsHtml({ profile, keys = [], now = new Date(), looks = {}, agent = currentAgent() }) {
+  const js = script(agent);
   const p = profile ?? {};
   const done = Array.isArray(p.setup?.done) ? p.setup.done.filter((id) => STEP_IDS.includes(id)) : [];
   const total = STEP_IDS.length;
@@ -604,7 +606,7 @@ export function renderSettingsHtml({ profile, keys = [], now = new Date(), looks
   const next = STEP_IDS.find((id) => !done.includes(id));
   const bar = STEP_IDS.map((id) => `<span class="${done.includes(id) ? 'on' : ''}"></span>`).join('');
 
-  const csp = `default-src 'none'; style-src ${sha(CSS)}; script-src ${sha(SCRIPT)}`;
+  const csp = `default-src 'none'; style-src ${sha(CSS)}; script-src ${sha(js)}`;
   const progress = finished
     ? `<p>Setup is finished.</p>`
     : `<p>Setup: ${done.length} of ${total} steps done. Next: ${esc(next)}.</p>`;
@@ -631,10 +633,10 @@ ${keysSection(keys)}
 ${youSection(p)}
 ${defaultsSection(p, looks)}
 ${companySection(p)}
-${appsSection(p, looks)}
+${appsSection(p, looks, agent)}
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
-<script>${SCRIPT}</script>
+<script>${js}</script>
 </body>
 </html>
 `;
