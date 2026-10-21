@@ -35,7 +35,7 @@ After installing, turn on updates: `/plugin`, then Marketplaces, then shipyard, 
 
 ## Using Codex or Cursor (beta)
 
-Shipyard also runs in OpenAI Codex (the CLI, the IDE extension and the ChatGPT desktop app) and in Cursor (the editor and the Cursor CLI). It is a beta until it has been checked in real Codex and Cursor sessions.
+Shipyard also runs in OpenAI Codex (the CLI, the IDE extension and the ChatGPT desktop app) and in Cursor (the editor and the Cursor CLI). It is a beta until it has been checked in real Codex and Cursor sessions. Step by step, including what the key guard does not cover: https://shipyard.6x7.gr/codex-and-cursor
 
 **You need:** Node 20 or newer, and Git (on Windows install Git for Windows from git-scm.com: Codex and Cursor do not install it). For Codex, the Codex CLI 0.163 or newer.
 
