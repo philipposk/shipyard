@@ -1,0 +1,72 @@
+# What this does: when you push a version tag (for example v0.6.3), GitHub checks that every
+# manifest carries that version, re-validates the Claude Code, Cursor and skill layouts, then
+# publishes each skill in skills/ to ClawHub (OpenClaw). Hermes needs no upload: this repo is
+# already a tap (`hermes skills tap add philipposk/shipyard`), so the tap check below just
+# guards the layout. skills.sh and Codex read the public repo directly, also nothing to upload.
+# Note: ClawHub releases every published skill under MIT-0.
+# Run it by hand with "dry run" ticked to preview the ClawHub publish without a token.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only (no ClawHub upload)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Manifests agree on one version (and match the tag)
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: node scripts/check-release.mjs
+      - name: Claude Code manifest validation
+        run: npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .
+
+  clawhub:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install the ClawHub CLI
+        run: npm i -g clawhub@0.23.3
+      - name: Publish each skill to ClawHub
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./.claude-plugin/plugin.json').version")"
+          if [ "$DRY_RUN" != "true" ]; then
+            if [ -z "${CLAWHUB_TOKEN:-}" ]; then
+              echo "::error::CLAWHUB_TOKEN secret is not set. Add it under Settings > Secrets > Actions."; exit 1
+            fi
+            clawhub login --token "$CLAWHUB_TOKEN"
+          fi
+          for dir in skills/*/; do
+            name="$(basename "$dir")"
+            flag=""; [ "$DRY_RUN" = "true" ] && flag="--dry-run"
+            clawhub skill publish "$dir" --slug "shipyard-$name" --name "Shipyard $name" \
+              --changelog "Shipyard v$VERSION" $flag
+          done
