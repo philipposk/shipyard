@@ -58,7 +58,8 @@ Required whenever the student uses Gmail "Send mail as" through smtp.gmail.com (
 2. Receive: send to two addresses at the domain from an outside account (section 2, step 5).
 3. Send: from Gmail as `hello@<domain>` and from the app (or `notify.mjs ... --kind custom`), write to the check address at mail-tester.com and to a Gmail and an Outlook.com account. Aim for 9/10 or better; fix whatever it names first.
 4. Gmail > the received message > three dots > "Show original": SPF, DKIM and DMARC should say PASS. A DMARC FAIL with SPF PASS usually means the sending service is missing from the SPF line or is signing with its own domain.
-5. New domains: a few emails a day to people who expect them for the first weeks; ask a couple to reply or mark "Not spam".
+5. Never set a free-mail Reply-To (an @gmail.com, @hotmail.com, ... address) on mail sent from `@<domain>`. Spam filters score that as forged (`FREEMAIL_FORGED_REPLYTO`, -2.5 on mail-tester). Leave Reply-To out, or use an address at the domain such as `hello@<domain>`, which ImprovMX forwards. Measured on 6x7.gr (October 2026): the same Resend email scored 10/10 without it and 7.6/10 with a Gmail Reply-To.
+6. New domains: a few emails a day to people who expect them for the first weeks; ask a couple to reply or mark "Not spam".
 
 ## If something fails
 

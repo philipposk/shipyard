@@ -16,4 +16,4 @@ It uses `RESEND_API_KEY` from the keys file (the key stays on this computer), th
 
 ## Emails the app sends to its users
 
-Sign-up and password emails are Supabase's, set up by `/shipyard:launch`. For other app emails (receipts, reminders), copy the same rules into the app's server code: app name as sender, a "why you got this" first line, plain-text version, one clear link, and an unsubscribe link for anything that is not strictly transactional (the newsletter module has one). Sending goes through the app's own sending-only Resend key, never the full-access one.
+Sign-up and password emails are Supabase's, set up by `/shipyard:launch`. For other app emails (receipts, reminders), copy the same rules into the app's server code: app name as sender, a "why you got this" first line, plain-text version, one clear link, no free-mail Reply-To (use one at the domain or none), and an unsubscribe link for anything that is not strictly transactional (the newsletter module has one). Sending goes through the app's own sending-only Resend key, never the full-access one.
