@@ -32,6 +32,8 @@ const SERVICE = {
   SUPABASE_ACCESS_TOKEN: 'Supabase',
   OPENROUTER_API_KEY: 'OpenRouter',
   OPENAI_API_KEY: 'OpenAI',
+  GROQ_API_KEY: 'Groq',
+  DEEPGRAM_API_KEY: 'Deepgram',
   RESEND_API_KEY: 'Resend',
   STRIPE_SECRET_KEY: 'Stripe',
 };
@@ -39,6 +41,8 @@ const SERVICE = {
 const ENDPOINT = {
   OPENROUTER_API_KEY: 'https://openrouter.ai/api/v1/key',
   OPENAI_API_KEY: 'https://api.openai.com/v1/models',
+  GROQ_API_KEY: 'https://api.groq.com/openai/v1/models',
+  DEEPGRAM_API_KEY: 'https://api.deepgram.com/v1/projects',
   RESEND_API_KEY: 'https://api.resend.com/domains',
   STRIPE_SECRET_KEY: 'https://api.stripe.com/v1/balance',
 };
@@ -54,10 +58,13 @@ export function interpretStatus(service, status) {
   return { ok: false, inconclusive: true, reason: `${service} answered in an unexpected way (HTTP ${status}).` };
 }
 
-async function bearerGet(url, value, fetchImpl) {
+// Deepgram wants "Token <key>"; the others take "Bearer <key>".
+const AUTH_SCHEME = { DEEPGRAM_API_KEY: 'Token' };
+
+async function bearerGet(url, value, fetchImpl, scheme = 'Bearer') {
   const res = await fetchImpl(url, {
     method: 'GET',
-    headers: { Authorization: `Bearer ${value}`, Accept: 'application/json' },
+    headers: { Authorization: `${scheme} ${value}`, Accept: 'application/json' },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
   let body = null;
@@ -88,7 +95,7 @@ export async function liveCheck(name, value, fetchImpl = fetch) {
         details: { orgs: (Array.isArray(orgs) ? orgs : []).map((o) => ({ slug: orgSlug(o), name: String(o?.name ?? '') })) },
       };
     }
-    const { status, body } = await bearerGet(ENDPOINT[name], value, fetchImpl);
+    const { status, body } = await bearerGet(ENDPOINT[name], value, fetchImpl, AUTH_SCHEME[name]);
     if (name === 'RESEND_API_KEY' && status === 401 && body?.name === 'restricted_api_key') {
       return { ok: true, reason: 'Resend accepted it (it can send email but not list domains)', details: { domains: [] } };
     }

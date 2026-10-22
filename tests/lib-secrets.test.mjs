@@ -14,6 +14,8 @@ const FAKE = {
   SUPABASE_ACCESS_TOKEN: `sbp_${'a1'.repeat(20)}`,
   OPENROUTER_API_KEY: `sk-or-v1-${'b2'.repeat(16)}`,
   OPENAI_API_KEY: `sk-proj-${'c3'.repeat(16)}`,
+  GROQ_API_KEY: `gsk_${'j0'.repeat(20)}`,
+  DEEPGRAM_API_KEY: 'k1'.repeat(20),
   RESEND_API_KEY: `re_${'d4'.repeat(12)}`,
   STRIPE_SECRET_KEY: `sk_test_${'e5'.repeat(12)}`,
   STRIPE_PUBLISHABLE_KEY: `pk_test_${'f6'.repeat(12)}`,
@@ -34,7 +36,7 @@ test('parseEnv handles comments, blanks, export, quotes, CRLF, = inside values',
 test('ensureSecretsFile creates the file with all known keys in order, each with a comment', async () => {
   const r = await S.ensureSecretsFile();
   assert.equal(r.created, true);
-  assert.equal(r.added.length, 10);
+  assert.equal(r.added.length, Object.keys(FAKE).length);
   const text = await readFile(SECRETS_PATH, 'utf8');
   const keys = [...text.matchAll(/^([A-Z_]+)=$/gm)].map((x) => x[1]);
   assert.deepEqual(keys, Object.keys(FAKE));
@@ -52,7 +54,7 @@ test('ensureSecretsFile appends missing keys without touching existing values', 
   const r = await S.ensureSecretsFile();
   assert.equal(r.created, false);
   assert.ok(!r.added.includes('SUPABASE_ACCESS_TOKEN'));
-  assert.equal(r.added.length, 9);
+  assert.equal(r.added.length, Object.keys(FAKE).length - 1);
   const text = await readFile(SECRETS_PATH, 'utf8');
   assert.ok(text.startsWith(original));
   assert.match(text, /^CUSTOM=keep me$/m);
@@ -77,7 +79,7 @@ test('readSecrets returns only keys with values', async () => {
 test('listSecrets: never contains values, flags presence and shape', async () => {
   const lines = Object.entries(FAKE).map(([k, v]) => `${k}=${v}`);
   lines[1] = 'OPENROUTER_API_KEY=not-a-real-key'; // present but wrong shape
-  lines[3] = 'RESEND_API_KEY='; // empty
+  lines[Object.keys(FAKE).indexOf('RESEND_API_KEY')] = 'RESEND_API_KEY='; // empty
   await writeFile(SECRETS_PATH, lines.join('\n'));
   const list = await S.listSecrets();
   assert.deepEqual(list.map((s) => s.name), Object.keys(FAKE));
@@ -86,6 +88,8 @@ test('listSecrets: never contains values, flags presence and shape', async () =>
   assert.deepEqual([by.OPENROUTER_API_KEY.present, by.OPENROUTER_API_KEY.looksValid], [true, false]);
   assert.deepEqual([by.RESEND_API_KEY.present, by.RESEND_API_KEY.looksValid], [false, false]);
   assert.equal(by.STRIPE_SECRET_KEY.looksValid, true);
+  assert.equal(by.GROQ_API_KEY.looksValid, true);
+  assert.equal(by.DEEPGRAM_API_KEY.looksValid, true);
   assert.equal(by.STRIPE_PUBLISHABLE_KEY.looksValid, true);
   assert.equal(by.SUPABASE_ACCESS_TOKEN.required, true);
   const dump = JSON.stringify(list);

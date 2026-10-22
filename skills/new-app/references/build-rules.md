@@ -31,4 +31,6 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Legal links live in the account menu, not in a crowded footer.
 - Touch targets at least 44px. Inputs at least 16px so iPhones do not zoom. Light mode by default with dark mode available, no flash on load.
 - Do not hardcode copy that is really data. Do not show debug or backend wording to visitors.
+- Phone-first does not mean phone-only. On a computer (1024px and wider) the app uses the screen: the tab bar becomes a left rail and pages use the content width. Do not wrap pages in a narrow `max-w-md mx-auto` column; lay lists out as a wider table or a grid of cards on big screens. Look at a 1440px wide screenshot too, and compare with how big comparable apps look on a desktop.
+- Switching tabs must feel instant: every signed-in page folder has a `loading.tsx` that returns `<PageLoading />`, and data loads in the page, not in shared layouts.
 - Before saying ready, look at the home page on a phone width and check it against this list.
