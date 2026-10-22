@@ -6,5 +6,6 @@
   "author": { "name": "Philippos" },
   "repository": "https://github.com/philipposk/shipyard",
   "license": "MIT",
-  "keywords": ["nextjs", "supabase", "vercel", "app-builder", "beginner", "scaffold", "deploy"]
+  "keywords": ["nextjs", "supabase", "vercel", "app-builder", "beginner", "scaffold", "deploy"],
+  "hooks": "./hooks/update-check.json"
 }

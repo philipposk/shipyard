@@ -38,7 +38,28 @@ jobs:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: node scripts/check-release.mjs
       - name: Claude Code manifest validation
-        run: npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .
+        run: |
+          npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .
+          # `validate .` only reads marketplace.json; this one also checks the skills' frontmatter.
+          npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .claude-plugin/plugin.json
+
+  # The GitHub release is what the session-start update check (scripts/update-check.mjs) looks at.
+  github-release:
+    needs: check
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the GitHub release for this tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "release $TAG already exists"; exit 0; fi
+          gh release create "$TAG" --verify-tag --generate-notes --title "Shipyard $TAG"
 
   clawhub:
     needs: check

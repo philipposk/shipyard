@@ -84,6 +84,17 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 
 **Removing it:** `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --uninstall`, then delete the folder. If you deleted the folder first, remove the Shipyard lines from `~/.codex/hooks.json` and `~/.cursor/hooks.json` by hand (until then they block nothing).
 
+## Updates
+
+Shipyard tells you when a new version is out: once a day, when a Claude Code session starts, it asks GitHub for the latest release (a quick check that waits at most a second and a half and stays quiet when you are offline). If yours is older you see one line saying how to update. To turn this off, set `SHIPYARD_NO_UPDATE_CHECK=1`.
+
+How to update, depending on how you installed:
+
+- **Claude Code:** turn on auto-update once (`/plugin`, then Marketplaces, then shipyard, then Enable auto-update) and new versions arrive by themselves at the start of a session; run `/reload-plugins` or start a new session to use them. Third-party marketplaces have auto-update off until you turn it on. To update right now: `claude plugin update shipyard@shipyard`, or in a session `/plugin marketplace update shipyard`.
+- **skills.sh** (`npx skills add philipposk/shipyard`): `npx skills check` shows what is new, `npx skills update` installs it.
+- **ClawHub (OpenClaw):** `clawhub update --all`, or one skill with `clawhub update shipyard-<skill>`.
+- **Hermes** (`hermes skills tap add philipposk/shipyard`): `hermes skills check`, then `hermes skills update`. Skills you edited yourself are skipped unless you add `--force`.
+
 ## What you need
 
 You can start with $0 besides Claude Code Pro (about $20 a month, or a ChatGPT plan for Codex, or a Cursor plan): a free GitHub account, a free Vercel account, a free Supabase account and Node.js from nodejs.org. Setup walks you through each one.
