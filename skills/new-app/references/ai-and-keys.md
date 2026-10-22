@@ -18,7 +18,7 @@ The student's keys live in the Shipyard keys file. To give an app the ones a fea
 
 It adds the names to the app (so `provision-vercel.mjs` copies them to the live app) and writes them to `.env.local` for local runs, without printing anything. Run it with no names to see what the app uses. If a key is missing, it says where to get it; the student adds it with `secrets-init.mjs`, then you run it again. After adding keys to a live app: `provision-vercel.mjs`, then redeploy. Email keys are not given this way: `/shipyard:launch` makes the app its own sending-only key.
 
-Keys an app can use: `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `NVIDIA_API_KEY`, `ROUTEWAY_API_KEY`, `BRAVE_API_KEY`, `SERPER_API_KEY`, `SERPAPI_API_KEY`, `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (guides in `/shipyard:apis`), `STRIPE_*` test keys (via `/shipyard:launch`), `GOOGLE_CLIENT_*`.
+Keys an app can use: `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `NVIDIA_API_KEY`, `GEMINI_API_KEY`, `BRAVE_API_KEY`, `SERPER_API_KEY`, `SERPAPI_API_KEY`, `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (guides in `/shipyard:apis`), `STRIPE_*` test keys (via `/shipyard:launch`), `GOOGLE_CLIENT_*`.
 
 ## Suggest feature ideas
 

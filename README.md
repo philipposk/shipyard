@@ -135,7 +135,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - Build story: `scripts/build-story.mjs <app>` turns the Claude Code chats that built an app into `BUILD-STORY.md`: the cleaned prompts, how many, tokens and estimated cost per model, and time per step.
 - Gmail "send as" guide in `launch`: write and reply from your own domain in Gmail, and keep those emails out of junk (SPF, DKIM, DMARC, warm-up).
 - `email`: email on your own domain. Receive at any `@yourdomain` address in Gmail (ImprovMX catch-all), reply from it in Gmail, SPF, DKIM and DMARC, DNS steps for Papaki, Cloudflare or any registrar, a deliverability test (`scripts/email-check.mjs`), and owner emails such as "<App> is live" sent with the app's name and a "why you got this" line (`scripts/notify.mjs`). Run `/shipyard:email`.
-- `apis`: one guide and checker for every service key (OpenRouter, OpenAI, Groq, Deepgram, ElevenLabs, NVIDIA, Routeway, Brave, Serper, SerpAPI, Upstash, Resend, Stripe), web search with fallbacks, voice, an AI model router and shared rate limits. Run `/shipyard:apis`.
+- `apis`: one guide and checker for every service key (OpenRouter, OpenAI, Groq, Deepgram, ElevenLabs, Gemini, NVIDIA, Brave, Serper, SerpAPI, Upstash, Resend, Stripe), web search with fallbacks, voice, an AI model router and shared rate limits. Run `/shipyard:apis`.
 - A settings page: `/shipyard:setup settings`.
 
 Optional extras for design (not installed for you): the free `frontend-design` plugin, and Impeccable for a polish pass on one page.
@@ -151,7 +151,7 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 ## What changed in 0.8.0
 
 - New `email` skill: ImprovMX catch-all to Gmail, Gmail "Send mail as", SPF/DKIM/DMARC, Papaki and Cloudflare DNS steps, `email-check.mjs` (reads public DNS, no keys) and `notify.mjs` (the "<App> is live" email from 6x7-app-factory, with the app as sender, a "why you got this" line and `--dry-run`).
-- New `apis` skill: key guide for 13 services; `secrets-check.mjs --live` now also tests ElevenLabs, Routeway, Brave, Serper, SerpAPI and Upstash (NVIDIA by format). Web search, voice, AI router and Upstash rate-limit guides are marked new, untested in production.
+- New `apis` skill: key guide for 13 services; `secrets-check.mjs --live` now also tests ElevenLabs, Gemini, Brave, Serper, SerpAPI and Upstash (NVIDIA by format). Web search, voice, AI router and Upstash rate-limit guides are marked new, untested in production.
 - `new-skill` points to good existing skills (find-skills, superpowers, caveman, compound-engineering, Anthropic's skill-creator and engineering skills) instead of copying them.
 - `launch` gains a search-engine and speed checklist from the 6x7 launches.
 

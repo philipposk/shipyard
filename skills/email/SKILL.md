@@ -15,6 +15,7 @@ You give the student working email on their own domain: people can write to `hel
 - Never ask for keys or passwords in the chat and never read `~/.shipyard/secrets.env` or `.env*` files. Gmail app passwords and SMTP passwords are pasted by the student straight into Gmail, never anywhere else.
 - Plain English, short messages, one question at a time with your recommended answer. Explain any new word in five words or fewer ("MX record: where mail for the domain goes").
 - Never delete or change an existing DNS record the student did not ask about (the website's records must keep working). Show what to add, not a whole new zone.
+- Never suggest changing a sending setup that already works (for example records on `send.<domain>` made by another service). Report what you see; change it only if the student asks and something is actually broken.
 - Sending email to anyone but the student needs their yes in chat for that email.
 - Every script can be run again safely and accepts `--json` and `--help`.
 

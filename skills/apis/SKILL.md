@@ -1,6 +1,6 @@
 ---
 name: apis
-description: "Add outside services to an app the safe way: one guide and checker for every API key (where to get it, its name, where it lives, a cheap test), web search (Brave, Serper, SerpAPI with fallbacks), voice (Deepgram speech-to-text, ElevenLabs text-to-speech), an AI model router (OpenRouter, Groq, OpenAI, NVIDIA, Routeway) and rate limits with Upstash Redis. Use for \"API key\", \"check my keys\", \"add search\", \"Brave\", \"Serper\", \"SerpAPI\", \"speech to text\", \"text to speech\", \"Deepgram\", \"ElevenLabs\", \"which AI model\", \"OpenRouter\", \"Groq\", \"NVIDIA\", \"Routeway\", \"rate limit\", \"Upstash\", \"Redis\", or \"/shipyard:apis\"."
+description: "Add outside services to an app the safe way: one guide and checker for every API key (where to get it, its name, where it lives, a cheap test), web search (Brave, Serper, SerpAPI with fallbacks), voice (Deepgram speech-to-text, ElevenLabs text-to-speech), an AI model router (OpenRouter, Groq, OpenAI, Gemini, NVIDIA) and rate limits with Upstash Redis. Use for \"API key\", \"check my keys\", \"add search\", \"Brave\", \"Serper\", \"SerpAPI\", \"speech to text\", \"text to speech\", \"Deepgram\", \"ElevenLabs\", \"which AI model\", \"OpenRouter\", \"Groq\", \"NVIDIA\", \"Gemini\", \"rate limit\", \"Upstash\", \"Redis\", or \"/shipyard:apis\"."
 ---
 
 # Shipyard APIs

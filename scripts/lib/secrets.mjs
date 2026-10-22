@@ -45,9 +45,9 @@ export const KNOWN_SECRETS = [
     check: hasPrefix('nvapi-'),
   },
   {
-    name: 'ROUTEWAY_API_KEY', required: false, step: 'ai-keys',
-    hint: 'Optional (one key for many AI models, OpenAI-compatible). routeway.ai > Dashboard > API keys.',
-    check: (v) => /^[A-Za-z0-9_\-]{20,}$/.test(v),
+    name: 'GEMINI_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (Google Gemini AI, has a free tier). aistudio.google.com > Get API key > Create API key (starts with AIza).',
+    check: (v) => /^AIza[A-Za-z0-9_\-]{30,}$/.test(v),
   },
   {
     name: 'BRAVE_API_KEY', required: false, step: 'ai-keys',

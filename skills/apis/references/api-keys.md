@@ -10,7 +10,7 @@ All keys live in the student's keys file `~/.shipyard/secrets.env` (one `NAME=va
 | Deepgram | `DEEPGRAM_API_KEY` | console.deepgram.com > API Keys | `GET /v1/projects` (free) |
 | ElevenLabs | `ELEVENLABS_API_KEY` | elevenlabs.io > Developers > API Keys | `GET /v1/user` (free; key needs "User: read") |
 | NVIDIA | `NVIDIA_API_KEY` | build.nvidia.com > a model > Get API Key | format only (`nvapi-`) |
-| Routeway | `ROUTEWAY_API_KEY` | routeway.ai > Dashboard | `GET https://api.routeway.ai/v1/models` (free) |
+| Gemini | `GEMINI_API_KEY` | aistudio.google.com > Get API key (free tier) | `GET /v1beta/models` (free) |
 | Brave Search | `BRAVE_API_KEY` | api-dashboard.search.brave.com | one search (`count=1`), uses 1 query |
 | Serper | `SERPER_API_KEY` | serper.dev > API Key | one search, uses 1 credit |
 | SerpAPI | `SERPAPI_API_KEY` | serpapi.com > Your Account | `GET /account.json` (free) |
@@ -25,4 +25,4 @@ Rules per key:
 - Set a monthly spend limit in each paid dashboard (OpenAI, OpenRouter, ElevenLabs, Serper) before an app goes public.
 - A key pasted anywhere public: revoke it in the provider's dashboard first, then make a new one.
 
-Names in the student's older 6x7 setup (`~/.config/6x7/secrets.env`) such as `GEMINI_API_KEY` and `GROK_API_KEY` are not in Shipyard's list yet; `app-keys.mjs` only knows the names above.
+`app-keys.mjs` only knows the names above. Groq (`GROQ_API_KEY`, fast models) is not Grok (xAI); Grok is not in Shipyard's list.

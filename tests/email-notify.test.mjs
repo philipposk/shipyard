@@ -97,3 +97,13 @@ test('email-check main uses an injected resolver and rejects bad domains', async
   assert.equal(await checkMain(['a.io', '--json'], { resolver }), 0);
   await assert.rejects(checkMain(['not a domain']), /Give a domain/);
 });
+
+test('analyse: existing non-Resend sending records are only reported, never replaced', () => {
+  const r = analyse('a.io', { ...GOOD, dkim: [] });
+  const send = r.checks.find((c) => c.id === 'send');
+  assert.equal(send.ok, false);
+  assert.match(send.fix, /leave them as they are/);
+  assert.doesNotMatch(send.fix, /launch-email/);
+  const none = analyse('a.io', { ...GOOD, dkim: [], sendTxt: [], sendMx: [] }).checks.find((c) => c.id === 'send');
+  assert.match(none.fix, /Only if/);
+});

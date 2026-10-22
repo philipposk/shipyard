@@ -16,7 +16,6 @@ Before building a new skill, check whether one of these already does the job. Sh
 
 - **skill-creator**: write and test new skills; use it alongside `/shipyard:new-skill`. Source `github.com/anthropics/skills` (`skills/skill-creator`). It is also a plugin marketplace (`anthropics/skills`). The same repo has **frontend-design** and **webapp-testing**.
 - **Engineering plugin** from `github.com/anthropics/knowledge-work-plugins` (`engineering/skills`): **code-review**, **debug**, **deploy-checklist**, **testing-strategy**, **system-design**, **tech-debt**, **documentation** (also architecture, incident-response, standup). Add the marketplace `anthropics/knowledge-work-plugins`, then install its `engineering` plugin. Overlaps with Shipyard: deploy-checklist and launch's go-live check; prefer Shipyard's `launch-check.mjs` for Shipyard apps and use deploy-checklist for anything else.
-- **deep-research**: TODO: the install source could not be confirmed (it is not in anthropics/skills or knowledge-work-plugins). Ask the student where his copy came from before linking it.
 
 ## Domain skills worth knowing
 

@@ -12,7 +12,7 @@ test('new providers use their own auth header and a cheap endpoint', async () =>
   seen.length = 0;
   const cases = [
     ['ELEVENLABS_API_KEY', 'https://api.elevenlabs.io/v1/user', 'xi-api-key'],
-    ['ROUTEWAY_API_KEY', 'https://api.routeway.ai/v1/models', 'Authorization'],
+    ['GEMINI_API_KEY', 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', 'x-goog-api-key'],
     ['BRAVE_API_KEY', 'https://api.search.brave.com/res/v1/web/search?q=test&count=1', 'X-Subscription-Token'],
     ['SERPER_API_KEY', 'https://google.serper.dev/search', 'X-API-KEY'],
   ];

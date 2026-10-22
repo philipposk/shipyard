@@ -51,12 +51,18 @@ export function analyse(domain, rec, sendSub = 'send') {
     const dkim = joinTxt(rec.dkim).some((t) => /p=/.test(t));
     const sendSpf = joinTxt(rec.sendTxt).some((t) => /^v=spf1\b/i.test(t));
     const sendMx = (rec.sendMx ?? []).length > 0;
+    const found = sendSpf || sendMx;
     checks.push({
       id: 'send', ok: dkim && sendSpf && sendMx, optional: true,
       text: dkim && sendSpf && sendMx
         ? `Sending (Resend) on ${host}: DKIM, SPF and return path found`
         : `Sending (Resend) on ${host}: ${[!dkim && 'DKIM', !sendSpf && 'SPF', !sendMx && 'MX (return path)'].filter(Boolean).join(', ')} not found`,
-      fix: dkim && sendSpf && sendMx ? undefined : `Run launch-email.mjs <appDir> --domain ${host}; it prints the exact records.`,
+      // Report only. Records that are already there belong to a working setup; never suggest replacing them.
+      fix: dkim && sendSpf && sendMx
+        ? undefined
+        : found
+          ? `${host} already has sending records. If email from it arrives fine, leave them as they are; only report this.`
+          : `Only if this domain should send app email through Resend and nothing sends from ${host} yet: launch-email.mjs <appDir> --domain ${host} prints the exact records.`,
     });
   }
   const needed = checks.filter((c) => !c.optional);

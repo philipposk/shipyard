@@ -12,7 +12,7 @@ const HELP = `Usage: secrets-check.mjs [--live] [--json]
 Checks each key in ~/.shipyard/secrets.env: present, and in the right format.
   --live   also make one small read-only request per key to the provider
            (Supabase, OpenRouter, OpenAI, Groq, Deepgram, Resend, Stripe,
-           ElevenLabs, Routeway, Brave, Serper, SerpAPI, Upstash). NVIDIA is format-only.
+           ElevenLabs, Gemini, Brave, Serper, SerpAPI, Upstash). NVIDIA is format-only.
            Brave and Serper use one search credit each.
            A key whose format looks wrong is never sent anywhere.
   --json   machine-readable output (never contains key values)
@@ -39,7 +39,7 @@ const SERVICE = {
   RESEND_API_KEY: 'Resend',
   STRIPE_SECRET_KEY: 'Stripe',
   ELEVENLABS_API_KEY: 'ElevenLabs',
-  ROUTEWAY_API_KEY: 'Routeway',
+  GEMINI_API_KEY: 'Gemini',
   BRAVE_API_KEY: 'Brave Search',
   SERPER_API_KEY: 'Serper',
   SERPAPI_API_KEY: 'SerpAPI',
@@ -53,7 +53,8 @@ const SERVICE = {
  */
 export const PROBE = {
   ELEVENLABS_API_KEY: (v) => ({ url: 'https://api.elevenlabs.io/v1/user', headers: { 'xi-api-key': v } }),
-  ROUTEWAY_API_KEY: (v) => ({ url: 'https://api.routeway.ai/v1/models', headers: { Authorization: `Bearer ${v}` } }),
+  // Gemini: listing models is free and needs a valid key.
+  GEMINI_API_KEY: (v) => ({ url: 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', headers: { 'x-goog-api-key': v } }),
   // Brave: one search counts against the free monthly quota.
   BRAVE_API_KEY: (v) => ({ url: 'https://api.search.brave.com/res/v1/web/search?q=test&count=1', headers: { 'X-Subscription-Token': v } }),
   // Serper: one search uses one credit.

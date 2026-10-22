@@ -38,7 +38,13 @@ Proven, free route (6x7.gr): Google's own SMTP with an app password.
 
 Alternative when the domain already sends through Resend: SMTP `smtp.resend.com`, port 465, username `resend`, a Resend sending-only key as password; see `/shipyard:launch` `references/gmail-send-as.md`. That route signs mail with the domain's own DKIM, which aligns better with DMARC.
 
-Gmail's SMTP signs with Google's DKIM, not the domain's, so DMARC passes only through SPF: add `include:_spf.google.com` to the domain's single SPF line (`v=spf1 include:spf.improvmx.com include:_spf.google.com ~all`). **New, untested in production**: 6x7.gr's SPF does not include Google yet; check one sent message with Gmail "Show original" after adding it.
+### Why Gmail send-as needs a line in SPF
+
+In plain words: SPF is a public list, kept in the domain's DNS, of the mail servers allowed to send as `@<domain>`. When Gmail sends as `hello@<domain>` through smtp.gmail.com, the mail leaves from Google's servers. If Google is not on that list, the receiver sees "a server not on the list sent this", and that is a common reason for mail landing in Spam. Google also signs these emails with its own key (DKIM for gmail.com), not the domain's, so the SPF list is the only thing that can vouch for them.
+
+The fix is one word added to the domain's one existing SPF line, nothing removed:
+`v=spf1 include:spf.improvmx.com include:_spf.google.com ~all`
+Only add it if the student uses Gmail "Send mail as" through smtp.gmail.com. The student (or you, with their yes) edits that TXT line at the registrar; never make a second `v=spf1` line. Afterwards send one email to another account and check Gmail "Show original" for `SPF: PASS` and `DMARC: PASS`. **New, untested in production**: 6x7.gr's SPF does not include Google as of October 2026.
 
 ## 4. SPF, DKIM and DMARC
 

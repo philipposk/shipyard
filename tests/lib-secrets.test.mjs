@@ -18,7 +18,7 @@ const FAKE = {
   DEEPGRAM_API_KEY: 'k1'.repeat(20),
   ELEVENLABS_API_KEY: `sk_${'m1'.repeat(12)}`,
   NVIDIA_API_KEY: `nvapi-${'n2'.repeat(12)}`,
-  ROUTEWAY_API_KEY: `rw_${'o3'.repeat(12)}`,
+  GEMINI_API_KEY: `AIza${'o3'.repeat(17)}`,
   BRAVE_API_KEY: 'BS'.repeat(15),
   SERPER_API_KEY: 'ab'.repeat(20),
   SERPAPI_API_KEY: 'cd'.repeat(32),
