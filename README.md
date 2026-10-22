@@ -111,6 +111,13 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
 
+## What changed in 0.6.1
+
+- Phone-first apps use the whole screen on computers (left rail, full-width pages), and tab switches show the next page's outline at once. Existing apps keep their look until you bring the change in.
+- `scripts/app-keys.mjs` gives one app the service keys it needs; Groq and Deepgram keys are known to setup.
+- `scripts/build-story.mjs` writes a "how this app was made" record from the Claude Code chats.
+- New guides: AI features and feature ideas, API / webhooks / MCP for apps, and Gmail "send as" with a junk-folder checklist.
+
 ## What changed in 0.6.0
 
 - Shipyard runs in Codex and Cursor (beta), installed with `scripts/install-agents.mjs`. Nothing changes for Claude Code.
