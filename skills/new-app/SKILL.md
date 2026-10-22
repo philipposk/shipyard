@@ -55,7 +55,7 @@ Ask: "OK to save this first version to GitHub?" If yes: `git add -A`, check noth
 
 ## 7. Publish
 
-1. `node "${CLAUDE_PLUGIN_ROOT}/scripts/provision-vercel.mjs" <appDir>` (links Vercel, sets the environment values, turns off the login wall that would block visitors).
+1. `node "${CLAUDE_PLUGIN_ROOT}/scripts/provision-vercel.mjs" <appDir>` (links Vercel, sets the environment values, turns off the login wall that would block visitors). It also connects GitHub. If it says it could not, fix that now (`vercel git connect --yes` in the app folder) and check the Vercel project's Git settings show the repo with production branch `main`. Otherwise later merges never go live.
 2. `node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy.mjs" <appDir>`. It refuses if there are unsaved changes; save and push first. It prints the address and adds it to the sign-in settings.
 
 ## 8. Verify
