@@ -70,7 +70,7 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 |---|---|---|---|---|
 | setup | `/shipyard:setup` | `$shipyard-setup` (or the `/skills` list) | `/shipyard-setup` | "Shipyard setup" |
 | settings page | `/shipyard:setup settings` | `$shipyard-setup settings` | `/shipyard-setup settings` | "Shipyard settings" |
-| new-app, design, launch, video, ops | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
+| new-app, design, launch, video, ops, new-skill | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
 
 **The guard check.** Once per session, before anything touches keys, the agent runs a short check (`guard-check.mjs`) that proves the key guard is on: a test file with no key in it must be blocked, and the block message carries a code the script checks. If it says OFF, do the trust step (Codex) or reload the window (Cursor), then run `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --check` in a terminal.
 
@@ -108,6 +108,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - `launch`: go from a free test address to a real product. Your own web address and real sign-up emails (people confirm their email), privacy and terms pages written from the services your app uses (a draft: have it checked), a country checklist from official sources, payments with Stripe (test first, then live), an email list with one-click unsubscribe, phone and desktop app wrappers, and a go-live check. Run `/shipyard:launch`.
 - `video`: make a product video of your app, built as code (not a screen recording): the script is approved before any voice cost, narration is timed to the words, and you get light and dark, wide and phone cuts. Web copy under 10 MB goes into your app. Needs ffmpeg (optional). Takes hours and uses a lot of your Claude allowance, so do it after launch. Run `/shipyard:video`.
 - `ops`: keep a live app healthy. An error log and admin logs page with email alerts, health checks every 6 hours that open one GitHub issue when something is wrong, code review on every pull request (CodeRabbit, or `/code-review` for free), auto-merge for small safe changes (anything touching sign-in, data rules, payments or workflows waits for you), regular project reviews, backups kept on your own computer, and a clear loop for how problems get fixed. Run `/shipyard:ops`.
+- `new-skill`: build your own skill or plugin for coding agents, or add one to Shipyard. It asks what you want, tells you when an idea is weak and offers a better one, looks at your code and agent chats (with your yes) to recommend building on Shipyard or from scratch, then writes the skill, a test, plugin files for Claude Code and Cursor, and a publishing checklist (skills.sh, ClawHub, Hermes, the Cursor and Claude Code marketplaces). Run `/shipyard:new-skill`.
 - A settings page: `/shipyard:setup settings`.
 
 Optional extras for design (not installed for you): the free `frontend-design` plugin, and Impeccable for a polish pass on one page.
@@ -118,6 +119,10 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - A guard hook blocks your coding agent from reading that file or your `.env` files. Claude Code turns it on at install. For Codex and Cursor the installer adds it, and Codex asks you to trust it once. It is a safety net, not a vault. Shipyard scripts read keys directly and never print them.
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
+
+## What changed in 0.7.0
+
+- New skill `new-skill`: build and publish your own skills and plugins. `scripts/skill-scaffold.mjs` writes a skill or plugin that works in Claude Code, Codex, Cursor and agents that read `~/.agents/skills`, and checks any skill folder (name, trigger words in the description, no placeholders). Codex and Cursor get it as `shipyard-new-skill` after `install-agents.mjs --update`.
 
 ## What changed in 0.6.2
 

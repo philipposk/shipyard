@@ -6,7 +6,7 @@ import path from 'node:path';
 import { accessSync, constants, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync, chmodSync } from 'node:fs';
 import { REWRITES } from './rewrites.mjs';
 
-export const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops'];
+export const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops', 'new-skill'];
 export const PACK_PREFIX = 'shipyard-';
 export const MARKER = '.shipyard-generated.json';
 export const RULES_MARKER = '# shipyard';
