@@ -295,6 +295,27 @@ button.link { background: none; border: 0; padding: 0; font: inherit; cursor: po
   min-height: 56px; min-width: 44px; font-size: 0.75rem; text-decoration: none; color: var(--muted);
 }
 .tab-link[aria-current="page"] { color: var(--accent); font-weight: 700; }
+.tab-link[data-pending] { opacity: 0.7; }
+
+/* Phone-first apps on a computer: the tab bar becomes a slim rail on the left (like the desktop versions of
+   big phone-first apps) and the page uses the full content width instead of a narrow phone column. */
+@media (min-width: 1024px) {
+  body:has(.bottom-nav) { --nav-space: 0px; --rail-w: 88px; }
+  .bottom-nav {
+    top: var(--header-h); right: auto; width: var(--rail-w);
+    border-top: 0; border-right: 1px solid var(--line); padding-bottom: 0;
+  }
+  .bottom-nav > div { display: flex; flex-direction: column; gap: 4px; max-width: none; padding: 8px; }
+  .bottom-nav .tab-link { min-height: 64px; border-radius: var(--radius-sm); }
+  .bottom-nav .tab-link:hover { background: var(--accent-soft); color: var(--foreground); }
+  .bottom-nav .tab-link[aria-current="page"] { background: var(--accent-soft); }
+  body:has(.bottom-nav) .app-main,
+  body:has(.bottom-nav) .app-header-in {
+    max-width: calc(var(--content-max) + var(--rail-w) + var(--pad-card) * 4);
+    padding-left: calc(var(--rail-w) + var(--pad-card) * 2);
+    padding-right: calc(var(--pad-card) * 2);
+  }
+}
 
 /* ---- Sidebar layout: left menu on wide screens, tab bar on phones ---- */
 .sb-side { display: none; }

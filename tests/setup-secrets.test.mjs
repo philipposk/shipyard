@@ -247,6 +247,17 @@ test('live: Stripe live key is noticed', async () => {
   assert.equal(r.details.mode, 'live');
 });
 
+test('live: Groq uses Bearer, Deepgram uses Token, and both are read-only lookups', async () => {
+  const seen = [];
+  const routes = { 'https://api.groq.com/': reply(200, {}), 'https://api.deepgram.com/': reply(200, {}) };
+  const g = await liveCheck('GROQ_API_KEY', 'gsk_' + 'a'.repeat(40), fakeFetch(routes, seen));
+  const d = await liveCheck('DEEPGRAM_API_KEY', 'b'.repeat(40), fakeFetch(routes, seen));
+  assert.equal(g.ok, true);
+  assert.equal(d.ok, true);
+  assert.match(seen[0].auth, /^Bearer gsk_/);
+  assert.match(seen[1].auth, /^Token b+$/);
+});
+
 test('live: values with spaces are not sent', async () => {
   const seen = [];
   const r = await liveCheck('OPENAI_API_KEY', 'sk-abc def', fakeFetch({ 'https://': reply(200, {}) }, seen));

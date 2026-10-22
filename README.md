@@ -120,6 +120,10 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - `video`: make a product video of your app, built as code (not a screen recording): the script is approved before any voice cost, narration is timed to the words, and you get light and dark, wide and phone cuts. Web copy under 10 MB goes into your app. Needs ffmpeg (optional). Takes hours and uses a lot of your Claude allowance, so do it after launch. Run `/shipyard:video`.
 - `ops`: keep a live app healthy. An error log and admin logs page with email alerts, health checks every 6 hours that open one GitHub issue when something is wrong, code review on every pull request (CodeRabbit, or `/code-review` for free), auto-merge for small safe changes (anything touching sign-in, data rules, payments or workflows waits for you), regular project reviews, backups kept on your own computer, and a clear loop for how problems get fixed. Run `/shipyard:ops`.
 - `new-skill`: build your own skill or plugin for coding agents, or add one to Shipyard. It asks what you want, tells you when an idea is weak and offers a better one, looks at your code and agent chats (with your yes) to recommend building on Shipyard or from scratch, then writes the skill, a test, plugin files for Claude Code and Cursor, and a publishing checklist (skills.sh, ClawHub, Hermes, the Cursor and Claude Code marketplaces). Run `/shipyard:new-skill`.
+- Desktop that uses the screen: phone-first apps show a left rail instead of the tab bar on computers, with pages at full content width, and tab switches show the next page's outline at once.
+- Service keys per app: `scripts/app-keys.mjs <app> GROQ_API_KEY ...` gives an app the AI, speech-to-text (Groq, Deepgram) or other keys from your keys file without showing them. The new-app skill also builds AI features on the server where they help, suggests the next best features, and can add an API, webhooks and an MCP server so other tools and AI assistants can use your app.
+- Build story: `scripts/build-story.mjs <app>` turns the Claude Code chats that built an app into `BUILD-STORY.md`: the cleaned prompts, how many, tokens and estimated cost per model, and time per step.
+- Gmail "send as" guide in `launch`: write and reply from your own domain in Gmail, and keep those emails out of junk (SPF, DKIM, DMARC, warm-up).
 - A settings page: `/shipyard:setup settings`.
 
 Optional extras for design (not installed for you): the free `frontend-design` plugin, and Impeccable for a polish pass on one page.
@@ -130,6 +134,13 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - A guard hook blocks your coding agent from reading that file or your `.env` files. Claude Code turns it on at install. For Codex and Cursor the installer adds it, and Codex asks you to trust it once. It is a safety net, not a vault. Shipyard scripts read keys directly and never print them.
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
+
+## What changed in 0.7.1
+
+- Phone-first apps use the whole screen on computers (left rail, full-width pages), and tab switches show the next page's outline at once. Existing apps keep their look until you bring the change in.
+- `scripts/app-keys.mjs` gives one app the service keys it needs; Groq and Deepgram keys are known to setup.
+- `scripts/build-story.mjs` writes a "how this app was made" record from the Claude Code chats.
+- New guides: AI features and feature ideas, API / webhooks / MCP for apps, and Gmail "send as" with a junk-folder checklist.
 
 ## What changed in 0.7.0
 

@@ -25,11 +25,11 @@ If the student wants to improve an app they already have, read `references/upgra
 
 ## 1. Interview
 
-Read `references/interview.md`. Ask at most 5 questions, about outcomes not technology (who it is for, the one main thing they do, free or paid or email list, installable on phones, a look they like). Rambling answers are fine. Pick the layout from the profile default or ask: `bottom-nav` for phone-first apps, `sidebar` for tools and dashboards, `top-nav` for site-like apps (links in the top bar, tabs on phones).
+Read `references/interview.md`. Ask at most 5 questions, about outcomes not technology (who it is for, the one main thing they do, free or paid or email list, installable on phones, a look they like). Rambling answers are fine. If the app would be better with AI, needs speech-to-text or should be usable by other tools or AI assistants, read `references/ai-and-keys.md` and `references/api-and-mcp.md`. Pick the layout from the profile default or ask: `bottom-nav` for phone-first apps, `sidebar` for tools and dashboards, `top-nav` for site-like apps (links in the top bar, tabs on phones).
 
 ## 2. Spec and plan
 
-Read `references/build-rules.md`. Choose a short slug (lowercase letters, numbers, hyphens, starts with a letter). Make a folder for the app, then write `SPEC.md` in it: who it is for, the main action, the list of features (small steps), what data is stored, and the hard rules from build-rules. Add a plan of 5 to 8 steps in plain words. Show it and wait for the student to say "go". Nothing is built before that.
+Read `references/build-rules.md`. Choose a short slug (lowercase letters, numbers, hyphens, starts with a letter). Make a folder for the app, then write `SPEC.md` in it: who it is for, the main action, the list of features (small steps), what data is stored, and the hard rules from build-rules. Add a plan of 5 to 8 steps in plain words. End the plan with the 3 best feature ideas for later (see `references/ai-and-keys.md`). Show it and wait for the student to say "go". Nothing is built before that.
 
 ## 3. Scaffold
 
@@ -38,7 +38,7 @@ Add `--private` if the app is for the student only (hidden from search engines),
 
 ## 4. Build the features
 
-Follow the app's `AGENTS.md`. Small steps. Every piece of logic gets a test. Every new table follows the database rules (row level security, an entry in `supabase/isolation.json`, a numbered migration file). Run `npm install` first, then `npm run typecheck`, `npm run lint` and `npm test` after each feature.
+Follow the app's `AGENTS.md`. Small steps. Every piece of logic gets a test. When a feature needs an AI, speech or other service key, give the app the key with `node "${CLAUDE_PLUGIN_ROOT}/scripts/app-keys.mjs" <appDir> <KEY_NAME>` (never ask for keys in the chat). Every new table follows the database rules (row level security, an entry in `supabase/isolation.json`, a numbered migration file). Run `npm install` first, then `npm run typecheck`, `npm run lint` and `npm test` after each feature.
 
 Before the first deploy, always write `src/lib/home-content.ts` for this app: the headline, the subline, the three points, and the `preview` rows (3 to 5 sample rows of the app's real main feature, for example a note and its day). The template's stand-in words must never reach a live homepage.
 
@@ -70,6 +70,7 @@ It makes the student's own account (their email from the profile) with the app's
 
 - Write `HANDOFF.md` in the app: what is where, how to run the checks (the exact verify command), how to make changes (branch, pull request, green checks, merge), and the known limits. Always include: "Starter mode: anyone can sign up without email confirmation, and the email they type is not checked. Never trust an email address as proof of who someone is. The owner account was made by Shipyard (`make-owner.mjs`) and admin comes only from the `is_admin` flag. Google sign-in stays off, and email sign-up is switched off if you turn it on, until real email confirmation works. `/shipyard:launch` sets that up."
 - Update the profile (`status: live`, last step) via the scripts; do not edit profile.json by hand.
+- Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/build-story.mjs" <appDir>`: it writes `BUILD-STORY.md` (the cleaned prompts, how many, tokens, estimated cost per model, time per step). Show the totals in one line. Steps marked (fix) are corrections: for each one Shipyard should have known, add a learning (next point). Never publish the story without the student reading it first.
 - If you learned something that would help future apps (a mistake and its fix), append one line to `~/.shipyard/learnings.md`. Read `references/lessons.md` only when you need to check a past lesson.
 - Final message: the address, what was verified, what was not, and what the student does next ("to change anything, tell me what you want"). Keep it short. End with what is next: "When you want your own web address, real sign-up emails, privacy and terms pages, payments, an email list, or phone and desktop apps, run `/shipyard:launch`. After launch: `/shipyard:video` makes a product video of the app (takes hours and a lot of Claude usage, so do it when you have time), and `/shipyard:ops` sets up error alerts, scheduled health checks, code review on pull requests, safe auto-merge and backups."
 

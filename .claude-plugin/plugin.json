@@ -1,7 +1,7 @@
 {
   "name": "shipyard",
   "displayName": "Shipyard",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Set up your accounts once, then build and publish real web apps (Next.js, Supabase, Vercel) with Claude Code, with good practices built in.",
   "author": { "name": "Philippos" },
   "repository": "https://github.com/philipposk/shipyard",

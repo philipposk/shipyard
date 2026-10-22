@@ -25,6 +25,16 @@ export const KNOWN_SECRETS = [
     check: (v) => v.startsWith('sk-') && !v.startsWith('sk-or-') && v.length >= 20,
   },
   {
+    name: 'GROQ_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (fast AI and speech-to-text, has a free tier). console.groq.com > API Keys > Create API key (starts with gsk_).',
+    check: hasPrefix('gsk_'),
+  },
+  {
+    name: 'DEEPGRAM_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (speech-to-text, free starting credit). console.deepgram.com > API Keys > Create a new API key (40 letters and numbers).',
+    check: (v) => /^[A-Za-z0-9]{32,}$/.test(v),
+  },
+  {
     name: 'RESEND_API_KEY', required: false, step: 'email',
     hint: 'Optional (sending email). resend.com > API Keys > Create API key (starts with re_).',
     check: (v) => v.startsWith('re_') && v.length >= 10,
