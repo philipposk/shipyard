@@ -37,7 +37,7 @@ After installing, turn on updates: `/plugin`, then Marketplaces, then shipyard, 
 
 Shipyard also runs in OpenAI Codex (the CLI, the IDE extension and the ChatGPT desktop app) and in Cursor (the editor and the Cursor CLI). It is a beta until it has been checked in real Codex and Cursor sessions. Step by step, including what the key guard does not cover: https://shipyard.6x7.gr/codex-and-cursor
 
-**You need:** Node 20 or newer, and Git (on Windows install Git for Windows from git-scm.com: Codex and Cursor do not install it). For Codex, the Codex CLI 0.163 or newer.
+**You need:** Node 20 or newer, and Git (on Windows install Git for Windows from git-scm.com: Codex and Cursor do not install it). For Codex, the Codex CLI 0.163 or newer: install or update it with `npm install -g @openai/codex@latest`, then check `codex --version` (other ways: https://learn.chatgpt.com/docs/cli).
 
 **Install**, in a terminal (macOS and Linux Terminal, or Windows PowerShell; not cmd.exe), or paste these two lines into your agent and allow it to run them:
 
@@ -46,7 +46,7 @@ git clone --depth 1 https://github.com/philipposk/shipyard.git "$HOME/.local/sha
 node "$HOME/.local/share/shipyard/scripts/install-agents.mjs"
 ```
 
-It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent both`), shows every file it will change and asks first. It puts Shipyard's skills in `~/.agents/skills/shipyard-*` and adds the key guard to `~/.codex/hooks.json` and `~/.cursor/hooks.json`, keeping your own entries. It never touches Claude Code's files.
+It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent both`), shows every file it will change and asks first. It puts Shipyard's skills in `~/.agents/skills/shipyard-*` and adds the key guard to `~/.codex/hooks.json` and `~/.cursor/hooks.json`, keeping your own entries. It never touches Claude Code's files. Codex and Cursor both read `~/.agents/skills`, so if the other agent is on your computer too it gets the key guard as well, and `--uninstall --agent ...` for one of them stops with a message instead of leaving the other without it.
 
 **Then, in Codex:** run `codex` in a terminal, type `/hooks`, trust the entry whose command ends in `guard-codex.mjs`, quit, start a new session and type `$shipyard-setup`. Do the `/hooks` step once in the terminal even if you use the ChatGPT desktop app or the IDE extension.
 
@@ -64,11 +64,11 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 
 **Updating:** `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --update` about once a month. It says when Codex needs you to trust the hook again.
 
-**Fewer prompts in Codex:** when Codex asks to run `node ".../shipyard/scripts/..."`, choose the option that stops it asking again for that command. Or let the installer add a rules file for Shipyard's own scripts: `--codex-allow-scripts`.
+**Fewer prompts in Codex:** when Codex asks to run `node ".../shipyard/scripts/..."`, choose the option that stops it asking again for that command. Or let the installer add a rules file for Shipyard's own scripts: `--codex-allow-scripts`. Codex then runs those scripts outside its sandbox (full access to your files and the internet) without asking, and picks the file up in a new session.
 
 **Claude Code only:** auto-update, fixes inside GitHub Actions, and the `frontend-design` plugin.
 
-**Seeing Shipyard twice?** If your agent also imported the Claude Code plugin, use the `shipyard-*` skills. `--check` points out old copies.
+**Seeing Shipyard twice?** If your agent also imported the Claude Code plugin, use the `shipyard-*` skills. `--check` looks for old copies (in `~/.codex/skills`, `~/.cursor/skills`, `~/.claude/skills`, and Claude Code's Shipyard plugin that Cursor can load) and says how to switch each one off.
 
 **Removing it:** `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --uninstall`, then delete the folder. If you deleted the folder first, remove the Shipyard lines from `~/.codex/hooks.json` and `~/.cursor/hooks.json` by hand (until then they block nothing).
 

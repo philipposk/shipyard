@@ -207,3 +207,13 @@ test('the habits match the Claude Code starter apart from agent wording', () => 
   assert.equal(habits.length, starter.length, 'same number of lines as starter/CLAUDE.md');
   assert.equal(habits[0], starter[0]);
 });
+
+test('the lint skips the paths filled in from this computer (a home folder named Claude is fine)', () => {
+  const root = 'C:/Users/Claude/Opus/shipyard';
+  const skillsDir = 'C:/Users/Claude/.agents/skills';
+  const pack = planPack({ root, skillsDir, version: VERSION, generatedAt: AT, skillsSrc: path.join(ROOT, 'skills'), header: HEADER });
+  assert.ok(lintPack(pack).length > 0, 'the paths alone trip the rules');
+  assert.deepEqual(lintPack(pack, { ignore: [root, skillsDir] }), []);
+  const bad = [{ name: 'x', files: new Map([['SKILL.md', 'Use Claude and Opus here.\n']]) }];
+  assert.ok(lintPack(bad, { ignore: [root, skillsDir] }).length > 0, 'real leftovers are still caught');
+});

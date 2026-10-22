@@ -417,6 +417,142 @@ test('--update pulls the new version and refreshes; a changed or non-git folder 
   }
 });
 
+test('a Windows-style checkout (CRLF line ends) installs the same pack', () => {
+  const sb = sandbox();
+  try {
+    const lf = copyShipyard(path.join(sb.base, 'lf', 'shipyard'));
+    const crlf = copyShipyard(path.join(sb.base, 'crlf', 'shipyard'));
+    const toCrlf = (dir) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const f = path.join(dir, e.name);
+        if (e.isDirectory()) toCrlf(f);
+        else if (/\.(md|mjs|json)$/.test(e.name)) writeFileSync(f, readFileSync(f, 'utf8').replace(/\r?\n/g, '\r\n'));
+      }
+    };
+    toCrlf(path.join(crlf, 'skills'));
+    toCrlf(path.join(crlf, 'scripts', 'agents'));
+    const r = run(sb, ['--agent', 'both', '--yes'], { root: crlf });
+    assert.equal(r.code, 0, r.out);
+    for (const s of SKILLS) assert.ok(!readFileSync(path.join(sb.skills, `shipyard-${s}`, 'SKILL.md'), 'utf8').includes('\r'), `${s} has no CR`);
+    assert.ok(existsSync(path.join(sb.skills, 'shipyard-design', 'references', 'polish.md')));
+    assert.ok(run(sb, ['--check'], { root: crlf }).out.includes('No problems found'));
+    assert.ok(lf);
+  } finally {
+    sb.cleanup();
+  }
+});
+
+test('a Shipyard or home folder named Claude (or with Opus, /plugin, an em dash) does not fail the pack check', () => {
+  const sb = sandbox();
+  try {
+    const root = copyShipyard(path.join(sb.base, 'Claude Opus', 'plugin', 'shipyard'));
+    const home = path.join(sb.base, 'Claude', 'home');
+    mkdirSync(home, { recursive: true });
+    sb.env.SHIPYARD_AGENTS_HOME = home;
+    sb.env.CODEX_HOME = path.join(home, '.codex');
+    const r = run(sb, ['--agent', 'both', '--yes'], { root });
+    assert.equal(r.code, 0, r.out);
+    assert.ok(existsSync(path.join(home, '.agents', 'skills', 'shipyard-setup', 'SKILL.md')));
+  } finally {
+    sb.cleanup();
+  }
+});
+
+test('--agent codex also guards Cursor when Cursor is here (it reads the same skills folder); a partial uninstall that would leave an unguarded agent is refused', () => {
+  const sb = sandbox();
+  try {
+    mkdirSync(path.join(sb.home, '.cursor'), { recursive: true });
+    writeFileSync(path.join(sb.home, '.cursor', 'settings.json'), '{}');
+    mkdirSync(sb.env.CODEX_HOME, { recursive: true });
+    writeFileSync(path.join(sb.env.CODEX_HOME, 'config.toml'), '');
+    const r = run(sb, ['--agent', 'codex', '--yes']);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /Cursor is on this computer too and loads skills from/);
+    assert.ok(readFileSync(sb.cursorHooks, 'utf8').includes('guard-cursor.mjs'));
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(sb.record, 'utf8')).agents), ['codex', 'cursor']);
+
+    const before = snapshot(sb.skills);
+    const u = run(sb, ['--uninstall', '--agent', 'codex', '--yes']);
+    assert.equal(u.code, 1, u.out);
+    assert.match(u.out, /both load Shipyard's skills/);
+    assert.match(u.out, /Nothing was changed/);
+    assert.deepEqual(snapshot(sb.skills), before);
+    assert.ok(readFileSync(sb.codexHooks, 'utf8').includes('guard-codex.mjs'));
+    assert.equal(run(sb, ['--uninstall', '--yes']).code, 0);
+  } finally {
+    sb.cleanup();
+  }
+});
+
+test('a skills folder only one agent reads is called out, in the install and in --check', () => {
+  const sb = sandbox();
+  try {
+    const cursorOnly = path.join(sb.home, '.cursor', 'skills');
+    const r = run(sb, ['--agent', 'both', '--yes', '--skills-dir', cursorOnly]);
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /Codex does not load skills from .* so Shipyard's skills will not show there/);
+    const c = run(sb, ['--check']);
+    assert.equal(c.code, 1);
+    assert.match(c.out, /Codex does not load skills from/);
+  } finally {
+    sb.cleanup();
+  }
+});
+
+test('--check: old copies come with a config block Codex can read, and the Claude Code plugin Cursor loads is found', () => {
+  const sb = sandbox();
+  try {
+    assert.equal(run(sb, ['--agent', 'both', '--yes']).code, 0);
+    const old = path.join(sb.env.CODEX_HOME, 'skills', 'setup');
+    mkdirSync(old, { recursive: true });
+    writeFileSync(path.join(old, 'SKILL.md'), '---\nname: setup\ndescription: Shipyard setup\n---\nold\n');
+    mkdirSync(path.join(sb.home, '.claude', 'plugins', 'cache', 'shipyard', 'shipyard'), { recursive: true });
+    const r = run(sb, ['--check']);
+    const lines = r.out.split('\n').map((l) => l.trim());
+    assert.ok(lines.includes('[[skills.config]]'), r.out);
+    assert.ok(lines.some((l) => l.startsWith('path = "') && l.endsWith('SKILL.md"')), r.out);
+    assert.ok(lines.includes('enabled = false'));
+    assert.match(r.out, /Claude Code's Shipyard plugin is installed/);
+    assert.match(r.out, /Include Third-Party Plugins, Skills, and Other Configs/);
+  } finally {
+    sb.cleanup();
+  }
+});
+
+test('--update (--refresh) moves the install date, so the 30 day update offer stops; a plain re-run keeps it', () => {
+  const sb = sandbox();
+  try {
+    assert.equal(run(sb, ['--agent', 'both', '--yes']).code, 0);
+    const markers = SKILLS.map((s) => path.join(sb.skills, `shipyard-${s}`, '.shipyard-generated.json'));
+    const OLD = '2020-01-01T00:00:00.000Z';
+    for (const m of markers) writeFileSync(m, JSON.stringify({ ...JSON.parse(readFileSync(m, 'utf8')), generatedAt: OLD }));
+    assert.equal(run(sb, ['--agent', 'both', '--yes']).code, 0);
+    assert.equal(JSON.parse(readFileSync(markers[0], 'utf8')).generatedAt, OLD);
+    assert.equal(run(sb, ['--refresh', '--yes']).code, 0);
+    const today = new Date().toISOString().slice(0, 10);
+    for (const m of markers) assert.equal(JSON.parse(readFileSync(m, 'utf8')).generatedAt.slice(0, 10), today);
+  } finally {
+    sb.cleanup();
+  }
+});
+
+test('a node that is fnm\'s per-shell link is recorded as the real node', { skip: !unix }, () => {
+  const sb = sandbox();
+  try {
+    const real = path.join(sb.base, 'fnm', 'node-versions', 'v22', 'installation', 'bin');
+    const link = path.join(sb.base, 'fnm', 'fnm_multishells', '123_456', 'bin');
+    mkdirSync(real, { recursive: true });
+    mkdirSync(link, { recursive: true });
+    symlinkSync(process.execPath, path.join(real, 'node'));
+    symlinkSync(path.join(real, 'node'), path.join(link, 'node'));
+    sb.env.PATH = `${link}:/usr/bin:/bin`;
+    assert.equal(run(sb, ['--agent', 'both', '--yes']).code, 0);
+    assert.equal(JSON.parse(readFileSync(sb.record, 'utf8')).node, fwd(realpathSync(path.join(link, 'node'))));
+  } finally {
+    sb.cleanup();
+  }
+});
+
 test('--help works, unknown flags are explained, and no output has an em dash', () => {
   const sb = sandbox();
   try {

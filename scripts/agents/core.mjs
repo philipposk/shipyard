@@ -32,6 +32,7 @@ export function locations(env = process.env) {
   const cursorHome = path.join(home, '.cursor');
   return {
     home,
+    claudeHome: path.join(home, '.claude'),
     shipyardHome,
     installFile: path.join(shipyardHome, 'install.json'),
     codexHome,
@@ -101,19 +102,75 @@ export function findOnPath(name, env = process.env, platform = process.platform)
   return null;
 }
 
+/**
+ * fnm puts a per-shell link to node on PATH (.../fnm_multishells/<id>/bin/node) and deletes it at logout
+ * or reboot. A hook pinned to it would stop running, so use the node it points to (fnm's own copy of that version).
+ */
+export function stableNode(p) {
+  if (!/[\\/]fnm_multishells[\\/]/.test(String(p))) return p;
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
 /** The node the hooks run: the first on PATH (not resolved, so upgrades keep working), else this one. */
 export function findNode(env = process.env, platform = process.platform) {
   const onPath = findOnPath('node', env, platform);
-  return { node: fwd(onPath ?? process.execPath), onPath: onPath !== null };
+  return { node: fwd(stableNode(onPath ?? process.execPath)), onPath: onPath !== null };
+}
+
+// Files Shipyard itself puts in ~/.codex and ~/.cursor. A folder holding only these is not a sign the agent is there.
+const OWN_FILE = /^hooks\.json(\.shipyard-backup|\.tmp-\d+)?$/;
+
+/** Does the agent's own folder look used by the agent (anything Shipyard did not put there, or a folder made empty)? */
+function folderInUse(dir) {
+  let names;
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return false;
+  }
+  if (names.length === 0) return true;
+  return names.some((n) => {
+    if (OWN_FILE.test(n)) return false;
+    if (n !== 'rules') return true;
+    try {
+      return readdirSync(path.join(dir, n)).some((r) => r !== 'shipyard.rules' && !r.startsWith('shipyard.rules.tmp-'));
+    } catch {
+      return true;
+    }
+  });
+}
+
+/** Is this agent on this computer? Its program on PATH, or its folder in use. */
+export function agentPresent(agent, { env = process.env, platform = process.platform, loc = locations(env) } = {}) {
+  // loc.codexHome is $CODEX_HOME when it is set, else ~/.codex.
+  if (agent === 'codex') return folderInUse(loc.codexHome) || !!findOnPath('codex', env, platform);
+  if (agent === 'cursor') return folderInUse(loc.cursorHome) || !!findOnPath('cursor', env, platform) || !!findOnPath('agent', env, platform);
+  return false;
 }
 
 /** Which agents look installed on this computer. */
 export function detectAgents({ env = process.env, platform = process.platform, loc = locations(env) } = {}) {
-  const found = [];
-  // loc.codexHome is $CODEX_HOME when it is set, else ~/.codex.
-  if (existsSync(loc.codexHome) || findOnPath('codex', env, platform)) found.push('codex');
-  if (existsSync(loc.cursorHome) || findOnPath('cursor', env, platform) || findOnPath('agent', env, platform)) found.push('cursor');
-  return found;
+  return ['codex', 'cursor'].filter((a) => agentPresent(a, { env, platform, loc }));
+}
+
+/**
+ * Which agents load skills from this folder, or null for a folder Shipyard does not know.
+ * ~/.agents/skills: Codex and Cursor. ~/.codex/skills: Codex (its older folder) and Cursor (for compatibility).
+ * ~/.cursor/skills and ~/.claude/skills: Cursor only (Claude Code is not set up by this installer).
+ */
+export function skillReaders(dir, loc, platform = process.platform) {
+  const key = (p) => {
+    const f = fwd(path.resolve(p)).replace(/\/+$/, '');
+    return platform === 'win32' ? f.toLowerCase() : f;
+  };
+  const d = key(dir);
+  if (d === key(loc.skillsDir) || d === key(path.join(loc.codexHome, 'skills'))) return ['codex', 'cursor'];
+  if (d === key(path.join(loc.cursorHome, 'skills')) || d === key(path.join(loc.claudeHome, 'skills'))) return ['cursor'];
+  return null;
 }
 
 // ---------- the pack (the skills, rewritten for Codex and Cursor) ----------
@@ -204,7 +261,9 @@ function walk(dir, base = dir) {
  * `generatedAt` (ISO time) goes in the marker; its date is the header's install date.
  */
 export function planPack({ root, skillsDir, version, generatedAt = new Date().toISOString(), skillsSrc = path.join(root, 'skills'), header, rows = REWRITES }) {
-  const headerText = header ?? readFileSync(path.join(root, 'scripts', 'agents', 'header.md'), 'utf8');
+  // Git for Windows checks text files out with CRLF line ends by default. The rewrites are written with \n.
+  const lf = (t) => t.replace(/\r\n/g, '\n');
+  const headerText = lf(header ?? readFileSync(path.join(root, 'scripts', 'agents', 'header.md'), 'utf8'));
   const date = generatedAt.slice(0, 10);
   const opts = { root: fwd(root), skillsDir: fwd(skillsDir), version, date, rows };
   return SKILLS.map((skill) => {
@@ -212,8 +271,8 @@ export function planPack({ root, skillsDir, version, generatedAt = new Date().to
     const files = new Map();
     for (const rel of walk(src)) {
       const full = path.join(src, rel);
-      if (rel === 'SKILL.md') files.set(rel, rewriteSkillMd(readFileSync(full, 'utf8'), { skill, header: headerText, ...opts }));
-      else if (rel.endsWith('.md')) files.set(rel, rewriteText(readFileSync(full, 'utf8'), { ...opts, file: `${skill}/${rel}` }));
+      if (rel === 'SKILL.md') files.set(rel, rewriteSkillMd(lf(readFileSync(full, 'utf8')), { skill, header: headerText, ...opts }));
+      else if (rel.endsWith('.md')) files.set(rel, rewriteText(lf(readFileSync(full, 'utf8')), { ...opts, file: `${skill}/${rel}` }));
       else files.set(rel, readFileSync(full));
     }
     files.set(MARKER, `${JSON.stringify({ root: fwd(root), version, generatedAt }, null, 2)}\n`);
@@ -246,15 +305,22 @@ export const LINT_RULES = [
 const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const HEADER_MARK = 'for Codex and Cursor, installed';
 
-/** Everything wrong with a pack, as [{ file, problem }]. Empty means it is fine. */
-export function lintPack(pack) {
+/**
+ * Everything wrong with a pack, as [{ file, problem }]. Empty means it is fine.
+ * `ignore`: texts to skip on each line, such as the Shipyard and skills folder paths filled in from this
+ * computer (a home folder named Claude must not fail the check).
+ */
+export function lintPack(pack, { ignore = [] } = {}) {
   const problems = [];
+  const skip = [...new Set(ignore.map((x) => fwd(x)).filter((x) => x.length > 1))].sort((a, b) => b.length - a.length);
+  const clean = (line) => skip.reduce((l, x) => l.split(x).join('/'), line);
   for (const { name, files } of pack) {
     for (const [rel, data] of files) {
       if (typeof data !== 'string' || rel === MARKER) continue;
       const where = `${name}/${rel}`;
       data.split('\n').forEach((line, i) => {
-        for (const [re, label] of LINT_RULES) if (re.test(line)) problems.push({ file: where, line: i + 1, problem: label, text: line.trim().slice(0, 160) });
+        const checked = clean(line);
+        for (const [re, label] of LINT_RULES) if (re.test(checked)) problems.push({ file: where, line: i + 1, problem: label, text: line.trim().slice(0, 160) });
       });
       const headers = data.split(HEADER_MARK).length - 1;
       if (rel === 'SKILL.md' ? headers !== 1 : headers !== 0) problems.push({ file: where, problem: `the header appears ${headers} times` });
@@ -566,19 +632,50 @@ export function writeInstallRecord(file, record) {
   }
 }
 
-/** Old Shipyard copies an agent may also load (a Codex import, an earlier manual copy). For --check warnings. */
+const hasEntries = (dir) => {
+  try {
+    return readdirSync(dir).length > 0;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Other Shipyard copies an agent may also load, for --check notes: [{ kind, dir }].
+ *   codex-skill   ~/.codex/skills/<skill> (a Codex import or a manual copy; Cursor can read this folder too)
+ *   cursor-skill  ~/.cursor/skills/<skill>
+ *   claude-skill  ~/.claude/skills/<skill> (Cursor loads it while it includes third-party configs)
+ *   claude-plugin Claude Code's Shipyard plugin (Cursor loads it while it includes third-party plugins)
+ *   codex-plugin  Claude Code's Shipyard as a Codex plugin ($CODEX_HOME/plugins/cache/shipyard)
+ */
 export function oldCopies(loc) {
   const found = [];
-  for (const base of [path.join(loc.codexHome, 'skills'), path.join(loc.cursorHome, 'skills')]) {
+  const bases = [
+    ['codex-skill', path.join(loc.codexHome, 'skills')],
+    ['cursor-skill', path.join(loc.cursorHome, 'skills')],
+    ['claude-skill', path.join(loc.claudeHome, 'skills')],
+  ];
+  for (const [kind, base] of bases) {
     for (const skill of SKILLS) {
       const file = path.join(base, skill, 'SKILL.md');
       try {
         const { fields } = splitFrontmatter(readFileSync(file, 'utf8'));
-        if (/shipyard/i.test(`${fields.name ?? ''} ${fields.description ?? ''}`)) found.push(path.dirname(file));
+        if (/shipyard/i.test(`${fields.name ?? ''} ${fields.description ?? ''}`)) found.push({ kind, dir: path.dirname(file) });
       } catch {
         // none
       }
     }
   }
+  const claudePlugins = path.join(loc.claudeHome, 'plugins');
+  let claudeHas = hasEntries(path.join(claudePlugins, 'cache', 'shipyard'));
+  try {
+    const rec = JSON.parse(readFileSync(path.join(claudePlugins, 'installed_plugins.json'), 'utf8'));
+    if (isObj(rec?.plugins) && Object.keys(rec.plugins).some((k) => /^shipyard@/.test(k))) claudeHas = true;
+  } catch {
+    // no record
+  }
+  if (claudeHas) found.push({ kind: 'claude-plugin', dir: claudePlugins });
+  const codexPlugin = path.join(loc.codexHome, 'plugins', 'cache', 'shipyard');
+  if (hasEntries(codexPlugin)) found.push({ kind: 'codex-plugin', dir: codexPlugin });
   return found;
 }

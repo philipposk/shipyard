@@ -10,7 +10,7 @@
 
 const SEE = ' (open the image files; if you cannot see images, ask the student to open them and say what they see)';
 const HABITS_WHERE =
-  'Codex: add it to `$CODEX_HOME/AGENTS.override.md` if that file exists, otherwise to `$CODEX_HOME/AGENTS.md` (`$CODEX_HOME` is `~/.codex` unless it is set). Create the file if it is missing, never overwrite what is there, and put the text between the lines `<!-- shipyard habits start -->` and `<!-- shipyard habits end -->`. If those lines are already there, do not add it again. Cursor: you cannot change its rules yourself, so show the text and ask the student to paste it into Cursor Settings, Rules, User Rules.';
+  'Codex: add it to `$CODEX_HOME/AGENTS.override.md` if that file exists, otherwise to `$CODEX_HOME/AGENTS.md` (`$CODEX_HOME` is `~/.codex` unless it is set). Create the file if it is missing, never overwrite what is there, and put the text between the lines `<!-- shipyard habits start -->` and `<!-- shipyard habits end -->`. If those lines are already there, do not add it again. Cursor: you cannot change its rules yourself, so show the text and ask the student to add it as a User Rule: in Cursor, open Customize, then Rules, and add it under User Rules (in older Cursor versions: Cursor Settings, Rules, User Rules).';
 
 export const REWRITES = [
   // ---------- setup ----------

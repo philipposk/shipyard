@@ -37,7 +37,7 @@ Claude Code users do not need this (the Claude Code plugin does it).
   --uninstall                 remove what Shipyard installed for Codex and Cursor
   --skills-dir <path>         put the skills here instead of ~/.agents/skills
   --node <path>               the node program the hooks run
-  --codex-allow-scripts       let Codex run Shipyard's own scripts without asking each time
+  --codex-allow-scripts       let Codex run Shipyard's own scripts without asking (outside its sandbox)
   --no-codex-allow-scripts    do not (the default)
 `;
 
@@ -136,7 +136,8 @@ export function planInstall({ root, opts, env = process.env, platform = process.
     node = fwd(path.resolve(opts.node));
     if (!existsSync(node)) throw new PlainError(`There is no node program at ${node}.`);
   } else if (record?.node && existsSync(record.node)) {
-    node = fwd(record.node);
+    // An older install may have recorded fnm's per-shell link, which goes away at reboot.
+    node = fwd(core.stableNode(record.node));
   } else {
     const found = core.findNode(env, platform);
     node = found.node;
@@ -152,12 +153,24 @@ export function planInstall({ root, opts, env = process.env, platform = process.
   const badSkills = core.checkPathChars(skillsDir, 'skills folder');
   if (badSkills) throw new PlainError(`${badSkills} Pass another one with --skills-dir.`);
 
-  // Same Shipyard, same version: keep the first install time, so a second run writes the same bytes.
+  // Codex and Cursor both load skills from ~/.agents/skills. An agent on this computer that will see the
+  // skills gets the key guard too, so no agent has Shipyard's skills without it.
+  const readers = core.skillReaders(skillsDir, loc, platform);
+  const recorded = recordAgents(record);
+  const alsoGuarded = readers ? readers.filter((a) => !agents.includes(a) && !recorded.includes(a) && core.agentPresent(a, { env, platform, loc })) : [];
+  if (alsoGuarded.length) agents = ['codex', 'cursor'].filter((a) => agents.includes(a) || alsoGuarded.includes(a));
+  const unseen = readers ? ['codex', 'cursor'].filter((a) => (agents.includes(a) || recorded.includes(a)) && !readers.includes(a)) : [];
+
+  // Same Shipyard, same version: keep the install time, so a second run writes the same bytes.
+  // --update (--refresh) moves it to today: the skills offer an update when that date is 30 days old.
   const marker = core.readMarker(path.join(skillsDir, `${core.PACK_PREFIX}setup`));
-  const generatedAt = marker && marker.root === root && marker.version === version && typeof marker.generatedAt === 'string' ? marker.generatedAt : now.toISOString();
+  const keepDate =
+    marker && marker.root === root && marker.version === version && typeof marker.generatedAt === 'string' && (!opts.refresh || marker.generatedAt.slice(0, 10) === now.toISOString().slice(0, 10));
+  const generatedAt = keepDate ? marker.generatedAt : now.toISOString();
 
   const pack = core.planPack({ root, skillsDir, version, generatedAt });
-  const lint = core.lintPack(pack);
+  // The paths from this computer are left out of the check: a home folder named Claude is fine.
+  const lint = core.lintPack(pack, { ignore: [root, skillsDir] });
   if (lint.length) {
     throw new PlainError(`Shipyard's copy of the skills for Codex and Cursor failed its own check (${lint[0].file}: ${lint[0].problem}). Please report this at github.com/philipposk/shipyard/issues.`);
   }
@@ -224,7 +237,7 @@ export function planInstall({ root, opts, env = process.env, platform = process.
   if (!same) next.installedAt = now.toISOString();
   changes.push({ kind: 'record', path: loc.installFile, action: record === null ? 'create' : same ? 'unchanged' : 'update', record: next });
 
-  return { loc, root, version, agents, node, nodeOnPath, skillsDir, changes, rules, record: next };
+  return { loc, root, version, agents, alsoGuarded, unseen, node, nodeOnPath, skillsDir, changes, rules, record: next };
 }
 
 const VERB = { create: 'create', update: 'update', remove: 'remove' };
@@ -236,7 +249,7 @@ function describe(c) {
     return `${VERB[c.action]}  ${where} ${what}`;
   }
   if (c.kind === 'record') return `${VERB[c.action]}  ${where} (where Shipyard is, no keys)`;
-  if (c.kind === 'rules') return `${VERB[c.action]}  ${where} (lets Codex run Shipyard's own scripts without asking)`;
+  if (c.kind === 'rules') return `${VERB[c.action]}  ${where} (lets Codex run Shipyard's own scripts without asking, outside its sandbox)`;
   return `${VERB[c.action]}  ${where}`;
 }
 
@@ -245,6 +258,12 @@ function printPlan(plan, title) {
   say(`  From: ${show(plan.root)}`);
   say(`  For: ${listAgents(plan.agents)}`);
   say(`  Node for the hooks: ${plan.node}`);
+  for (const a of plan.alsoGuarded ?? []) say(`  ${AGENT_NAMES[a]} is on this computer too and loads skills from ${show(plan.skillsDir)}, so it gets the key guard as well.`);
+  for (const a of plan.unseen ?? []) {
+    say(
+      `! ${AGENT_NAMES[a]} does not load skills from ${show(plan.skillsDir)}, so Shipyard's skills will not show there. To use both agents, run this again without --skills-dir, or with --skills-dir set to the ${show(path.join(plan.loc.codexHome, 'skills'))} folder, which Codex and Cursor both read.`,
+    );
+  }
   say('');
   const all = [...plan.changes, ...(plan.rules ? [plan.rules] : [])];
   const todo = all.filter((c) => VERB[c.action]);
@@ -298,7 +317,7 @@ function nextSteps(plan) {
     );
   }
   if (/\/(\.nvm|\.volta|\.fnm|fnm|fnm_multishells)\//.test(plan.node)) {
-    lines.push('', 'Your node comes from a version manager. If you switch Node versions, run this again with --update.');
+    lines.push('', 'Your node comes from a version manager. If you switch Node versions or remove this one, run this again with --update.');
   }
   if (!plan.nodeOnPath) lines.push('', `node was not found on your PATH, so the hooks run ${plan.node}.`);
   return lines;
@@ -340,9 +359,10 @@ async function install(opts, env) {
   if (plan.rules?.action === 'ask') {
     say('');
     say('Codex asks before it runs each command. Shipyard can let it run Shipyard\'s own scripts (and nothing else) without asking.');
+    say('Codex then runs those scripts outside its sandbox, with full access to your files and the internet. It starts working in a new Codex session.');
     if (await askYes("Let Codex run Shipyard's own scripts without asking each time? (y/N) ")) {
       writeAtomic(plan.rules.path, plan.rules.text);
-      say(`Added ${show(plan.rules.path)}. Delete that file to undo it.`);
+      say(`Added ${show(plan.rules.path)}. Start a new Codex session for it to work. Delete that file to undo it.`);
     } else {
       say('Fine. Codex will ask each time (choose the option that stops it asking again for that command).');
     }
@@ -379,6 +399,36 @@ export function hookBlocks(command, agent, { env = process.env, platform = proce
 function hookNode(command) {
   const m = /^"([^"]+)"\s/.exec(String(command));
   return m ? m[1] : null;
+}
+
+/** What to do about another Shipyard copy an agent also loads (see core.oldCopies). Null when it does not matter here. */
+export function oldCopyNote({ kind, dir }, { loc, agents }) {
+  const cursor = agents.includes('cursor');
+  const codex = agents.includes('codex');
+  const setting = '"Include Third-Party Plugins, Skills, and Other Configs"';
+  if (kind === 'codex-skill') {
+    return [
+      `${show(dir)} looks like an older copy of a Shipyard skill. Use the shipyard-* ones.`,
+      `  To switch the old one off in Codex, add these three lines to ${show(path.join(loc.codexHome, 'config.toml'))}, then restart Codex:`,
+      '    [[skills.config]]',
+      `    path = ${JSON.stringify(path.join(dir, 'SKILL.md'))}`,
+      '    enabled = false',
+      `  Or, if you no longer need it, move the folder out of ${show(path.dirname(dir))} (Cursor can read that folder too).`,
+    ].join('\n');
+  }
+  if (kind === 'cursor-skill' && cursor) {
+    return `${show(dir)} looks like an older copy of a Shipyard skill. Use the shipyard-* ones. To stop Cursor showing the old one, move that folder out of ${show(path.dirname(dir))}, then reload Cursor.`;
+  }
+  if (kind === 'claude-skill' && cursor) {
+    return `${show(dir)} is a Shipyard skill written for Claude Code. Cursor shows it too while its setting ${setting} is on. In Cursor, use the /shipyard-* skills, or turn that setting off. Leave the folder where it is if you use Claude Code.`;
+  }
+  if (kind === 'claude-plugin' && cursor) {
+    return `Claude Code's Shipyard plugin is installed (${show(dir)}). Cursor loads it too while its setting ${setting} is on (it is on unless you turned it off), so you may see each skill twice. In Cursor, use the /shipyard-* skills (the others are written for Claude Code), or turn that setting off.`;
+  }
+  if (kind === 'codex-plugin' && codex) {
+    return `Codex also has Claude Code's version of Shipyard as a plugin (${show(dir)}), so you may see each skill twice. Use the $shipyard-* skills (the others are written for Claude Code). Remove that plugin in Codex if you do not need it.`;
+  }
+  return null;
 }
 
 export function runCheck({ root, env = process.env, platform = process.platform }) {
@@ -450,8 +500,27 @@ export function runCheck({ root, env = process.env, platform = process.platform 
     }
   }
 
-  for (const dir of core.oldCopies(loc)) {
-    notes.push(`${show(dir)} looks like an older copy of a Shipyard skill. Use the shipyard-* ones. In Codex you can switch the old one off with [[skills.config]] enabled = false in ~/.codex/config.toml.`);
+  // Every agent that loads the skills needs the guard, and every agent with the guard needs to see the skills.
+  const recorded = recordAgents(record);
+  const readers = core.skillReaders(skillsDir, loc, platform);
+  if (readers) {
+    for (const a of readers) {
+      if (!recorded.includes(a) && core.agentPresent(a, { env, platform, loc })) {
+        problems.push(`${AGENT_NAMES[a]} is on this computer and loads Shipyard's skills from ${show(skillsDir)}, but has no Shipyard key guard. Run: node "${root}/scripts/install-agents.mjs" --agent ${a}`);
+      }
+    }
+    for (const a of recorded) {
+      if (!readers.includes(a)) {
+        problems.push(
+          `${AGENT_NAMES[a]} does not load skills from ${show(skillsDir)}, so Shipyard's skills do not show there. Run the installer again without --skills-dir, or with --skills-dir set to the ${show(path.join(loc.codexHome, 'skills'))} folder, which Codex and Cursor both read.`,
+        );
+      }
+    }
+  }
+
+  for (const copy of core.oldCopies(loc)) {
+    const note = oldCopyNote(copy, { loc, agents: recorded });
+    if (note) notes.push(note);
   }
   if (record.agents?.codex) {
     notes.push('Codex asks you to trust the hook once: run codex in a terminal, type /hooks, and trust guard-codex.mjs. This check cannot see that step; the guard check in a session can.');
@@ -470,7 +539,7 @@ function check(env) {
 
 // ---------- --uninstall ----------
 
-export function planUninstall({ opts, env = process.env }) {
+export function planUninstall({ opts, env = process.env, platform = process.platform }) {
   const loc = core.locations(env);
   const record = core.readInstallRecord(loc.installFile);
   const agents = opts.agent ? parseAgents(opts.agent) : ['codex', 'cursor'];
@@ -490,6 +559,17 @@ export function planUninstall({ opts, env = process.env }) {
   if (agents.includes('codex') && core.isShipyardRules(readText(loc.codexRules))) changes.push({ kind: 'rules', path: loc.codexRules, action: 'remove' });
 
   const left = recordAgents(record).filter((a) => !agents.includes(a));
+  // The skills stay for the agents left. An agent that reads the same folder would keep them without its guard.
+  if (left.length) {
+    const dir = record.skillsDir ?? loc.skillsDir;
+    const readers = core.skillReaders(dir, loc, platform) ?? [];
+    const stillSee = agents.filter((a) => recordAgents(record).includes(a) && readers.includes(a) && core.agentPresent(a, { env, platform, loc }));
+    if (stillSee.length) {
+      throw new PlainError(
+        `${listAgents(stillSee)} and ${listAgents(left)} both load Shipyard's skills from ${show(dir)}, so Shipyard cannot be removed from ${listAgents(stillSee)} alone: it would keep the skills but lose the key guard. Nothing was changed. To remove Shipyard from both, run --uninstall without --agent.`,
+      );
+    }
+  }
   if (!left.length) {
     const dirs = new Set([fwd(record?.skillsDir ?? loc.skillsDir), fwd(loc.skillsDir)]);
     for (const dir of dirs) {
@@ -535,7 +615,8 @@ async function uninstall(opts, env) {
     }
   }
   applyChanges(plan.changes, { backup: false });
-  say('Done. Reload Cursor and start a new Codex session so they forget the old skills.');
+  if (plan.left.length) say(`Done. Shipyard stays installed for ${listAgents(plan.left)}.`);
+  else say('Done. Reload Cursor and start a new Codex session so they forget the old skills.');
   if (!plan.left.length) say(`You can now delete ${show(root)}`);
   return 0;
 }
