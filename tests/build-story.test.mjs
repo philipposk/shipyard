@@ -64,3 +64,12 @@ test('CLI writes BUILD-STORY.md and the JSON for a showcase', async () => {
   assert.equal(none.status, 1);
   await rm(dir, { recursive: true, force: true });
 });
+
+test('pasted keys are blanked out of prompts', async () => {
+  const { promptText } = await import('../scripts/build-story.mjs');
+  const fake = ['gsk', 'a'.repeat(20)].join('_');
+  const t = promptText({ type: 'user', message: { content: `use this key ${fake} and ${'f'.repeat(40)} please` } });
+  assert.ok(!t.includes(fake));
+  assert.ok(!t.includes('f'.repeat(40)));
+  assert.match(t, /\[key removed\].*\[key removed\] please/);
+});

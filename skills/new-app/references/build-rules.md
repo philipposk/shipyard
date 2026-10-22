@@ -10,7 +10,15 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Never set or change a password from an email address alone. Passwords change only through the person's own session.
 - Keys live in `.env.local` (never committed) and in Vercel settings. A leaked-key scan runs before every push and on every pull request.
 - Every route under `/api/auth/` must be public in `src/proxy.ts`; other API routes need a signed-in person.
+- Nothing changes on a GET (sign-out, delete, join, confirm are POST buttons). A one-time sign-in token is never used by opening a link: the link opens a page, and a button confirms. Mail scanners and crafted links fire GETs.
 - Any link sent by email is built from the site address setting, never from the request's Host header. Check every `next` or redirect value points to the same site.
+- Lists, totals and leaderboards read every row (the database returns at most 1000 per request) in a fixed order. Never trust one query for "all".
+- Limits go on what strangers can trigger (sign-up, emails sent), never on the sign-in of someone who already has an account.
+- If the app keeps score (points, streaks, correct answers), the server works it out and stores it. Answers and solutions never reach the browser before the person has played.
+
+## Behaviour (pages)
+- Each page sets its own canonical address (never one in the layout). A page that can say "not found" has no `loading.tsx`, so it answers 404 and not 200.
+- The page never scrolls sideways, and the sticky header must stay stuck (`overflow-x: clip`, not `hidden`). The service worker caches built files and icons only.
 
 ## Costs
 - Any AI feature has a spend limit at the provider, a per-app key, a daily cap inside the app, and a per-person limit.

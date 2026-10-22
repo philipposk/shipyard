@@ -21,6 +21,13 @@ export const REWRITES = [
     replace: '- Do not spawn big groups of helper agents. If your agent can use one (for example to look something up), give it a smaller, cheaper model than yours, for lookups only.',
   },
   {
+    id: 'S1',
+    file: 'setup/SKILL.md',
+    find: '1. Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-status.mjs"`. It shows which steps are done and which is next. Continue from the next step. If everything is done, say so and offer the settings page.',
+    replace:
+      '1. First prove the key guard is on: run `node "{{ROOT}}/scripts/guard-check.mjs" start` and follow it, and tell the student in one line whether the guard is ON. If it is OFF or inconclusive, the usual cause is that the hook is not trusted yet: in Codex, tell them to quit, run `codex \'$shipyard-setup\'` and choose "Trust all and continue" when Codex says "Hooks need review" (or type `/hooks` and trust `guard-codex.mjs`); in Cursor, to run "Developer: Reload Window". Do not go on to the account steps until it is ON, unless they hear that only care protects their keys and say yes. Then run `node "{{ROOT}}/scripts/setup-status.mjs"`. It shows which steps are done and which is next. Continue from the next step. If everything is done, say so and offer the settings page.',
+  },
+  {
     id: 'S3',
     file: 'setup/SKILL.md',
     find: 'If the student typed `settings` after the command,',

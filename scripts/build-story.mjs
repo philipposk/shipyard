@@ -53,13 +53,29 @@ const NOISE = /<(system-reminder|command-name|command-message|command-args|local
 const ACK = /^(ok(ay)?|yes|y|go|go on|continue|next|sure|thanks?|thank you|do it|proceed|👍)[.! ]*$/i;
 const CORRECTION = /\b(again|still|wrong|not working|doesn'?t work|didn'?t|broken|you forgot|why did|instead)\b/i;
 
+// Key-shaped text a person may have pasted into a chat. BUILD-STORY.md is meant to be committed, so these are blanked.
+const KEY_LIKE = [
+  /(?<![A-Za-z0-9_-])(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{16,}/g,
+  /(?<![A-Za-z0-9_-])(?:sb_secret_|sb_publishable_|sbp_|re_|gsk_|GOCSPX-|github_pat_|gh[pousr]_|sk-ant-|sk-or-v1-|sk-proj-|sk-svcacct-|sk-admin-|sk-)[A-Za-z0-9_-]{16,}/g,
+  /(?<![A-Za-z0-9_-])AIza[0-9A-Za-z_-]{35}/g,
+  /(?<![A-Z0-9])AKIA[0-9A-Z]{16}(?![A-Z0-9])/g,
+  /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g,
+  /(?<![A-Za-z0-9])[A-Fa-f0-9]{32,}(?![A-Za-z0-9])/g,
+];
+
+/** Blank anything that looks like a key or token. */
+export function redact(text) {
+  return KEY_LIKE.reduce((t, re) => t.replace(re, '[key removed]'), text);
+}
+
 /** The words a person typed, or null for tool results, meta messages and empty turns. */
 export function promptText(entry) {
   if (entry?.type !== 'user' || entry.isMeta || entry.isSidechain) return null;
   const c = entry.message?.content;
   let text = typeof c === 'string' ? c : Array.isArray(c) ? c.filter((b) => b?.type === 'text').map((b) => b.text).join('\n') : '';
   if (Array.isArray(c) && c.some((b) => b?.type === 'tool_result')) return null;
-  text = text.replace(NOISE, '').trim();
+  text = redact(text.replace(NOISE, '')).trim();
   return text || null;
 }
 

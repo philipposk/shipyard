@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const fwd = (p) => p.replace(/\\/g, '/');
-const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops'];
+const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops', 'new-skill'];
 const OUTPUTS = [];
 const unix = process.platform !== 'win32';
 
@@ -97,7 +97,7 @@ test('detection: nothing found asks for --agent; a ~/.cursor folder means Cursor
   }
 });
 
-test('--yes installs six skill folders with markers, both hooks files and a private install record', () => {
+test('--yes installs seven skill folders with markers, both hooks files and a private install record', () => {
   const sb = sandbox();
   try {
     const r = run(sb, ['--agent', 'both', '--yes']);
@@ -124,7 +124,8 @@ test('--yes installs six skill folders with markers, both hooks files and a priv
     assert.match(codex.hooks.PreToolUse[0].hooks[0].command, new RegExp(`${root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/scripts/guard-codex\\.mjs"$`));
     const cursor = JSON.parse(readFileSync(sb.cursorHooks, 'utf8'));
     assert.equal(cursor.version, 1);
-    assert.match(r.out, /\/hooks and trust the entry whose command ends in guard-codex\.mjs/);
+    assert.match(r.out, /Trust all and continue/);
+    assert.match(r.out, /guard-codex\.mjs/);
     assert.match(r.out, /\$shipyard-setup/);
     assert.match(r.out, /Developer: Reload Window/);
     assert.match(r.out, /\/shipyard-setup/);

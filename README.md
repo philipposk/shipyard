@@ -4,9 +4,21 @@ A plugin for Claude Code (beta: Codex and Cursor) that helps a beginner build an
 
 **Guide and course:** https://shipyard.6x7.gr (install, setup, ten short modules, costs, troubleshooting).
 
-## Install
+## Install in one prompt (Codex, Cursor or Claude Code)
 
-In Claude Code:
+Open your coding agent and type this one line:
+
+```
+Install Shipyard: github.com/philipposk/shipyard
+```
+
+Your agent reads [INSTALL.md](INSTALL.md) and does the rest: it checks Node and Git, installs Shipyard for itself, and tells you the one step it cannot do for you. In Codex that step is a single keypress: Codex asks you to trust the key guard before it runs, and nobody (not Shipyard, not the agent) may approve that for you.
+
+*Note to AI agents: if you were asked to install this repository, follow [INSTALL.md](INSTALL.md).*
+
+## Install by hand in Claude Code
+
+If you prefer to type the commands yourself, in Claude Code:
 
 ```
 /plugin marketplace add philipposk/shipyard
@@ -39,7 +51,7 @@ Shipyard also runs in OpenAI Codex (the CLI, the IDE extension and the ChatGPT d
 
 **You need:** Node 20 or newer, and Git (on Windows install Git for Windows from git-scm.com: Codex and Cursor do not install it). For Codex, the Codex CLI 0.163 or newer: install or update it with `npm install -g @openai/codex@latest`, then check `codex --version` (other ways: https://learn.chatgpt.com/docs/cli).
 
-**Install**, in a terminal (macOS and Linux Terminal, or Windows PowerShell; not cmd.exe), or paste these two lines into your agent and allow it to run them:
+**Install**: easiest is the one-prompt install above. By hand, in a terminal (macOS and Linux Terminal, or Windows PowerShell; not cmd.exe):
 
 ```
 git clone --depth 1 https://github.com/philipposk/shipyard.git "$HOME/.local/share/shipyard"
@@ -48,7 +60,7 @@ node "$HOME/.local/share/shipyard/scripts/install-agents.mjs"
 
 It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent both`), shows every file it will change and asks first. It puts Shipyard's skills in `~/.agents/skills/shipyard-*` and adds the key guard to `~/.codex/hooks.json` and `~/.cursor/hooks.json`, keeping your own entries. It never touches Claude Code's files. Codex and Cursor both read `~/.agents/skills`, so if the other agent is on your computer too it gets the key guard as well, and `--uninstall --agent ...` for one of them stops with a message instead of leaving the other without it.
 
-**Then, in Codex:** run `codex` in a terminal, type `/hooks`, trust the entry whose command ends in `guard-codex.mjs`, quit, start a new session and type `$shipyard-setup`. Do the `/hooks` step once in the terminal even if you use the ChatGPT desktop app or the IDE extension.
+**Then, in Codex:** quit Codex and run `codex '$shipyard-setup'` in a terminal. Codex says "Hooks need review": press 2, then Enter ("Trust all and continue"). Setup then starts and first checks that the key guard is on. (You can also type `/hooks` in Codex and trust the entry ending in `guard-codex.mjs`.) Do this once in the terminal even if you use the ChatGPT desktop app or the IDE extension.
 
 **Then, in Cursor:** open the Command Palette and choose "Developer: Reload Window" (or quit and reopen). In Agent chat type `/shipyard-setup`. In the Cursor CLI, run `agent` and then `/shipyard-setup`.
 
@@ -58,7 +70,7 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 |---|---|---|---|---|
 | setup | `/shipyard:setup` | `$shipyard-setup` (or the `/skills` list) | `/shipyard-setup` | "Shipyard setup" |
 | settings page | `/shipyard:setup settings` | `$shipyard-setup settings` | `/shipyard-setup settings` | "Shipyard settings" |
-| new-app, design, launch, video, ops | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
+| new-app, design, launch, video, ops, new-skill | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
 
 **The guard check.** Once per session, before anything touches keys, the agent runs a short check (`guard-check.mjs`) that proves the key guard is on: a test file with no key in it must be blocked, and the block message carries a code the script checks. If it says OFF, do the trust step (Codex) or reload the window (Cursor), then run `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --check` in a terminal.
 
@@ -71,6 +83,17 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 **Seeing Shipyard twice?** If your agent also imported the Claude Code plugin, use the `shipyard-*` skills. `--check` looks for old copies (in `~/.codex/skills`, `~/.cursor/skills`, `~/.claude/skills`, and Claude Code's Shipyard plugin that Cursor can load) and says how to switch each one off.
 
 **Removing it:** `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --uninstall`, then delete the folder. If you deleted the folder first, remove the Shipyard lines from `~/.codex/hooks.json` and `~/.cursor/hooks.json` by hand (until then they block nothing).
+
+## Updates
+
+Shipyard tells you when a new version is out: once a day, when a Claude Code session starts, it asks GitHub for the latest release (a quick check that waits at most a second and a half and stays quiet when you are offline). If yours is older you see one line saying how to update. To turn this off, set `SHIPYARD_NO_UPDATE_CHECK=1`.
+
+How to update, depending on how you installed:
+
+- **Claude Code:** turn on auto-update once (`/plugin`, then Marketplaces, then shipyard, then Enable auto-update) and new versions arrive by themselves at the start of a session; run `/reload-plugins` or start a new session to use them. Third-party marketplaces have auto-update off until you turn it on. To update right now: `claude plugin update shipyard@shipyard`, or in a session `/plugin marketplace update shipyard`.
+- **skills.sh** (`npx skills add philipposk/shipyard`): `npx skills check` shows what is new, `npx skills update` installs it.
+- **ClawHub (OpenClaw):** `clawhub update --all`, or one skill with `clawhub update shipyard-<skill>`.
+- **Hermes** (`hermes skills tap add philipposk/shipyard`): `hermes skills check`, then `hermes skills update`. Skills you edited yourself are skipped unless you add `--force`.
 
 ## What you need
 
@@ -96,6 +119,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - `launch`: go from a free test address to a real product. Your own web address and real sign-up emails (people confirm their email), privacy and terms pages written from the services your app uses (a draft: have it checked), a country checklist from official sources, payments with Stripe (test first, then live), an email list with one-click unsubscribe, phone and desktop app wrappers, and a go-live check. Run `/shipyard:launch`.
 - `video`: make a product video of your app, built as code (not a screen recording): the script is approved before any voice cost, narration is timed to the words, and you get light and dark, wide and phone cuts. Web copy under 10 MB goes into your app. Needs ffmpeg (optional). Takes hours and uses a lot of your Claude allowance, so do it after launch. Run `/shipyard:video`.
 - `ops`: keep a live app healthy. An error log and admin logs page with email alerts, health checks every 6 hours that open one GitHub issue when something is wrong, code review on every pull request (CodeRabbit, or `/code-review` for free), auto-merge for small safe changes (anything touching sign-in, data rules, payments or workflows waits for you), regular project reviews, backups kept on your own computer, and a clear loop for how problems get fixed. Run `/shipyard:ops`.
+- `new-skill`: build your own skill or plugin for coding agents, or add one to Shipyard. It asks what you want, tells you when an idea is weak and offers a better one, looks at your code and agent chats (with your yes) to recommend building on Shipyard or from scratch, then writes the skill, a test, plugin files for Claude Code and Cursor, and a publishing checklist (skills.sh, ClawHub, Hermes, the Cursor and Claude Code marketplaces). Run `/shipyard:new-skill`.
 - Desktop that uses the screen: phone-first apps show a left rail instead of the tab bar on computers, with pages at full content width, and tab switches show the next page's outline at once.
 - Service keys per app: `scripts/app-keys.mjs <app> GROQ_API_KEY ...` gives an app the AI, speech-to-text (Groq, Deepgram) or other keys from your keys file without showing them. The new-app skill also builds AI features on the server where they help, suggests the next best features, and can add an API, webhooks and an MCP server so other tools and AI assistants can use your app.
 - Build story: `scripts/build-story.mjs <app>` turns the Claude Code chats that built an app into `BUILD-STORY.md`: the cleaned prompts, how many, tokens and estimated cost per model, and time per step.
@@ -111,12 +135,25 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
 
-## What changed in 0.6.1
+## What changed in 0.7.1
 
 - Phone-first apps use the whole screen on computers (left rail, full-width pages), and tab switches show the next page's outline at once. Existing apps keep their look until you bring the change in.
 - `scripts/app-keys.mjs` gives one app the service keys it needs; Groq and Deepgram keys are known to setup.
 - `scripts/build-story.mjs` writes a "how this app was made" record from the Claude Code chats.
 - New guides: AI features and feature ideas, API / webhooks / MCP for apps, and Gmail "send as" with a junk-folder checklist.
+
+## What changed in 0.7.0
+
+- New skill `new-skill`: build and publish your own skills and plugins. `scripts/skill-scaffold.mjs` writes a skill or plugin that works in Claude Code, Codex, Cursor and agents that read `~/.agents/skills`, and checks any skill folder (name, trigger words in the description, no placeholders). Codex and Cursor get it as `shipyard-new-skill` after `install-agents.mjs --update`.
+
+## What changed in 0.6.2
+
+- Sign-in links from emails now open a short page with a Continue button instead of signing in straight away, so mail scanners can't use them up and a forwarded link can't sign someone into the wrong account.
+- New apps get a paging helper for long lists (the database returns at most 1000 rows at a time), a fix for sticky headers, and written rules in `AGENTS.md` and the build rules from the 6x7 launches: no changes on a plain link visit, server-side scores, offline cache for static files only, and a second review of fixed code before launch.
+
+## What changed in 0.6.1
+
+- One-prompt install for Codex, Cursor and Claude Code: [INSTALL.md](INSTALL.md). In Codex, setup now starts with a guard check, and `--check` says whether Codex has a trust record for the hook (it only reads Codex's files, it never writes trust).
 
 ## What changed in 0.6.0
 

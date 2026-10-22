@@ -300,11 +300,12 @@ function nextSteps(plan) {
   const lines = [''];
   if (plan.agents.includes('codex')) {
     lines.push(
-      'Next, in Codex:',
-      '  1. In a terminal, run: codex',
-      '  2. Type /hooks and trust the entry whose command ends in guard-codex.mjs. Then quit.',
-      '  3. Start a new Codex session and type: $shipyard-setup',
-      '  Using the ChatGPT desktop app or the IDE extension? Do the /hooks step once in the terminal anyway.',
+      'Next, in Codex (one approval, which only you can give):',
+      '  1. Quit Codex (press Ctrl+C twice).',
+      "  2. In the terminal, run: codex '$shipyard-setup'",
+      '  3. Codex says "Hooks need review". Press 2, then Enter ("Trust all and continue"). It is only the Shipyard key guard when it says "1 hook is new or changed". If more are listed, choose "Review hooks" and trust the one ending in guard-codex.mjs.',
+      '  Setup then starts and first checks that the key guard is on.',
+      '  Using the ChatGPT desktop app or the IDE extension? Do the trust step once in the terminal anyway.',
     );
   }
   if (plan.agents.includes('cursor')) {
@@ -523,7 +524,13 @@ export function runCheck({ root, env = process.env, platform = process.platform 
     if (note) notes.push(note);
   }
   if (record.agents?.codex) {
-    notes.push('Codex asks you to trust the hook once: run codex in a terminal, type /hooks, and trust guard-codex.mjs. This check cannot see that step; the guard check in a session can.');
+    const hooksFile = record.agents.codex.hooksFile ?? loc.codexHooks;
+    const trust = core.codexTrustRecorded({ hooksText: readText(hooksFile), configText: readText(loc.codexConfig), hooksFile });
+    if (trust === 'yes') {
+      notes.push('Codex has a trust record for the Shipyard hook. If the hook changes, Codex asks again. The guard check in a session proves the guard is on.');
+    } else {
+      notes.push('Codex has not been told to trust the Shipyard hook yet, so the key guard is off in Codex until then. Start Codex, choose "Trust all and continue" when it says "Hooks need review" (or type /hooks and trust guard-codex.mjs). The guard check in a session proves it is on.');
+    }
   }
   return { problems, notes };
 }

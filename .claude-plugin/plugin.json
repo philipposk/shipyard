@@ -1,10 +1,11 @@
 {
   "name": "shipyard",
   "displayName": "Shipyard",
-  "version": "0.6.1",
+  "version": "0.7.1",
   "description": "Set up your accounts once, then build and publish real web apps (Next.js, Supabase, Vercel) with Claude Code, with good practices built in.",
   "author": { "name": "Philippos" },
   "repository": "https://github.com/philipposk/shipyard",
   "license": "MIT",
-  "keywords": ["nextjs", "supabase", "vercel", "app-builder", "beginner", "scaffold", "deploy"]
+  "keywords": ["nextjs", "supabase", "vercel", "app-builder", "beginner", "scaffold", "deploy"],
+  "hooks": "./hooks/update-check.json"
 }

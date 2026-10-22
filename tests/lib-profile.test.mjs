@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const home = await mkdtemp(path.join(os.tmpdir(), 'shipyard-profile-'));
 process.env.SHIPYARD_HOME = home;
@@ -16,7 +18,9 @@ test('paths follow SHIPYARD_HOME', () => {
   assert.equal(paths.HOME_DIR, path.resolve(home));
   assert.equal(paths.PROFILE_PATH, path.join(paths.HOME_DIR, 'profile.json'));
   assert.equal(paths.SECRETS_PATH, path.join(paths.HOME_DIR, 'secrets.env'));
-  assert.equal(path.basename(paths.PLUGIN_ROOT), 'shipyard');
+  // The plugin root is the folder holding the plugin manifest, whatever the checkout is called.
+  assert.equal(paths.PLUGIN_ROOT, path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
+  assert.ok(existsSync(path.join(paths.PLUGIN_ROOT, '.claude-plugin', 'plugin.json')));
   assert.equal(paths.TEMPLATE_DIR, path.join(paths.PLUGIN_ROOT, 'template'));
 });
 

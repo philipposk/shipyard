@@ -1,6 +1,6 @@
 ---
 name: design
-description: Choose or change how an app looks: colours, fonts, layout, homepage style, dark mode, icons. Use for "design", "how my app looks", "change the look", "change the colours", "change the fonts", "copy this website's style", "make it look like", "3 directions", "/shipyard:design", or the sentences "Shipyard: use the <name> look" and "Shipyard: use direction <A|B|C> for <app>".
+description: "Choose or change how an app looks: colours, fonts, layout, homepage style, dark mode, icons. Use for \"design\", \"how my app looks\", \"change the look\", \"change the colours\", \"change the fonts\", \"copy this website's style\", \"make it look like\", \"3 directions\", \"/shipyard:design\", or the sentences \"Shipyard: use the <name> look\" and \"Shipyard: use direction <A|B|C> for <app>\"."
 ---
 
 # Shipyard design

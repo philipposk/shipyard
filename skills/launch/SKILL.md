@@ -1,6 +1,6 @@
 ---
 name: launch
-description: Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for "launch", "go live", "custom domain", "real emails", "privacy policy", "terms", "payments", "Stripe", "subscriptions", "newsletter", "app store", "play store", "desktop app", or "/shipyard:launch".
+description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"desktop app\", or \"/shipyard:launch\"."
 ---
 
 # Shipyard launch
@@ -56,6 +56,14 @@ If a script is missing or a flag is rejected, run its `--help`, use what it says
 ## Changing the app and redeploying
 
 Template changes (signup mode, legal text, plans) are code changes: branch, small commit with the student's OK, pull request, green checks, merge, `deploy.mjs`. Settings that start with `NEXT_PUBLIC_` are baked in at build time: after changing one in Vercel, redeploy. Regenerate legal text when a service or module is added, a price changes, or the company details change.
+
+## Google sign-in shows the app's domain (before turning Google sign-in on)
+
+Google's screen reads "Sign in to continue to <host>". With Supabase's redirect sign-in, the student's users would see `<ref>.supabase.co`. The template avoids that for free: `GoogleSignInButton` uses popup sign-in (`GoogleIdentityButton`, Google Identity Services, then `signInWithIdToken`), so Google shows the app's domain or brand. The redirect button is only the fallback. No Supabase custom domain is needed.
+1. Set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in Vercel to the same Google client id used in Supabase → Auth → Providers → Google, then redeploy. Without it the app falls back to the redirect button and Google shows `supabase.co`.
+2. Tell the student to add the production origin, such as `https://<their domain>` (and `https://www.<their domain>` if used), under **Authorized JavaScript origins** for that OAuth client in Google Cloud → APIs & Services → Credentials. Until then Google answers `redirect_uri_mismatch`.
+3. Consent-screen branding (app name, logo, home page, privacy policy and terms from `references/legal.md`, support email on their domain) makes Google show the name. Submit it for verification.
+4. Go-live check: open `https://accounts.google.com/o/oauth2/v2/auth?client_id=<client id>&redirect_uri=storagerelay://https/<host>?id=x&response_type=id_token&scope=openid%20email&nonce=n` (or sign in for real). It must say "to continue to" the app's domain or name, not `supabase.co`, and not `redirect_uri_mismatch`. If it doesn't, it's a cross: fix it, or write it in `HANDOFF.md` as a known limit.
 
 ## Go-live check
 
