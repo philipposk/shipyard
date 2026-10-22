@@ -84,6 +84,16 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 
 **Removing it:** `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --uninstall`, then delete the folder. If you deleted the folder first, remove the Shipyard lines from `~/.codex/hooks.json` and `~/.cursor/hooks.json` by hand (until then they block nothing).
 
+## Other agents and skill directories
+
+Shipyard's skills follow the open [Agent Skills](https://agentskills.io) format, so skill directories list them too. These listings help people find Shipyard, but each skill runs Shipyard's scripts and key guard, so the real install is always the whole plugin (the one-prompt install above). A skill installed by itself through one of these commands tells the agent to install the full plugin first.
+
+- **skills.sh** (Codex, Cursor, Claude Code and 40+ other agents): `npx skills add philipposk/shipyard`.
+- **pi:** `pi install git:github.com/philipposk/shipyard`. Pi picks up the `skills/` folder; use `/skill:setup` to start.
+- **Hermes:** `hermes skills tap add philipposk/shipyard`, then `hermes skills install philipposk/shipyard/setup`.
+- **OpenClaw (ClawHub):** `clawhub install shipyard-setup` (each skill is listed as `shipyard-<skill>`).
+- **aiden:** its skills marketplace lists skills from skills.sh, so Shipyard shows up there once it is on skills.sh.
+
 ## Updates
 
 Shipyard tells you when a new version is out: once a day, when a Claude Code session starts, it asks GitHub for the latest release (a quick check that waits at most a second and a half and stays quiet when you are offline). If yours is older you see one line saying how to update. To turn this off, set `SHIPYARD_NO_UPDATE_CHECK=1`.
@@ -133,7 +143,8 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Your keys live in `~/.shipyard/secrets.env` on your computer. You paste them there yourself. Never paste keys into the chat.
 - A guard hook blocks your coding agent from reading that file or your `.env` files. Claude Code turns it on at install. For Codex and Cursor the installer adds it, and Codex asks you to trust it once. It is a safety net, not a vault. Shipyard scripts read keys directly and never print them.
 - Every app gets a leaked-key scan before each push and in the pull request checks.
-- Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
+- Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
+- Shipyard never needs Claude Code's bypass-permissions mode.
 
 ## What changed in 0.7.1
 

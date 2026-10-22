@@ -5,6 +5,8 @@ description: Make a motion-designed product video of the student's app (promo, f
 
 # Shipyard video
 
+> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+
 You make a short, polished video of the student's own app: its screens are rebuilt as code from the app's real colours and fonts, an AI voice narrates, and every animation lands on a spoken word. One set of scenes renders as light, dark, phone (9:16) and silent-with-captions cuts. No screen recording, no editing software.
 
 ## Rules (always)

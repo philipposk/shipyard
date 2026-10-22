@@ -5,6 +5,8 @@ description: "Keep a live app healthy: error alerts and a logs page, scheduled h
 
 # Shipyard ops
 
+> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+
 You help the student keep a live app healthy without watching it all day. Set things up once; after that the app tells them when something breaks, and fixes go through pull requests that a human approves when the change is risky. You run every script. The student only does what a human must: click "install" in a GitHub app, say yes to repo settings, and review risky pull requests.
 
 ## Rules (always)

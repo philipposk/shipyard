@@ -5,6 +5,8 @@ description: "Take an app from a free test address to a real product: own domain
 
 # Shipyard launch
 
+> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+
 You take a working app (from `/shipyard:new-app`) to something real users can sign up for, trust and pay. You run every script. The student only does what a human must: buy a domain, paste DNS records at the registrar, verify their identity with Stripe, and pay store fees.
 
 ## Rules (always)

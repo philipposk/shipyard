@@ -29,6 +29,12 @@ for (const d of skills) {
   const name = fm[1].match(/^name:\s*(.+)$/m)?.[1].trim();
   if (name !== d.name) problems.push(`skills/${d.name}/SKILL.md name is "${name}", expected "${d.name}"`);
   if (!/^description:\s*\S/m.test(fm[1])) problems.push(`skills/${d.name}/SKILL.md has no description`);
+  // Agent Skills spec (agentskills.io), which skills.sh, pi, Hermes and ClawHub follow.
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(d.name) || d.name.length > 64) problems.push(`skills/${d.name}: name must be lowercase letters, digits and single hyphens, at most 64 characters`);
+  let desc = fm[1].match(/^description:\s*(.+)$/m)?.[1].trim() ?? '';
+  if (desc.startsWith('"')) { try { desc = JSON.parse(desc); } catch { problems.push(`skills/${d.name}/SKILL.md description is not a valid quoted string`); } }
+  if (desc.length > 1024) problems.push(`skills/${d.name}/SKILL.md description is ${desc.length} characters (the limit is 1024)`);
+  if (!readFileSync(file, 'utf8').includes('INSTALL.md')) problems.push(`skills/${d.name}/SKILL.md does not point a standalone install at INSTALL.md`);
 }
 
 if (problems.length) { for (const p of problems) console.error(`✗ ${p}`); process.exit(1); }
