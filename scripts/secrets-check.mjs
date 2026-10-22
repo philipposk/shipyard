@@ -11,7 +11,9 @@ const HELP = `Usage: secrets-check.mjs [--live] [--json]
 
 Checks each key in ~/.shipyard/secrets.env: present, and in the right format.
   --live   also make one small read-only request per key to the provider
-           (Supabase, OpenRouter, OpenAI, Resend, Stripe) to see if it works.
+           (Supabase, OpenRouter, OpenAI, Groq, Deepgram, Resend, Stripe,
+           ElevenLabs, Routeway, Brave, Serper, SerpAPI, Upstash). NVIDIA is format-only.
+           Brave and Serper use one search credit each.
            A key whose format looks wrong is never sent anywhere.
   --json   machine-readable output (never contains key values)
 Exit code: 0 = all good, 1 = a needed key is missing or was rejected, 2 = bad usage.
@@ -36,6 +38,39 @@ const SERVICE = {
   DEEPGRAM_API_KEY: 'Deepgram',
   RESEND_API_KEY: 'Resend',
   STRIPE_SECRET_KEY: 'Stripe',
+  ELEVENLABS_API_KEY: 'ElevenLabs',
+  ROUTEWAY_API_KEY: 'Routeway',
+  BRAVE_API_KEY: 'Brave Search',
+  SERPER_API_KEY: 'Serper',
+  SERPAPI_API_KEY: 'SerpAPI',
+  UPSTASH_REDIS_REST_TOKEN: 'Upstash',
+};
+
+/**
+ * Keys that are not tested with a plain "Authorization: Bearer" GET. Each returns the request to make.
+ * All are free or cost at most one search credit. NVIDIA_API_KEY has no free authenticated
+ * read-only call we could verify, so it is checked by format only.
+ */
+export const PROBE = {
+  ELEVENLABS_API_KEY: (v) => ({ url: 'https://api.elevenlabs.io/v1/user', headers: { 'xi-api-key': v } }),
+  ROUTEWAY_API_KEY: (v) => ({ url: 'https://api.routeway.ai/v1/models', headers: { Authorization: `Bearer ${v}` } }),
+  // Brave: one search counts against the free monthly quota.
+  BRAVE_API_KEY: (v) => ({ url: 'https://api.search.brave.com/res/v1/web/search?q=test&count=1', headers: { 'X-Subscription-Token': v } }),
+  // Serper: one search uses one credit.
+  SERPER_API_KEY: (v) => ({
+    url: 'https://google.serper.dev/search',
+    method: 'POST',
+    headers: { 'X-API-KEY': v, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q: 'test', num: 1 }),
+  }),
+  // SerpAPI: the account endpoint is free (no search credit).
+  SERPAPI_API_KEY: (v) => ({ url: `https://serpapi.com/account.json?api_key=${encodeURIComponent(v)}` }),
+  // Upstash: PING the database named in UPSTASH_REDIS_REST_URL (only when that URL is a real Upstash address).
+  UPSTASH_REDIS_REST_TOKEN: (v, all) => {
+    const base = String(all?.get?.('UPSTASH_REDIS_REST_URL') ?? '').replace(/\/$/, '');
+    if (!/^https:\/\/[a-z0-9-]+\.upstash\.io$/i.test(base)) return null;
+    return { url: `${base}/ping`, headers: { Authorization: `Bearer ${v}` } };
+  },
 };
 
 const ENDPOINT = {
@@ -80,7 +115,7 @@ async function bearerGet(url, value, fetchImpl, scheme = 'Bearer') {
  * One cheap read-only request for one key.
  * Returns { ok, reason, inconclusive?, details? } and never includes the key.
  */
-export async function liveCheck(name, value, fetchImpl = fetch) {
+export async function liveCheck(name, value, fetchImpl = fetch, all = new Map()) {
   const service = SERVICE[name];
   if (!service) return null;
   if (/[\s\x00-\x1f\x7f]/.test(value)) {
@@ -94,6 +129,17 @@ export async function liveCheck(name, value, fetchImpl = fetch) {
         reason: 'Supabase accepted it',
         details: { orgs: (Array.isArray(orgs) ? orgs : []).map((o) => ({ slug: orgSlug(o), name: String(o?.name ?? '') })) },
       };
+    }
+    if (PROBE[name]) {
+      const req = PROBE[name](value, all);
+      if (!req) return { ok: false, inconclusive: true, reason: 'UPSTASH_REDIS_REST_URL is missing or not an Upstash address, so the token was not sent' };
+      const res = await fetchImpl(req.url, {
+        method: req.method ?? 'GET',
+        headers: { Accept: 'application/json', ...req.headers },
+        body: req.body,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      return interpretStatus(service, res.status);
     }
     const { status, body } = await bearerGet(ENDPOINT[name], value, fetchImpl, AUTH_SCHEME[name]);
     if (name === 'RESEND_API_KEY' && status === 401 && body?.name === 'restricted_api_key') {
@@ -144,7 +190,7 @@ export async function checkSecrets({ live = false, fetchImpl = fetch, save = tru
         reason: `format looks wrong for ${def.name}, not sent to ${SERVICE[def.name]}`,
       };
     } else if (live && present && SERVICE[def.name]) {
-      entry.live = await liveCheck(def.name, value, fetchImpl);
+      entry.live = await liveCheck(def.name, value, fetchImpl, values);
       const acct = ACCOUNT_OF[def.name];
       if (entry.live && !entry.live.inconclusive && profile.accounts?.[acct]) {
         // Supabase counts as connected only once an organization is chosen (the setup step saves it).

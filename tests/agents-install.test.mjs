@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const fwd = (p) => p.replace(/\\/g, '/');
-const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops', 'new-skill'];
+const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops', 'new-skill', 'email', 'apis'];
 const OUTPUTS = [];
 const unix = process.platform !== 'win32';
 
@@ -97,7 +97,7 @@ test('detection: nothing found asks for --agent; a ~/.cursor folder means Cursor
   }
 });
 
-test('--yes installs seven skill folders with markers, both hooks files and a private install record', () => {
+test('--yes installs nine skill folders with markers, both hooks files and a private install record', () => {
   const sb = sandbox();
   try {
     const r = run(sb, ['--agent', 'both', '--yes']);

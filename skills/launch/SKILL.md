@@ -35,7 +35,8 @@ Use the current folder if it has `.shipyard-app.json`; otherwise `node "${CLAUDE
 5. **An email list (newsletter)** -> `references/newsletter.md`
 6. **A phone or desktop app** -> `references/stores.md`
 7. **Write and reply from my own address in Gmail** (after 1) -> `references/gmail-send-as.md`
-8. **Check if I am ready** -> run the go-live check below
+8. **Check if I am ready** -> run the go-live check below, then `references/seo-performance.md`
+9. **Receive mail at my domain, ImprovMX, DMARC, owner emails** -> `/shipyard:email`
 
 For options 2 and 4 also read `references/country.md` (rules differ by country: tax, company registration, consumer rights).
 

@@ -70,7 +70,7 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 |---|---|---|---|---|
 | setup | `/shipyard:setup` | `$shipyard-setup` (or the `/skills` list) | `/shipyard-setup` | "Shipyard setup" |
 | settings page | `/shipyard:setup settings` | `$shipyard-setup settings` | `/shipyard-setup settings` | "Shipyard settings" |
-| new-app, design, launch, video, ops, new-skill | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
+| new-app, design, launch, video, ops, new-skill, email, apis | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
 
 **The guard check.** Once per session, before anything touches keys, the agent runs a short check (`guard-check.mjs`) that proves the key guard is on: a test file with no key in it must be blocked, and the block message carries a code the script checks. If it says OFF, do the trust step (Codex) or reload the window (Cursor), then run `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --check` in a terminal.
 
@@ -134,6 +134,8 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - Service keys per app: `scripts/app-keys.mjs <app> GROQ_API_KEY ...` gives an app the AI, speech-to-text (Groq, Deepgram) or other keys from your keys file without showing them. The new-app skill also builds AI features on the server where they help, suggests the next best features, and can add an API, webhooks and an MCP server so other tools and AI assistants can use your app.
 - Build story: `scripts/build-story.mjs <app>` turns the Claude Code chats that built an app into `BUILD-STORY.md`: the cleaned prompts, how many, tokens and estimated cost per model, and time per step.
 - Gmail "send as" guide in `launch`: write and reply from your own domain in Gmail, and keep those emails out of junk (SPF, DKIM, DMARC, warm-up).
+- `email`: email on your own domain. Receive at any `@yourdomain` address in Gmail (ImprovMX catch-all), reply from it in Gmail, SPF, DKIM and DMARC, DNS steps for Papaki, Cloudflare or any registrar, a deliverability test (`scripts/email-check.mjs`), and owner emails such as "<App> is live" sent with the app's name and a "why you got this" line (`scripts/notify.mjs`). Run `/shipyard:email`.
+- `apis`: one guide and checker for every service key (OpenRouter, OpenAI, Groq, Deepgram, ElevenLabs, NVIDIA, Routeway, Brave, Serper, SerpAPI, Upstash, Resend, Stripe), web search with fallbacks, voice, an AI model router and shared rate limits. Run `/shipyard:apis`.
 - A settings page: `/shipyard:setup settings`.
 
 Optional extras for design (not installed for you): the free `frontend-design` plugin, and Impeccable for a polish pass on one page.
@@ -145,6 +147,13 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
+
+## What changed in 0.8.0
+
+- New `email` skill: ImprovMX catch-all to Gmail, Gmail "Send mail as", SPF/DKIM/DMARC, Papaki and Cloudflare DNS steps, `email-check.mjs` (reads public DNS, no keys) and `notify.mjs` (the "<App> is live" email from 6x7-app-factory, with the app as sender, a "why you got this" line and `--dry-run`).
+- New `apis` skill: key guide for 13 services; `secrets-check.mjs --live` now also tests ElevenLabs, Routeway, Brave, Serper, SerpAPI and Upstash (NVIDIA by format). Web search, voice, AI router and Upstash rate-limit guides are marked new, untested in production.
+- `new-skill` points to good existing skills (find-skills, superpowers, caveman, compound-engineering, Anthropic's skill-creator and engineering skills) instead of copying them.
+- `launch` gains a search-engine and speed checklist from the 6x7 launches.
 
 ## What changed in 0.7.1
 

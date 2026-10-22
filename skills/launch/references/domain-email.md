@@ -31,6 +31,10 @@ Why: the free `name.vercel.app` address works, but a real address looks trustwor
 - Password-reset emails reach everyone, not just the owner.
 - Emails come from `noreply@send.<domain>`. If they land in spam, tell the student to wait a day, mark one "not spam", and check the SPF/DKIM lines are verified.
 
+## Receiving mail and owner emails
+
+Receiving at `hello@<domain>` (ImprovMX catch-all to Gmail), replying from Gmail, DMARC, Papaki DNS steps, a deliverability test and the "<App> is live" email are in `/shipyard:email` (`email-check.mjs`, `notify.mjs`).
+
 ## If something fails
 
 - "Domain not found at registrar": wait, check for typos in the table.
