@@ -1,6 +1,6 @@
 ---
 name: launch
-description: Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for "launch", "go live", "custom domain", "real emails", "privacy policy", "terms", "payments", "Stripe", "subscriptions", "newsletter", "app store", "play store", "desktop app", or "/shipyard:launch".
+description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"desktop app\", or \"/shipyard:launch\"."
 ---
 
 # Shipyard launch

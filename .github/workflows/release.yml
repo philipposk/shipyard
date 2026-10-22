@@ -1,0 +1,89 @@
+# What this does: when you push a version tag (for example v0.6.3), GitHub checks that every
+# manifest carries that version, re-validates the Claude Code, Cursor and skill layouts, then
+# publishes each skill in skills/ to ClawHub (OpenClaw). Hermes needs no upload: this repo is
+# already a tap (`hermes skills tap add philipposk/shipyard`), so the tap check below just
+# guards the layout. skills.sh and Codex read the public repo directly, also nothing to upload.
+# Note: ClawHub releases every published skill under MIT-0.
+# Run it by hand (Actions > Release > Run workflow) to preview the ClawHub publish; that never uploads.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Manifests agree on one version (and match the tag)
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: node scripts/check-release.mjs
+      - name: Claude Code manifest validation
+        run: |
+          npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .
+          # `validate .` only reads marketplace.json; this one also checks the skills' frontmatter.
+          npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .claude-plugin/plugin.json
+
+  # The GitHub release is what the session-start update check (scripts/update-check.mjs) looks at.
+  github-release:
+    needs: check
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the GitHub release for this tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then echo "release $TAG already exists"; exit 0; fi
+          gh release create "$TAG" --verify-tag --generate-notes --title "Shipyard $TAG"
+
+  clawhub:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Real uploads only happen from a version tag; a manual run is always a preview.
+      DRY_RUN: ${{ github.ref_type != 'tag' }}
+      CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install the ClawHub CLI
+        run: npm i -g clawhub@0.23.3
+      - name: Publish each skill to ClawHub
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./.claude-plugin/plugin.json').version")"
+          if [ "$DRY_RUN" != "true" ]; then
+            if [ -z "${CLAWHUB_TOKEN:-}" ]; then
+              echo "::warning::CLAWHUB_TOKEN secret is not set, so nothing went to ClawHub. Add it under Settings > Secrets > Actions."; exit 0
+            fi
+            clawhub login --token "$CLAWHUB_TOKEN"
+          fi
+          for dir in skills/*/; do
+            name="$(basename "$dir")"
+            flag=""; [ "$DRY_RUN" = "true" ] && flag="--dry-run"
+            clawhub skill publish "$dir" --slug "shipyard-$name" --name "Shipyard $name" \
+              --changelog "Shipyard v$VERSION" $flag
+          done

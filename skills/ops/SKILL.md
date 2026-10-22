@@ -1,6 +1,6 @@
 ---
 name: ops
-description: Keep a live app healthy: error alerts and a logs page, scheduled health checks, code review on every pull request, auto-merge for small safe changes, regular project review, backups, and how problems get fixed. Use for "errors", "logs", "monitoring", "health check", "alerts", "code review", "CodeRabbit", "auto-merge", "dependabot", "backup", "self-healing", "project review", "keep my app healthy", or "/shipyard:ops".
+description: "Keep a live app healthy: error alerts and a logs page, scheduled health checks, code review on every pull request, auto-merge for small safe changes, regular project review, backups, and how problems get fixed. Use for \"errors\", \"logs\", \"monitoring\", \"health check\", \"alerts\", \"code review\", \"CodeRabbit\", \"auto-merge\", \"dependabot\", \"backup\", \"self-healing\", \"project review\", \"keep my app healthy\", or \"/shipyard:ops\"."
 ---
 
 # Shipyard ops

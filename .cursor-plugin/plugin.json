@@ -1,0 +1,12 @@
+{
+  "name": "shipyard",
+  "displayName": "Shipyard",
+  "version": "0.7.0",
+  "description": "Set up your accounts once, then build and publish real web apps (Next.js, Supabase, Vercel), with good practices built in.",
+  "author": { "name": "Philippos" },
+  "homepage": "https://github.com/philipposk/shipyard",
+  "repository": "https://github.com/philipposk/shipyard",
+  "license": "MIT",
+  "keywords": ["nextjs", "supabase", "vercel", "app-builder", "beginner", "scaffold", "deploy"],
+  "skills": "./skills/"
+}
