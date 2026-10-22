@@ -119,6 +119,11 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
 
+## What changed in 0.6.2
+
+- Sign-in links from emails now open a short page with a Continue button instead of signing in straight away, so mail scanners can't use them up and a forwarded link can't sign someone into the wrong account.
+- New apps get a paging helper for long lists (the database returns at most 1000 rows at a time), a fix for sticky headers, and written rules in `AGENTS.md` and the build rules from the 6x7 launches: no changes on a plain link visit, server-side scores, offline cache for static files only, and a second review of fixed code before launch.
+
 ## What changed in 0.6.1
 
 - One-prompt install for Codex, Cursor and Claude Code: [INSTALL.md](INSTALL.md). In Codex, setup now starts with a guard check, and `--check` says whether Codex has a trust record for the hook (it only reads Codex's files, it never writes trust).
