@@ -6,6 +6,7 @@ import { ensureSecretsFile } from './lib/secrets.mjs';
 import { which } from './lib/run.mjs';
 import { isMainModule } from './lib/paths.mjs';
 import { ok, info, warn, json, parseArgs, setQuiet, UsageError } from './lib/log.mjs';
+import { agentName } from './lib/agent.mjs';
 
 const HELP = `Usage: secrets-init.mjs [--no-open] [--json]
 
@@ -86,7 +87,7 @@ async function main(argv) {
   } else {
     warn('Could not open an editor automatically. Open that file yourself in any text editor.');
   }
-  info("Paste your keys, save, close, then tell Claude 'done'.");
+  info(`Paste your keys, save, close, then tell ${agentName()} 'done'.`);
   return 0;
 }
 

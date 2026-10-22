@@ -3,6 +3,7 @@
 // They are never printed, logged or put on a command line.
 import { readFile, writeFile, appendFile, chmod } from 'node:fs/promises';
 import { SECRETS_PATH, ensureHomeDir } from './paths.mjs';
+import { skillHint } from './agent.mjs';
 
 const hasPrefix = (...prefixes) => (v) => prefixes.some((p) => v.startsWith(p)) && v.length >= 20;
 
@@ -171,7 +172,7 @@ async function lockDown() {
 export class MissingSecretError extends Error {
   constructor(name, step) {
     const where = step
-      ? `Run "/shipyard:setup" and finish the "${step}" step, or add it to ${SECRETS_PATH}.`
+      ? `Run "${skillHint('setup')}" and finish the "${step}" step, or add it to ${SECRETS_PATH}.`
       : `Add it to ${SECRETS_PATH}.`;
     super(`${name} is missing. ${where}`);
     this.name = 'MissingSecretError';

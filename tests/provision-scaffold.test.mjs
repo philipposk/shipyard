@@ -94,7 +94,7 @@ test('scaffold copies the template, fills placeholders and starts git', async ()
   assert.match(await read(dir, 'public/llms.txt'), /# Recipe "Box"/);
 
   // Dotfiles and folders that start with a dot came along.
-  for (const f of ['.gitignore', '.env.example', '.githooks/pre-push', '.github/workflows/test.yml']) {
+  for (const f of ['.gitignore', '.cursorignore', '.env.example', '.githooks/pre-push', '.github/workflows/test.yml']) {
     assert.ok(existsSync(path.join(dir, f)), f);
   }
   assert.ok(!existsSync(path.join(dir, 'node_modules')));

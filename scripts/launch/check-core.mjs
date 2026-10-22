@@ -21,6 +21,7 @@ import { loadServices, appUrlOf, isTestAddress, scrub } from './common.mjs';
 import { loadStripeEvents } from './stripe-core.mjs';
 import { checkWwwRedirect, wwwRedirectSteps } from './domain-core.mjs';
 import { storeCheck } from '../shells/store-core.mjs';
+import { agentName } from '../lib/agent.mjs';
 
 const exists = (p) => stat(p).then(() => true, () => false);
 const read = (p) => readFile(p, 'utf8').catch(() => '');
@@ -71,7 +72,7 @@ export async function launchCheck(opts, deps = {}) {
     try {
       r = await fn();
     } catch (err) {
-      r = R('fail', `This check stopped by itself: ${scrub(err?.message ?? 'unknown error', secretValues).slice(0, 200)}`, 'Run it again. If it keeps stopping, ask Claude to look at it.');
+      r = R('fail', `This check stopped by itself: ${scrub(err?.message ?? 'unknown error', secretValues).slice(0, 200)}`, `Run it again. If it keeps stopping, ask ${agentName()} to look at it.`);
     }
     checks.push({ id, label, ...r });
   };

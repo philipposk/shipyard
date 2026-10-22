@@ -1,0 +1,13 @@
+# Text files are checked out with LF line ends everywhere, also by Git for Windows
+# (its default would turn them into CRLF, which breaks the Codex and Cursor skill rewrites).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary
+*.mp4 binary

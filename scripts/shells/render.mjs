@@ -2,6 +2,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { PLUGIN_ROOT } from '../lib/paths.mjs';
+import { agentName } from '../lib/agent.mjs';
 
 export const SHELLS_DIR = path.join(PLUGIN_ROOT, 'shells');
 
@@ -174,7 +175,7 @@ App id: \`${appId}\`. It is the app's permanent name on phones. Do not change it
 - Google Play Console: 25 USD once. New personal accounts must run a closed test with 12 testers for 14 days before they can publish.
 - Apple may refuse an app that is only a website in a frame (rule 4.2). Give the app something that feels like an app: a designed offline page (done), a native feature in the main use (camera, share, notifications), and a demo login for reviewers. \`STORE.md\` lists the review notes.
 
-## Steps (you run these, Claude does not build the phone projects)
+## Steps (you run these, ${agentName()} does not build the phone projects)
 
 1. Install what the phone tools need: Node 22 or newer. For iPhone: a Mac with Xcode. For Android: Android Studio.
 2. In this folder run \`npm install\`.

@@ -18,6 +18,7 @@ import { homeContentWarning } from './design/home-content.mjs';
 import { renderPreviews, RenderError } from './design/render-previews.mjs';
 import { BrowserError } from './design/capture/browser.mjs';
 import { esc, openInBrowser } from './settings-page.mjs';
+import { agentName, agentNameStart, currentAgent } from './lib/agent.mjs';
 
 export const DIRECTION_KEYS = ['a', 'b', 'c'];
 /** Two directions may share at most this many of the 7 look dimensions (menu, homepage, cards, buttons, spacing, text size, font). */
@@ -31,7 +32,7 @@ export const DIRECTION_VIEWS = [
   { name: 'desktop-dark', width: 1280, height: 800, theme: 'dark' },
 ];
 
-const HELP = `
+const helpText = () => `
 Show three different looks for your own app, side by side, as real screenshots.
 
 Usage:
@@ -39,7 +40,7 @@ Usage:
 
 Before you run it, three design files must exist in <app-folder>/.shipyard/design/:
   direction-a.tokens.json, direction-b.tokens.json, direction-c.tokens.json
-(Claude writes them for you. They must be clearly different from each other.)
+(${agentNameStart()} writes them for you. They must be clearly different from each other.)
 
 It checks each file (and repairs small readability problems), takes screenshots of your app in each look
 (this starts your app in preview mode for a minute and stops it again), and writes
@@ -165,7 +166,7 @@ export async function loadDirections(appDir, { languages = ['en'] } = {}) {
     directions.push({ key, file, label, tokens: withDefaults(tokens), changes });
   }
   if (missing.length > 0) {
-    problems.unshift(`I need three design files in .shipyard/design/ inside the app, and ${missing.length === 3 ? 'none of them exist yet' : `these are missing: ${missing.join(', ')}`}. Ask Claude to draft them (the design skill has a short guide called directions).`);
+    problems.unshift(`I need three design files in .shipyard/design/ inside the app, and ${missing.length === 3 ? 'none of them exist yet' : `these are missing: ${missing.join(', ')}`}. Ask ${agentName()} to draft them (the design skill has a short guide called directions).`);
   }
   if (problems.length === 0) {
     const { tooAlike, similarColour } = compareDirections(directions);
@@ -231,7 +232,7 @@ p{margin:0}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 `;
 
-const SCRIPT = `
+const script = (agent) => `
 (function () {
   var toast = document.getElementById('toast');
   var timer;
@@ -279,7 +280,7 @@ const SCRIPT = `
     if (!button) return;
     var value = button.getAttribute('data-copy');
     function finish(copied) {
-      show(copied ? 'Copied, paste it into Claude' : 'Could not copy. Select and copy this: ' + value);
+      show(copied ? 'Copied, paste it into ${agentName(agent)}' : 'Could not copy. Select and copy this: ' + value);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(value).then(function () { finish(true); }, function () { finish(legacyCopy(value)); });
@@ -329,12 +330,13 @@ function card(d, appName) {
  * Build the page. Pure. `directions` is [{ key, tokens, shots: { "phone-light": "data:image/png;base64,...", ... } }].
  * The swatch colours are written as CSS rules (no inline style attributes, so the page can run under a strict CSP).
  */
-export function renderDirectionsHtml({ appName = '', directions = [], notes = [] } = {}) {
+export function renderDirectionsHtml({ appName = '', directions = [], notes = [], agent = currentAgent() } = {}) {
+  const js = script(agent);
   const colours = [...new Set(directions.flatMap((d) => [d.tokens.light.background, d.tokens.light.accent, d.tokens.dark.background, d.tokens.dark.accent]))]
     .filter((c) => /^#[0-9a-f]{6}$/.test(c));
   const swatchCss = colours.map((c) => `.sw[data-c="${c}"]{background:${c}}`).join('\n');
   const style = `${PAGE_CSS}${swatchCss}\n`;
-  const csp = ["default-src 'none'", `style-src ${sha(style)}`, 'img-src data:', `script-src ${sha(SCRIPT)}`].join('; ');
+  const csp = ["default-src 'none'", `style-src ${sha(style)}`, 'img-src data:', `script-src ${sha(js)}`].join('; ');
   const heading = appName ? `Three directions for ${esc(appName)}` : 'Three directions';
   return `<!doctype html>
 <html lang="en">
@@ -351,7 +353,7 @@ export function renderDirectionsHtml({ appName = '', directions = [], notes = []
 <div class="top">
 <div>
 <h1>${heading}</h1>
-<p class="lead">These are real screenshots of your own app in three different looks. Pick the one that feels right, press its button, then paste the sentence into Claude.</p>
+<p class="lead">These are real screenshots of your own app in three different looks. Pick the one that feels right, press its button, then paste the sentence into ${agentName(agent)}.</p>
 </div>
 <div class="seg" role="group" aria-label="Show all in"><button type="button" data-all-view="light" aria-pressed="false">All light</button><button type="button" data-all-view="dark" aria-pressed="false">All dark</button></div>
 </div>
@@ -361,7 +363,7 @@ ${directions.map((d) => card(d, appName)).join('\n')}
 ${notes.length > 0 ? `<ul class="notes">${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
-<script>${SCRIPT}</script>
+<script>${js}</script>
 </body>
 </html>
 `;
@@ -468,10 +470,10 @@ export async function main(args) {
   if (opened) log.info('It should open in your browser now.');
   else if (args['no-open']) log.info('Open that file in your browser to see it.');
   else log.warn('Could not open your browser automatically. Open that file yourself.');
-  log.info('Press "Use direction A/B/C" on the page and paste the sentence into Claude.');
+  log.info(`Press "Use direction A/B/C" on the page and paste the sentence into ${agentName()}.`);
   return { ok: true, page: r.page, opened, app: r.app, directions: r.directions, fixed: r.fixed, warnings: r.warnings };
 }
 
 if (isMain(import.meta.url)) {
-  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['no-open'] }, help: HELP, main });
+  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['no-open'] }, help: helpText(), main });
 }

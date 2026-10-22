@@ -11,6 +11,7 @@ import {
   APP_CONFIG_FILE, ProvisionError, readAppConfig, updateAppConfig, appEnvNames, git, repoDisplay,
 } from './common.mjs';
 import { readEnvText } from './envfile.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 const REQUIRED_SUPABASE = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
 const SITE_URL_NAME = 'NEXT_PUBLIC_SITE_URL';
@@ -128,7 +129,7 @@ export async function provisionVercel(opts, deps = {}) {
   log.step(2, total, 'Checking you are logged in to Vercel');
   const who = await vercel.whoami({ cwd: appDir, run });
   if (!who.ok) {
-    throw new ProvisionError(`You are not logged in to Vercel. Run /shipyard:setup and finish the "vercel" step. (${who.error ?? 'no details'})`);
+    throw new ProvisionError(`You are not logged in to Vercel. Run ${skillHint('setup')} and finish the "vercel" step. (${who.error ?? 'no details'})`);
   }
   log.ok(`Logged in to Vercel as ${who.user}.`);
 

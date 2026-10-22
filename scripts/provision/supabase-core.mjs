@@ -12,6 +12,7 @@ import {
   APP_CONFIG_FILE, ProvisionError, readAppConfig, updateAppConfig, originOf, isLocalOrigin,
 } from './common.mjs';
 import { updateEnvFile, readEnvText } from './envfile.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 export const DEFAULT_REGION = 'eu-central-1';
 export const REF_RE = /^[a-z0-9]{20}$/;
@@ -265,7 +266,7 @@ export async function provisionSupabase(opts, deps = {}) {
 
   const { orgId, region: profileRegion, app } = await profileFacts(profileApi, slug);
   if (!orgId) {
-    throw new ProvisionError('No Supabase organization is saved yet. Run /shipyard:setup and finish the "supabase" step.');
+    throw new ProvisionError(`No Supabase organization is saved yet. Run ${skillHint('setup')} and finish the "supabase" step.`);
   }
   const auth = await connect(deps);
   const total = 5;

@@ -10,6 +10,7 @@ import { readAppConfig } from '../provision/common.mjs';
 import { appUrlOf } from '../launch/common.mjs';
 import { appRepo, makeGh, latestBackup, PARTS } from './common.mjs';
 import { SECRET_NAME, VARIABLE_NAME } from './setup-core.mjs';
+import { reviewHint } from '../lib/agent.mjs';
 
 const exists = (file) => stat(file).then((s) => s.isFile(), () => false);
 const STALE_BACKUP_DAYS = 30;
@@ -117,7 +118,7 @@ export async function opsStatus({ appDir }, deps = {}) {
 
   // 4. Code review
   if (has['.coderabbit.yaml']) add('review', 'Code review', 'ok', 'The CodeRabbit settings file is there. (Whether the CodeRabbit GitHub App is installed can only be seen on GitHub: github.com/apps/coderabbitai.)');
-  else add('review', 'Code review', 'off', 'Not set up. Free alternative: run /code-review in Claude Code before you merge.', `node ops-setup.mjs ${appDir} --only review`);
+  else add('review', 'Code review', 'off', `Not set up. Free alternative: ${reviewHint()}.`, `node ops-setup.mjs ${appDir} --only review`);
 
   // 5. Auto-merge
   const autoFiles = PARTS.automerge;

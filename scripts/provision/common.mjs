@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as log from '../lib/log.mjs';
 import { parseArgs, UsageError } from '../lib/log.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 /** Each app folder carries this file. It holds no secrets and is committed with the app. */
 export const APP_CONFIG_FILE = '.shipyard-app.json';
@@ -77,7 +78,7 @@ export async function readAppConfig(appDir) {
     text = await readFile(file, 'utf8');
   } catch (err) {
     if (err.code === 'ENOENT') {
-      throw new ProvisionError(`This folder was not made by Shipyard (there is no ${APP_CONFIG_FILE} in ${appDir}). Check the folder, or create the app with /shipyard:new-app.`);
+      throw new ProvisionError(`This folder was not made by Shipyard (there is no ${APP_CONFIG_FILE} in ${appDir}). Check the folder, or create the app with ${skillHint('new-app')}.`);
     }
     throw err;
   }

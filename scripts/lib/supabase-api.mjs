@@ -16,6 +16,7 @@
 //  - POST /projects/{ref}/database/query also accepts `parameters` and `read_only`.
 //  - Project status values: ACTIVE_HEALTHY, COMING_UP, INACTIVE (paused), INIT_FAILED, ...
 import { randomBytes } from 'node:crypto';
+import { skillHint } from './agent.mjs';
 
 export const API_BASE = 'https://api.supabase.com/v1';
 
@@ -67,7 +68,7 @@ const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function request(auth, method, path, body) {
   if (!auth || typeof auth.token !== 'string' || auth.token === '') {
-    throw new ApiError(0, 'No Supabase access token. Run "/shipyard:setup" and finish the "supabase" step.');
+    throw new ApiError(0, `No Supabase access token. Run "${skillHint('setup')}" and finish the "supabase" step.`);
   }
   const doFetch = auth.fetch ?? fetch;
   const sleep = auth.sleep ?? defaultSleep;
