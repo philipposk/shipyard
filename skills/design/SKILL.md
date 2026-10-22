@@ -21,14 +21,14 @@ You help a beginner pick how their app looks. A look is more than colours: it al
 
 Use the current folder if it has `.shipyard-app.json`. Otherwise ask which app (`node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" show` lists them). No such file means it is not a Shipyard app: stop and explain.
 
-Two sentences skip the questions. `Shipyard: use the <Look name> look for <App name>` goes straight to step 5 with that look (match the name to an id in `references/presets.md`). `Shipyard: use direction <A|B|C> for <App name>` goes to step 4, "Apply a direction".
+`Shipyard: tidy themes for <App name>` goes straight to "Tidy themes" below. Two sentences skip the questions. `Shipyard: use the <Look name> look for <App name>` goes straight to step 5 with that look (match the name to an id in `references/presets.md`). `Shipyard: use direction <A|B|C> for <App name>` goes to step 4, "Apply a direction".
 
 ## 2. Ask how to choose
 
 One question: "How do you want to choose the look?" Offer these, in this order, and say which you recommend (a site they like if they have one, else the 3 directions):
 1. **A site or app you like.** Screenshots, or a website address.
 2. **A design file** from the free getdesign.md collection (it holds ready-made `DESIGN.md` files for well-known styles; MIT licensed, credit "awesome-design-md by VoltAgent" if you mention it).
-3. **3 directions for my homepage.** You draft three really different looks for their app and show real screenshots of their own app.
+3. **3 directions for my homepage.** You propose three really different looks (each light and dark), optionally with one cheap mood picture each, on one simple comparison page. Read `references/propose.md` first.
 4. **A ready-made look.** 8 looks to pick from. The quickest.
 Or keep what they have.
 
@@ -49,7 +49,37 @@ Read `references/directions.md`. First write the app's real home words in `<appD
 It checks them, refuses if two look too alike (then make them more different), renders real screenshots of their app (about a minute) and opens a page with the three side by side. They click "Use direction B" and paste the sentence back to you. Add `--no-open` to only write the page.
 
 ### Apply a direction
+This is "Build the chosen look" below: apply it, then follow that section.
+
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/apply-design.mjs" <appDir> --tokens <appDir>/.shipyard/design/direction-<a|b|c>.tokens.json --source custom --fix`
+
+## Build the chosen look (always a light + dark pair)
+
+Whatever way they chose, the result is ONE look with a light and a dark version, and it becomes the app's default.
+- `apply-design.mjs` writes both versions (it derives dark from light when the source has none). Look at both screenshots; if dark is muddy, write explicit dark colours in the tokens file and apply again.
+- Text must pass AA (4.5:1) in both modes: `--fix` repairs small misses; `npm run check:design` must pass.
+- The template already has the no-flash pre-paint script and the Light / Dark / Auto toggle; keep them. Auto follows the phone or computer.
+- Do NOT add a theme picker. One look is the default and the only one.
+- You may mention once: "If you ever want a second look users can switch to, ask me." Do not build it unprompted.
+
+## More looks (only when asked)
+
+Only if the student asks for switchable looks. Every extra look is a **pack**: light AND dark, never one mode alone.
+1. Copy the templates from `templates/theme-packs/` (see its README): registry `src/lib/theme-packs.ts` with entries `{ id, label, preview, tokens: { light, dark } }`, the current default first; `ThemePackPicker.tsx` in **Settings > Appearance**; `tests/theme-packs.test.mjs`.
+2. Write the packs as JSON too and run `node "${CLAUDE_PLUGIN_ROOT}/scripts/theme-packs.mjs" check packs.json --default <id>`. It fails on a missing mode, a forced mode or low contrast. Generate CSS and the pre-paint script with `css` and `boot`.
+3. A pack never forces light or dark. The Light / Dark / Auto toggle keeps working inside every pack; switching pack keeps the mode.
+4. Previews: one screenshot per pack in `public/themes/<id>.png` showing light and dark halves.
+5. Check in a browser: switch every pack in light, dark and Auto, reload each time (no flash, choice remembered).
+
+## Tidy themes (fix-up mode)
+
+`Shipyard: tidy themes for <App>`. For apps whose looks were added as loose light-only or dark-only themes.
+1. List the current themes and their modes from the app's registry. Note the current default look; it stays the default.
+2. Pair single-mode themes that share a feeling into packs (e.g. a dark "Noir" + a light "Atelier"). A theme that already has both modes is already a pack.
+3. A theme with no sensible partner: write the missing mode yourself if the look is strong, otherwise drop it. Say which and why.
+4. Move to the pack registry shape, put the picker in Settings > Appearance, remove any forced-mode logic, keep the no-flash script, add the registry test.
+5. Saved choices: map old saved theme ids to the new pack (and the mode it had) so nobody's look jumps.
+6. Run the app's build and tests, then the browser check from "More looks". Branch, commit, open a PR; do not merge.
 
 ## 4. Apply a draft
 
@@ -79,9 +109,11 @@ Ask: "Use this look for your next apps too?" If yes, apply again with `--set-def
 
 Read `references/polish.md`. Offer it, never push it, and ask before installing anything.
 
+For depth and motion (shadows, transitions, glass, grain) read `references/depth-motion.md`: one shadow scale, calm motion, reduced-motion respected, after-effects only on request. Sounds only if asked, and always off by default with a Settings switch: `references/sound.md`.
+
 ## Reference files
 
-`references/presets.md` (the 8 looks), `references/tokens.md` (the look file, and how to read a look from images), `references/directions.md` (drafting 3 directions), `references/anti-slop.md`, `references/polish.md`.
+`references/presets.md` (the 8 looks), `references/tokens.md` (the look file, and how to read a look from images), `references/directions.md` (drafting 3 directions), `references/propose.md` (proposing with mood images and a simple mock), `references/depth-motion.md`, `references/sound.md`, `references/anti-slop.md`, `references/polish.md`. Templates: `templates/theme-packs/`.
 
 ## Handy facts
 
