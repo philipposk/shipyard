@@ -124,7 +124,8 @@ test('--yes installs six skill folders with markers, both hooks files and a priv
     assert.match(codex.hooks.PreToolUse[0].hooks[0].command, new RegExp(`${root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/scripts/guard-codex\\.mjs"$`));
     const cursor = JSON.parse(readFileSync(sb.cursorHooks, 'utf8'));
     assert.equal(cursor.version, 1);
-    assert.match(r.out, /\/hooks and trust the entry whose command ends in guard-codex\.mjs/);
+    assert.match(r.out, /Trust all and continue/);
+    assert.match(r.out, /guard-codex\.mjs/);
     assert.match(r.out, /\$shipyard-setup/);
     assert.match(r.out, /Developer: Reload Window/);
     assert.match(r.out, /\/shipyard-setup/);
