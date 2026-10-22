@@ -14,6 +14,7 @@ import { planAddModule, applyAddModule } from '../modules/core.mjs';
 import {
   PARTS, PART_NAMES, readTemplate, installFile, appRepo, makeGh, recordOps, opsSummary,
 } from './common.mjs';
+import { reviewHint } from '../lib/agent.mjs';
 
 export const SECRET_NAME = 'CRON_SECRET';
 export const VARIABLE_NAME = 'SITE_URL';
@@ -215,7 +216,7 @@ export async function opsSetup(opts, deps = {}) {
 
   // 4. What to do next.
   if (parts.includes('review')) {
-    result.next.push('Code review: install the CodeRabbit GitHub App on this repository: https://github.com/apps/coderabbitai . It is free for public repositories; private ones need a paid plan or the 14-day trial. Free alternative: run /code-review in Claude Code before you merge. Until the app is installed, .coderabbit.yaml does nothing.');
+    result.next.push(`Code review: install the CodeRabbit GitHub App on this repository: https://github.com/apps/coderabbitai . It is free for public repositories; private ones need a paid plan or the 14-day trial. Free alternative: ${reviewHint()}. Until the app is installed, .coderabbit.yaml does nothing.`);
   }
   const wroteNew = result.files.some((f) => ['created', 'updated', 'replaced'].includes(f.status));
   if (wroteNew) {

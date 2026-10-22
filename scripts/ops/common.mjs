@@ -6,6 +6,7 @@ import path from 'node:path';
 import { PLUGIN_ROOT } from '../lib/paths.mjs';
 import * as realProfile from '../lib/profile.mjs';
 import { readAppConfig, updateAppConfig, atomicWrite, repoDisplay, git } from '../provision/common.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 export const OPS_DIR = path.join(PLUGIN_ROOT, 'ops');
 export const TEMPLATES_DIR = path.join(OPS_DIR, 'templates');
@@ -169,7 +170,7 @@ const clip = (text) => String(text ?? '').replace(/\x1b\[[0-9;]*[A-Za-z]/g, '').
 export function makeGh(run, { cwd, repo } = {}) {
   const call = async (args, { input } = {}) => {
     const r = await run('gh', args, { cwd, input, timeoutMs: 120_000 });
-    if (r.code === 127) return { ok: false, missing: true, error: 'The GitHub program (gh) is not installed. Run /shipyard:setup to check your tools.' };
+    if (r.code === 127) return { ok: false, missing: true, error: `The GitHub program (gh) is not installed. Run ${skillHint('setup')} to check your tools.` };
     if (r.code !== 0) {
       const msg = clip(r.stderr || r.stdout);
       const notLoggedIn = /gh auth login|not logged in|authentication/i.test(msg);

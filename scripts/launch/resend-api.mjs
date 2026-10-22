@@ -8,6 +8,7 @@
 // Domain status values seen in the docs: not_started. Resend's dashboard also documents pending, verified, failed and
 // temporary_failure, which this client treats as: verified = ready, failed = give up, anything else = keep waiting.
 import { scrub } from './common.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 export const RESEND_BASE = 'https://api.resend.com';
 
@@ -29,7 +30,7 @@ const HELP = {
 
 /** createResend({ key, fetch, sleep }) -> { listDomains, findDomain, createDomain, getDomain, verifyDomain, listApiKeys, createSendingKey, deleteApiKey } */
 export function createResend({ key, fetch: doFetch = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), base = RESEND_BASE }) {
-  if (!key) throw new ResendError(0, 'No Resend key. Run "/shipyard:setup" and finish the "email" step.');
+  if (!key) throw new ResendError(0, `No Resend key. Run "${skillHint('setup')}" and finish the "email" step.`);
 
   async function request(method, path, body) {
     for (let attempt = 0; ; attempt++) {

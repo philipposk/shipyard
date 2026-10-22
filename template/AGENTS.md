@@ -1,7 +1,7 @@
 # <APP_NAME>: rules for the coding agent
 
 App slug: `<APP_SLUG>`. Read `SPEC.md` (what to build) and `DESIGN.md` (how it looks) before changing anything.
-Claude Code reads `CLAUDE.md`, which points here.
+Claude Code reads `CLAUDE.md`, which points here. Codex and Cursor read this file directly.
 
 ## Always
 - Brand (name, short name, tagline, address) only through `BRAND` in `src/lib/constants.ts`. Never type it into a component.
@@ -9,6 +9,7 @@ Claude Code reads `CLAUDE.md`, which points here.
 - Before saying a task is done, run Shipyard `verify` (`scripts/verify.mjs` in the Shipyard plugin; the `new-app` skill has the exact command) and say what was not verified.
 - Add or update a test for every piece of logic. `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` must pass.
 - Plain English in everything a visitor sees. No fake numbers, fake reviews or fake testimonials.
+- Never open, print or search `.env.local`, any other `.env` file except `.env.example`, or anything in `~/.shipyard`. Shipyard's scripts read keys themselves.
 
 ## Database and keys
 - Every new table: row level security (RLS) on, one policy per action limited to the owner (`user_id = auth.uid()`), and an entry in `supabase/isolation.json`. `tests/schema-rules.test.mjs` fails if you forget.
@@ -26,7 +27,7 @@ Claude Code reads `CLAUDE.md`, which points here.
 - All `/api/auth/*` routes must be listed in `PUBLIC_PREFIXES` in `src/proxy.ts`. Every other `/api/*` route needs a signed-in user: the proxy answers 401 without a login cookie. Only routes listed in `BEARER_API_PREFIXES` also accept a bearer token, and they must check it themselves.
 
 ## Design (the short version, see `DESIGN.md`)
-- Change the look only with `/shipyard:design` (it rewrites the marked token blocks (colours, and the shape block with type sizes and spacing) in `globals.css`, `src/lib/theme.ts`, `src/lib/fonts.ts` and `DESIGN.md` together). Never hand-edit between the `shipyard:tokens` markers.
+- Change the look only with the Shipyard design skill (`/shipyard:design` in Claude Code, `$shipyard-design` in Codex, `/shipyard-design` in Cursor; it rewrites the marked token blocks (colours, and the shape block with type sizes and spacing) in `globals.css`, `src/lib/theme.ts`, `src/lib/fonts.ts` and `DESIGN.md` together). Never hand-edit between the `shipyard:tokens` markers.
 - Sizes and spacing come from the shape variables (`--h1-size`, `--h2-size`, `--h3-size`, `--space`, `--pad-card`, `--gap`, `--content-max`) and rem units, never a fixed pixel size for text or page padding. Cards and buttons look different per app through `data-cards` and `data-buttons` on `<html>`: use `.card`, `.btn-primary` and `.btn-secondary` and let the look decide, do not restyle them per page.
 - The public home page is one of five patterns (`HOME_STYLE` in `src/lib/theme.ts`, files in `src/components/home/`). Change its words only in `src/lib/home-content.ts`: real sentences about this app, no invented numbers or reviews. `preview` holds sample rows of the app's main screen (3 to 5, for example a note and its day), drawn by the split pattern as a picture of the app in a browser window. It is a drawing: never put an input, a button or a link in it, and never fill it with the site's menu links (those belong in `entries`).
 - `src/app/design-preview/` shows a look on the real components while building (a 404 in production). Leave it in place.

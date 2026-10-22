@@ -19,6 +19,7 @@ import { googleFontsCssUrl } from './design/fonts.mjs';
 import { homeContentWarning } from './design/home-content.mjs';
 import { replicaCss, lookVarsCss, renderReplica, lookFacts, SCREENS } from './design/replica.mjs';
 import { esc, openInBrowser } from './settings-page.mjs';
+import { agentName, currentAgent } from './lib/agent.mjs';
 
 export const GALLERY_HTML = path.join(HOME_DIR, 'design-gallery.html');
 
@@ -106,7 +107,7 @@ p{margin:0}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 `;
 
-const SCRIPT = `
+const script = (agent) => `
 (function () {
   var toast = document.getElementById('toast');
   var timer;
@@ -154,7 +155,7 @@ const SCRIPT = `
     if (!button) return;
     var value = button.getAttribute('data-copy');
     function finish(copied) {
-      show(copied ? 'Copied, paste it into Claude' : 'Could not copy. Select and copy this: ' + value);
+      show(copied ? 'Copied, paste it into ${agentName(agent)}' : 'Could not copy. Select and copy this: ' + value);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(value).then(function () { finish(true); }, function () { finish(legacyCopy(value)); });
@@ -213,7 +214,8 @@ const sha = (s) => `'sha256-${createHash('sha256').update(s).digest('base64')}'`
  * { looks, saved, appName, current, shots } -> HTML string.
  *   shots: { "<look id>": { "phone-light": "/path.png", "phone-dark": ..., "desktop-light": ..., "desktop-dark": ... } }
  */
-export function renderGalleryHtml({ looks = [], saved = [], appName = '', current = '', shots = {} } = {}) {
+export function renderGalleryHtml({ looks = [], saved = [], appName = '', current = '', shots = {}, agent = currentAgent() } = {}) {
+  const js = script(agent);
   const usable = (list) => list.filter((t) => isValidId(t?.id) && validateTokens(t).ok);
   const main = usable(looks);
   const mine = usable(saved).filter((t) => !main.some((m) => m.id === t.id));
@@ -227,7 +229,7 @@ export function renderGalleryHtml({ looks = [], saved = [], appName = '', curren
     `style-src ${sha(style)}${fontsUrl ? ' https://fonts.googleapis.com' : ''}`,
     ...(fontsUrl ? ['font-src https://fonts.gstatic.com'] : []),
     ...(anyReal ? ['img-src file:'] : []),
-    `script-src ${sha(SCRIPT)}`,
+    `script-src ${sha(js)}`,
   ].join('; ');
   const cards = (list) => list.map((t) => lookCard(t, { appName: shown, forApp: appName, current, shots: shots?.[t.id] })).join('\n');
 
@@ -246,7 +248,7 @@ ${fontsUrl ? `<link rel="stylesheet" href="${esc(fontsUrl)}">\n` : ''}<style>${s
 <div class="top">
 <div>
 <h1>Pick a look${appName ? ` for ${esc(appName)}` : ''}</h1>
-<p class="lead">${anyReal ? 'These are real screenshots of your app in each look.' : 'Each look changes more than colours: the menu, the homepage, the cards, the buttons and the text.'} Press "Use this look", then paste the sentence into Claude.</p>
+<p class="lead">${anyReal ? 'These are real screenshots of your app in each look.' : 'Each look changes more than colours: the menu, the homepage, the cards, the buttons and the text.'} Press "Use this look", then paste the sentence into ${agentName(agent)}.</p>
 </div>
 <div class="seg" role="group" aria-label="Show all looks in"><button type="button" data-all-view="light" aria-pressed="false">All light</button><button type="button" data-all-view="dark" aria-pressed="false">All dark</button></div>
 </div>
@@ -256,7 +258,7 @@ ${cards(main)}
 ${mine.length > 0 ? `<h2 class="group">Looks you saved</h2>\n<div class="looks">\n${cards(mine)}\n</div>` : ''}
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
-<script>${SCRIPT}</script>
+<script>${js}</script>
 </body>
 </html>
 `;

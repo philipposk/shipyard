@@ -13,6 +13,7 @@
 //  - `vercel project protection disable <name> --sso`  (exists in 64.x)
 //  - `vercel git connect --yes`
 import { run as realRun, npx } from './run.mjs';
+import { skillHint } from './agent.mjs';
 
 // The one place that says which Vercel CLI version Shipyard runs. An exact version, not `latest`,
 // so a new Vercel release can never change what a student's setup does overnight.
@@ -43,7 +44,7 @@ async function vercel(args, { cwd, scope, input, run = realRun, timeoutMs = 300_
 const failure = (r, value) => ({
   ok: false,
   error: r.code === 127
-    ? 'Node.js tools (npx) were not found. Run /shipyard:setup to check your tools.'
+    ? `Node.js tools (npx) were not found. Run ${skillHint('setup')} to check your tools.`
     : tail(r.stderr || r.stdout, value) || `Vercel stopped with code ${r.code}.`,
 });
 

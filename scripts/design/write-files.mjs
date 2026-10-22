@@ -7,6 +7,7 @@ import { tokenLines, shapeLines, renderThemeTs, manifestColor, resolveHeadingWei
 import { renderFontsTs } from './fonts.mjs';
 import { renderDesignMd } from './design-md.mjs';
 import { withLayout } from './layout-file.mjs';
+import { skillHint } from '../lib/agent.mjs';
 
 export const FILES = {
   css: 'src/app/globals.css',
@@ -106,7 +107,7 @@ export async function planFiles(appDir, tokens, { languages = ['en'], appName = 
   const notes = [];
   const css = await readIfExists(abs(FILES.css));
   if (css === null) {
-    throw new DesignFileError('This folder has no src/app/globals.css, so it does not look like a Shipyard app. Run this from the app folder, or create the app with /shipyard:new-app.');
+    throw new DesignFileError(`This folder has no src/app/globals.css, so it does not look like a Shipyard app. Run this from the app folder, or create the app with ${skillHint('new-app')}.`);
   }
   let nextCss = replaceMarkerBlock(css, 'light', tokenLines(look, 'light'));
   nextCss = replaceMarkerBlock(nextCss, 'dark', tokenLines(look, 'dark'));

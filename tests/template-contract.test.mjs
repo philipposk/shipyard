@@ -130,3 +130,15 @@ test('the template passes its own design check', () => {
   const r = spawnSync(process.execPath, [path.join(TEMPLATE, 'scripts', 'design-check.mjs'), '--root', TEMPLATE], { encoding: 'utf8' });
   assert.equal(r.status, 0, `${r.stdout}${r.stderr}`);
 });
+
+test('new apps keep keys away from Cursor and tell every agent never to open them', async () => {
+  const ignore = await read('.cursorignore');
+  const lines = ignore.split('\n').filter(Boolean);
+  assert.equal(lines[0], '# Cursor: keep keys out of indexing, @-mentions and Tab.');
+  assert.deepEqual(lines.slice(1), ['.env', '.env.*', '!.env.example']);
+  const agents = await read('AGENTS.md');
+  assert.match(agents, /Claude Code reads `CLAUDE\.md`, which points here\. Codex and Cursor read this file directly\./);
+  assert.match(agents, /^- Never open, print or search `\.env\.local`, any other `\.env` file except `\.env\.example`, or anything in `~\/\.shipyard`\. Shipyard's scripts read keys themselves\.$/m);
+  assert.match(agents, /`\/shipyard:design` in Claude Code, `\$shipyard-design` in Codex, `\/shipyard-design` in Cursor; it rewrites the marked token blocks/);
+  assert.ok(!/—/.test(agents + ignore), 'no em dash');
+});

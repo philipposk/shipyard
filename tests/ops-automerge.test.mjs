@@ -503,3 +503,10 @@ exit 0
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('risky paths: the coding agents\' own settings and ignore files need a human', () => {
+  for (const p of ['.cursorignore', '.cursorrules', '.cursor/rules/app.mdc', '.cursor/hooks.json', '.cursor', '.codex/config.toml', '.agents/skills/x/SKILL.md', 'AGENTS.md', 'CLAUDE.md']) {
+    assert.equal(M.isRiskyPath(p), true, p);
+  }
+  for (const p of ['docs/.cursor-notes.md', 'src/cursor.ts', 'src/agents/list.ts', '.cursorignore-notes.md']) assert.equal(M.isRiskyPath(p), false, p);
+});
