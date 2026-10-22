@@ -340,6 +340,54 @@ export function globMatchesSecret(word, bareStarCounts = false) {
   return false;
 }
 
+/**
+ * Does this path word, with wildcards or shell variables in it, reach the keys folder or something inside it?
+ * Compared one folder name at a time: `~/.shipyar?`, `~/.s*`, `~/.[s]hipyard` all expand to ~/.shipyard.
+ * Returns 'at' (the folder itself), 'inside' (a wildcard or variable below it) or null.
+ * `from` is the folder the shell is in, for a relative word (null when unknown).
+ */
+function reachesHome(word, home, from) {
+  let w = norm(word).replace(/\$\{?HOME\}?/g, '~');
+  if (!/[$`*?[{]/.test(w)) return null;
+  w = expandHome(w);
+  const absolute = w.startsWith('/') || /^[A-Za-z]:\//.test(w);
+  if (!absolute) {
+    if (!from) return null;
+    w = `${from}/${w}`;
+  }
+  const ws = path.posix.normalize(w).split('/').filter((x) => x !== '');
+  const hs = home.split('/').filter((x) => x !== '');
+  if (ws.length < hs.length) return null;
+  const unknown = (seg) => /[$`]/.test(seg);
+  let wild = false;
+  for (let i = 0; i < hs.length; i++) {
+    const seg = ws[i];
+    if (!/[*?[{$`]/.test(seg)) {
+      if (seg.toLowerCase() !== hs[i].toLowerCase()) return null;
+      continue;
+    }
+    wild = true;
+    if (unknown(seg)) continue;
+    let hit = false;
+    for (const g of expandBraces(seg)) {
+      try {
+        if (globToRegex(g).test(hs[i]) && !(hs[i].startsWith('.') && !g.startsWith('.'))) hit = true;
+      } catch {
+        // not a usable pattern
+      }
+    }
+    if (!hit) return null;
+  }
+  if (ws.length === hs.length) return wild ? 'at' : null;
+  const below = ws.slice(hs.length);
+  return below.some((x) => /[*?[{$`]/.test(x)) ? 'inside' : null;
+}
+
+/** Is this folder the keys folder's parent, or further up? (`find ~ ...` walks into it.) */
+function aboveHome(dir, home) {
+  return dir !== null && dir !== home && home.startsWith(`${dir.replace(/\/+$/, '')}/`);
+}
+
 // ---------- recursive searches (they ignore .gitignore and walk into .env files) ----------
 
 const GREP_NAMES = new Set(['grep', 'egrep', 'fgrep', 'ggrep', 'zgrep']);
@@ -425,9 +473,9 @@ function withoutExclusions(words) {
 const TIP = ' For a recursive search use the Grep tool, or add --exclude=\'.env*\' (rg: -g \'!.env*\').';
 
 /** Resolve a path the way `cd` would, without touching the disk. Returns null if it cannot be known. */
-function resolveDir(target, from) {
+function resolveDir(target, from, home) {
   let t = norm(target).replace(/\$\{?HOME\}?/g, '~');
-  if (/[$`*?[{]/.test(t)) return null;
+  if (/[$`*?[{]/.test(t)) return home && reachesHome(t, home, from) === 'at' ? home : null;
   t = expandHome(t);
   const absolute = t.startsWith('/') || /^[A-Za-z]:\//.test(t);
   if (!absolute && !from) return null;
@@ -451,7 +499,7 @@ function bashDenies(command, env, cwd) {
 
   // The Bash tool keeps its folder between calls, and `cd` changes it inside one command.
   // While the shell is in ~/.shipyard, only folder-level commands are fine: `cat *` would show secrets.env.
-  let here = cwd ? resolveDir(cwd, null) : null;
+  let here = cwd ? resolveDir(cwd, null, home) : null;
 
   for (const seg of segments) {
     const prog = programOf(seg.words);
@@ -459,7 +507,7 @@ function bashDenies(command, env, cwd) {
 
     if (prog.name === 'cd' || prog.name === 'pushd') {
       const target = prog.args.find((a) => !a.startsWith('-') || a === '-');
-      const next = target === undefined ? null : resolveDir(target, here);
+      const next = target === undefined ? null : resolveDir(target, here, home);
       here = target === '-' ? here : next;
       continue;
     }
@@ -474,15 +522,29 @@ function bashDenies(command, env, cwd) {
       const x = expandHome(w).replace(/\/+$/, '');
       if (x === home || /(^|\/)\.shipyard$/.test(x)) return true;
       const inside = x.startsWith(`${home}/`) ? x.slice(home.length + 1) : /(^|\/)\.shipyard\/(.*)$/.exec(x)?.[2];
-      return inside !== undefined && /[*?[{]/.test(inside);
+      if (inside !== undefined && /[*?[{$`]/.test(inside)) return true;
+      // A wildcard in the folder's own name: ~/.shipyar?/*, ~/.s*/*, ~/.[s]hipyard
+      return reachesHome(w, home, here) !== null;
     });
     if (pointsAtFolder && !DIR_OK.has(prog.name)) return true;
 
     // A wildcard can spell a keys file without naming it: `cat .e*`, `cat .en[v].local`, `cat s*`.
     if (!DIR_OK.has(prog.name) && !onlyTouchesName(prog)) {
       const inShipyard = insideHome(here);
-      const hit = withoutExclusions(seg.words).words.some((w) => !/^(\[|\[\[|\]|\]\]|\{|\})$/.test(w) && globMatchesSecret(w, inShipyard || insideHome(resolveDir(w.slice(0, w.lastIndexOf('/') + 1) || '.', here))));
+      const hit = withoutExclusions(seg.words).words.some((w) => !/^(\[|\[\[|\]|\]\]|\{|\})$/.test(w) && globMatchesSecret(w, inShipyard || insideHome(resolveDir(w.slice(0, w.lastIndexOf('/') + 1) || '.', here, home))));
       if (hit) return true;
+    }
+
+    // `find ~ -type f -exec cat {} +` (or `| xargs cat`) walks into the keys folder from above.
+    if (prog.name === 'find') {
+      const roots = [];
+      for (const a of prog.args) {
+        if (a.startsWith('-') || a === '!' || a === '(') break;
+        roots.push(a);
+      }
+      const walksIn = (roots.length ? roots : ['.']).some((r) => aboveHome(resolveDir(r, here, home), home) || resolveDir(r, here, home) === home);
+      const runs = prog.args.some((a) => /^-(exec|execdir|ok|okdir)$/.test(a)) || segments.some((s) => ['xargs', 'parallel'].includes(programOf(s.words).name));
+      if (walksIn && runs) return true;
     }
 
     // Recursive searches ignore .gitignore and walk straight into .env files.
@@ -543,8 +605,28 @@ function mcpValueDenies(key, value, env, cwd, home) {
   return mentionsSecretFile(p);
 }
 
+const MCP_HIDDEN_KEYS = /^(include_?hidden|hidden|no_?ignore|unrestricted|search_?hidden)$/i;
+const MCP_CONTENT_KEYS = /^(pattern|query|regex|search|text_?pattern|content_?pattern)$/i;
+
+/**
+ * A search of file contents with hidden files switched on reads .env and secrets.env wherever it starts.
+ * (Desktop Commander: {"searchType": "content", "includeHidden": true, "pattern": "SUPABASE"}.)
+ */
+function mcpSearchesHidden(node, depth = 0) {
+  if (!node || typeof node !== 'object' || depth > 4) return false;
+  if (!Array.isArray(node)) {
+    const entries = Object.entries(node);
+    const hidden = entries.some(([k, v]) => MCP_HIDDEN_KEYS.test(k) && (v === true || v === 'true' || v === 1));
+    const kind = entries.find(([k]) => /^search_?type$/i.test(k));
+    const content = kind ? /content|text|grep/i.test(String(kind[1])) : entries.some(([k, v]) => MCP_CONTENT_KEYS.test(k) && typeof v === 'string' && v !== '');
+    if (hidden && content) return true;
+  }
+  return Object.values(node).some((v) => mcpSearchesHidden(v, depth + 1));
+}
+
 function mcpDenies(toolInput, env, cwd, home) {
   try {
+    if (mcpSearchesHidden(toolInput)) return true;
     for (const [key, value] of mcpStrings(toolInput)) {
       try {
         if (mcpValueDenies(key, value, env, cwd, home)) return true;
