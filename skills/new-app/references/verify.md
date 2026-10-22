@@ -16,6 +16,8 @@ Re-run after every fix. "Vercel says ready" is not proof; only the real address 
 
 ## Reporting
 
+- After you fix anything verify or a review found, re-run the review on the fixed code (verify again, then read the diff of the fixes) before launch. Fixes bring new bugs, and a clean run from before the fix proves nothing about the fix.
+
 - Say which checks passed and which were skipped, with the reason.
 - Show the screenshot paths and say what you see. If you did not look, say so.
 - Things verify does not cover: forgot-password email (needs a verified domain), Google sign-in, payments, real devices, accessibility. Say "not verified" for what applies.

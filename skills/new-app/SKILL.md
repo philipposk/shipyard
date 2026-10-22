@@ -59,7 +59,7 @@ Ask: "OK to save this first version to GitHub?" If yes: `git add -A`, check noth
 ## 8. Verify
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs" <appDir>`
-Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not say the app is live until the checks pass on the real address.
+Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not say the app is live until the checks pass on the real address. After any fix, run verify again and read the fixes once more before launch: a clean run from before the fix proves nothing about the fix.
 
 ## 9. Owner account
 

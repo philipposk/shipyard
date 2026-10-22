@@ -14,8 +14,10 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - A key deleted in the next commit is still in the history that gets pushed. The pre-push hook and CI scan every pushed commit, not just the files on disk.
 - Account-level keys (Supabase access token) never go into an app's hosting settings.
 - ★ No secrets in `NEXT_PUBLIC_*` variables. `.env*` stays ignored by git. Scan for keys before every push.
+- ★ A one-time token is never used on a GET. Mail scanners open every link in an email and use the token up (the person sees "link expired"), and a crafted link can sign a visitor into the sender's account. The link opens a page with one button, and the button POSTs. `/auth/confirm` does this.
+- No change on a GET at all (sign-out, delete, join links, auto-join): link previews, prefetch and image tags fire GETs.
+- Limits on what strangers can trigger (sign-up, emails sent) must never lock out someone who already has an account. A cap per email address lets anyone block a person by typing their address; key on the caller's IP and answer identically whether or not the account exists.
 - Build links sent by email from the configured site address, never from the Host header. Check redirect targets are on the same site.
-- Email link scanners (some corporate mail) open links before the person does and use up one-time tokens. If people say "link expired" on first click, make the page a button that confirms.
 - Supabase: only ever add redirect URLs, never change the Site URL of a project other apps use. Split large login cookies (over about 3.2 KB).
 - Google sign-in redirects to `https://<project>.supabase.co/auth/v1/callback`, not the app's address. Hide the button if the client id is missing.
 - Supabase's built-in mailer is for testing: very few emails an hour. Real sign-up email needs your own provider and a verified domain.
@@ -32,6 +34,14 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Changing a domain: payment webhooks do not follow redirects. Register the new endpoint first and use 308 redirects.
 
 ## Building
+- ★ Supabase returns at most 1000 rows per request and says nothing. Lists, totals and leaderboards need paging (`fetchAll` in the template) and an `ORDER BY`, or they show a random 1000.
+- Games and scores: the server works out and stores score, streak and "is it correct". Answers never go into the browser bundle, the first page load, or archive and preview pages, or players read them and win in one guess. When a question is reused, lock the earlier days that used it.
+- One canonical tag in the layout tells search engines every page is a copy of the home page. Set `alternates.canonical` per page.
+- A `loading.tsx` on a route that calls `notFound()` makes the 404 a 200 (streaming). Only add loading screens to routes that never say "not found".
+- `overflow-x: hidden` on `html` and `body` turns the page into a scroll container, so sticky headers and bottom bars stop sticking. Use `overflow-x: clip`.
+- Sheets and menus opened from a sticky header get trapped under the bottom bar: render them with `createPortal` into `document.body`. A fixed cookie notice can cover an on-screen keyboard or a bottom input.
+- Dark mode "Auto" must follow the phone's setting, not stay light. The theme script and toggle handle it; do not replace them with a fixed theme.
+- After you fix problems found in a review, review the fixed code again before launch. Fixes bring new bugs.
 - Scripts must work on Windows and macOS: avoid bash-only syntax.
 - Test with a real second account, not only simulated sessions.
 - Test passwords containing `$` and `!` through code, not through a shell, which rewrites them.
