@@ -94,3 +94,13 @@ test('the CLI: --help, check with --json, and a failing check exits 1', () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('a flag missing its value is an error, not swallowed', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'scaffold-flag-'));
+  try {
+    const r = spawnSync(process.execPath, [SCRIPT, 'create', dir, '--name', 'x-y', '--description', '--plugin'], { encoding: 'utf8' });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /--description needs a value/);
+    assert.equal(existsSync(path.join(dir, 'SKILL.md')), false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

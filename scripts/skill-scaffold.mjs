@@ -129,14 +129,20 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--json' || a === '--plugin' || a === '--help' || a === '-h') out[a.replace(/^-+/, '')] = true;
-    else if (a.startsWith('--')) out[a.slice(2)] = argv[++i];
+    else if (a.startsWith('--')) {
+      const v = argv[i + 1];
+      if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`);
+      out[a.slice(2)] = v;
+      i++;
+    }
     else out._.push(a);
   }
   return out;
 }
 
 function main() {
-  const args = parseArgs(process.argv.slice(2));
+  let args;
+  try { args = parseArgs(process.argv.slice(2)); } catch (e) { console.error(`✗ ${e.message}`); return 1; }
   const [cmd, dir] = args._;
   if (args.help || args.h || !cmd) { console.log(HELP); return cmd || args.help || args.h ? 0 : 1; }
   if (!dir) { console.error('Say which folder. ' + HELP); return 1; }
