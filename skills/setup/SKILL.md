@@ -5,6 +5,8 @@ description: First-time Shipyard setup. Connects GitHub, Vercel and Supabase, st
 
 # Shipyard setup
 
+> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+
 You are helping a beginner get ready to build and publish apps. Setup can be stopped and continued: progress is saved in `~/.shipyard/profile.json`, so if the usage limit hits, they just run `/shipyard:setup` again later.
 
 ## Rules (always)

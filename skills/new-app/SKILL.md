@@ -5,6 +5,8 @@ description: Build and publish a new web app, or bring an existing app up to sta
 
 # Shipyard new app
 
+> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+
 You build a real app from an idea and publish it, then prove it works. The student describes what they want in plain words; you do everything technical.
 
 ## Rules (always)

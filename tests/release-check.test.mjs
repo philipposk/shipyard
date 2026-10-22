@@ -50,3 +50,25 @@ test('fails when a skill folder name and SKILL.md name differ', () => {
     assert.match(r.stderr, /expected "ops"/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('fails when a description is longer than the Agent Skills limit', () => {
+  const dir = copy();
+  try {
+    const f = path.join(dir, 'skills', 'ops', 'SKILL.md');
+    writeFileSync(f, readFileSync(f, 'utf8').replace(/^description: .*$/m, `description: ${'x'.repeat(1100)}`));
+    const r = run({ SHIPYARD_ROOT: dir, TAG: '' });
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /limit is 1024/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('fails when a skill loses its pointer to the full install', () => {
+  const dir = copy();
+  try {
+    const f = path.join(dir, 'skills', 'setup', 'SKILL.md');
+    writeFileSync(f, readFileSync(f, 'utf8').replaceAll('INSTALL.md', 'README.md'));
+    const r = run({ SHIPYARD_ROOT: dir, TAG: '' });
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /point a standalone install/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
