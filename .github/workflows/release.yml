@@ -4,18 +4,13 @@
 # already a tap (`hermes skills tap add philipposk/shipyard`), so the tap check below just
 # guards the layout. skills.sh and Codex read the public repo directly, also nothing to upload.
 # Note: ClawHub releases every published skill under MIT-0.
-# Run it by hand with "dry run" ticked to preview the ClawHub publish without a token.
+# Run it by hand (Actions > Release > Run workflow) to preview the ClawHub publish; that never uploads.
 name: Release
 
 on:
   push:
     tags: ["v*.*.*"]
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Preview only (no ClawHub upload)"
-        type: boolean
-        default: true
 
 permissions:
   contents: read
@@ -66,7 +61,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      # Real uploads only happen from a version tag; a manual run is always a preview.
+      DRY_RUN: ${{ github.ref_type != 'tag' }}
       CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +77,7 @@ jobs:
           VERSION="$(node -p "require('./.claude-plugin/plugin.json').version")"
           if [ "$DRY_RUN" != "true" ]; then
             if [ -z "${CLAWHUB_TOKEN:-}" ]; then
-              echo "::error::CLAWHUB_TOKEN secret is not set. Add it under Settings > Secrets > Actions."; exit 1
+              echo "::warning::CLAWHUB_TOKEN secret is not set, so nothing went to ClawHub. Add it under Settings > Secrets > Actions."; exit 0
             fi
             clawhub login --token "$CLAWHUB_TOKEN"
           fi

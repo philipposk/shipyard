@@ -60,4 +60,10 @@ jobs:
       # Claude Code's own check of plugin.json and marketplace.json. Needs no login.
       - name: Plugin manifest validation
         if: ${{ !cancelled() && matrix.node == '24' }}
-        run: npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .
+        run: |
+          npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .
+          npx --yes @anthropic-ai/claude-code@2.1.153 plugin validate .claude-plugin/plugin.json
+      # The Claude and Cursor manifests carry one version, and every skill folder is well formed.
+      - name: Release check
+        if: ${{ !cancelled() }}
+        run: node scripts/check-release.mjs
