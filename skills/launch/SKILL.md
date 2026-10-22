@@ -59,6 +59,12 @@ If a script is missing or a flag is rejected, run its `--help`, use what it says
 
 Template changes (signup mode, legal text, plans) are code changes: branch, small commit with the student's OK, pull request, green checks, merge, `deploy.mjs`. Settings that start with `NEXT_PUBLIC_` are baked in at build time: after changing one in Vercel, redeploy. Regenerate legal text when a service or module is added, a price changes, or the company details change.
 
+Before opening the pull request and again before merging:
+- `main` must already build: `gh run list -b main -L 1` and the last Vercel deploy are green. If main is red, fix that in its own pull request first.
+- The diff has no lockfile change the student didn't ask for (`git diff --name-only origin/main...HEAD`). A `package-lock.json` change without a `package.json` change is install noise: revert it with `git checkout origin/main -- package-lock.json`.
+- Next.js is on the latest patch of its version (`npm view next@<major.minor> version`). Vercel refuses to build known-vulnerable versions (for example CVE-2025-66478), so an unpatched app can't ship any fix.
+- Every push to a pull request and every merge is a Vercel build, and a free Vercel account has a daily deploy limit. Finish fixes locally and push once. Don't redeploy just to re-check. When changing several apps, merge them in small batches.
+
 ## Google sign-in shows the app's domain (before turning Google sign-in on)
 
 Google's screen reads "Sign in to continue to <host>". With Supabase's redirect sign-in, the student's users would see `<ref>.supabase.co`. The template avoids that for free: `GoogleSignInButton` uses popup sign-in (`GoogleIdentityButton`, Google Identity Services, then `signInWithIdToken`), so Google shows the app's domain or brand. The redirect button is only the fallback. No Supabase custom domain is needed.
