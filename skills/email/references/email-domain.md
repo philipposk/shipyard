@@ -44,7 +44,7 @@ In plain words: SPF is a public list, kept in the domain's DNS, of the mail serv
 
 The fix is one word added to the domain's one existing SPF line, nothing removed:
 `v=spf1 include:spf.improvmx.com include:_spf.google.com ~all`
-Only add it if the student uses Gmail "Send mail as" through smtp.gmail.com. The student (or you, with their yes) edits that TXT line at the registrar; never make a second `v=spf1` line. Afterwards send one email to another account and check Gmail "Show original" for `SPF: PASS` and `DMARC: PASS`. **New, untested in production**: 6x7.gr's SPF does not include Google as of October 2026.
+Required whenever the student uses Gmail "Send mail as" through smtp.gmail.com (`email-check.mjs <domain> --gmail-send-as` warns when it is missing). The student (or you, with their yes) edits that TXT line at the registrar; never make a second `v=spf1` line. Afterwards send one email to another account and check Gmail "Show original" for `SPF: PASS` and `DMARC: PASS`. **New, untested in production**: 6x7.gr's SPF does not include Google as of October 2026.
 
 ## 4. SPF, DKIM and DMARC
 

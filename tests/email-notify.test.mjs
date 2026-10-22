@@ -107,3 +107,17 @@ test('analyse: existing non-Resend sending records are only reported, never repl
   const none = analyse('a.io', { ...GOOD, dkim: [], sendTxt: [], sendMx: [] }).checks.find((c) => c.id === 'send');
   assert.match(none.fix, /Only if/);
 });
+
+test('analyse: Gmail send-as warns when the one SPF line lacks Google and suggests a merged line', () => {
+  const rec = { mx: [{ exchange: 'mx1.improvmx.com' }], txt: [['v=spf1 include:spf.improvmx.com ~all']], dmarc: [['v=DMARC1; p=none;']] };
+  assert.equal(analyse('6x7.gr', rec, '').checks.some((c) => c.id === 'spf-gmail'), false);
+  const r = analyse('6x7.gr', rec, '', { gmailSendAs: true });
+  const w = r.checks.find((c) => c.id === 'spf-gmail');
+  assert.ok(w && !w.ok && w.optional);
+  assert.match(w.fix, /"v=spf1 include:spf\.improvmx\.com include:_spf\.google\.com ~all"/);
+  assert.match(w.fix, /exactly one/);
+  const good = { ...rec, txt: [['v=spf1 include:spf.improvmx.com include:_spf.google.com ~all']] };
+  assert.equal(analyse('6x7.gr', good, '', { gmailSendAs: true }).checks.some((c) => c.id === 'spf-gmail'), false);
+  const none = analyse('6x7.gr', { ...rec, txt: [] }, '', { gmailSendAs: true }).checks.find((c) => c.id === 'spf');
+  assert.match(none.fix, /include:spf\.improvmx\.com include:_spf\.google\.com ~all/);
+});

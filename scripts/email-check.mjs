@@ -7,12 +7,14 @@ import { Resolver } from 'node:dns/promises';
 import { isMainModule } from './lib/paths.mjs';
 import { ok, fail, warn, info, json, parseArgs, setQuiet, UsageError } from './lib/log.mjs';
 
-const HELP = `Usage: email-check.mjs <domain> [--send-subdomain send] [--json]
+const HELP = `Usage: email-check.mjs <domain> [--send-subdomain send] [--gmail-send-as] [--json]
 
 Looks up the email records of <domain> on public DNS (Google's DNS over HTTPS, falling
 back to this computer's resolver; only the domain name is sent) and says
 what is right and what to add at the registrar (Papaki, Cloudflare, Namecheap, ...).
   --send-subdomain <name>  Resend sending subdomain (default "send"; "" to skip)
+  --gmail-send-as          you send as @<domain> from Gmail ("Send mail as"): SPF must
+                           include _spf.google.com (warns if it does not)
   --json                   machine-readable output
 Exit code: 0 = receiving, SPF and DMARC are fine, 1 = something to fix, 2 = bad usage.
 `;
@@ -22,7 +24,8 @@ const DOMAIN_RE = /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{
 const joinTxt = (records) => (records ?? []).map((r) => (Array.isArray(r) ? r.join('') : String(r)));
 
 /** Pure: turn looked-up records into checks. */
-export function analyse(domain, rec, sendSub = 'send') {
+export function analyse(domain, rec, sendSub = 'send', opts = {}) {
+  const gmail = Boolean(opts.gmailSendAs);
   const checks = [];
   const mx = (rec.mx ?? []).map((m) => String(m.exchange).toLowerCase()).filter(Boolean);
   const improv = mx.some((h) => h.endsWith('improvmx.com'));
@@ -32,13 +35,20 @@ export function analyse(domain, rec, sendSub = 'send') {
 
   const spf = joinTxt(rec.txt).filter((t) => /^v=spf1\b/i.test(t));
   if (spf.length === 0) {
-    checks.push({ id: 'spf', ok: false, text: 'SPF: missing on the main domain', fix: `TXT @ "v=spf1${improv ? ' include:spf.improvmx.com' : ''} ~all" (one SPF line only; add include: entries for every service that sends as @${domain})` });
+    checks.push({ id: 'spf', ok: false, text: 'SPF: missing on the main domain', fix: `TXT @ "v=spf1${improv ? ' include:spf.improvmx.com' : ''}${gmail ? ' include:_spf.google.com' : ''} ~all" (one SPF line only; add include: entries for every service that sends as @${domain})` });
   } else if (spf.length > 1) {
     checks.push({ id: 'spf', ok: false, text: 'SPF: more than one SPF record (both are then ignored)', fix: 'Merge them into one TXT line starting v=spf1.' });
   } else if (improv && !/include:spf\.improvmx\.com/i.test(spf[0])) {
     checks.push({ id: 'spf', ok: false, text: `SPF: "${spf[0]}" does not include ImprovMX`, fix: 'Add include:spf.improvmx.com to that same line.' });
   } else {
     checks.push({ id: 'spf', ok: true, text: `SPF: ${spf[0]}` });
+  }
+  // Gmail "Send mail as" sends from Google's servers, so the one SPF line must list Google.
+  if (gmail && spf.length === 1 && !/include:_spf\.google\.com/i.test(spf[0])) {
+    const merged = spf[0].replace(/\s+([~?+-]all)\b/i, ' include:_spf.google.com $1');
+    checks.push({ id: 'spf-gmail', ok: false, optional: true,
+      text: `SPF: you send from Gmail as @${domain}, but "${spf[0]}" does not include Google, so that mail often lands in spam`,
+      fix: `Edit the existing SPF line (keep exactly one): "${merged === spf[0] ? `${spf[0]} include:_spf.google.com` : merged}"` });
   }
 
   const dmarc = joinTxt(rec.dmarc).find((t) => /^v=DMARC1\b/i.test(t));
@@ -132,7 +142,7 @@ async function lookupWith(r, domain, sendSub) {
 }
 
 export async function main(argv, deps = {}) {
-  const args = parseArgs(argv, { boolean: ['json', 'help'], string: ['send-subdomain'], alias: { h: 'help' } });
+  const args = parseArgs(argv, { boolean: ['json', 'help', 'gmail-send-as'], string: ['send-subdomain'], alias: { h: 'help' } });
   if (args.help) {
     process.stdout.write(HELP);
     return 0;
@@ -141,7 +151,7 @@ export async function main(argv, deps = {}) {
   if (!DOMAIN_RE.test(domain)) throw new UsageError('Give a domain like example.com. Run with --help for details.');
   const sendSub = args['send-subdomain'] ?? 'send';
   if (args.json) setQuiet(true);
-  const result = analyse(domain, await lookup(domain, sendSub, deps.resolver), sendSub);
+  const result = analyse(domain, await lookup(domain, sendSub, deps.resolver), sendSub, { gmailSendAs: args['gmail-send-as'] });
   if (args.json) {
     json(result);
   } else {

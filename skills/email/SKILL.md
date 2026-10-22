@@ -23,6 +23,8 @@ You give the student working email on their own domain: people can write to `hel
 
 Ask for the domain, then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/email-check.mjs" <domain>`. It reads the public DNS (no keys) and prints ticks and crosses for receiving (MX), SPF, DMARC and the Resend sending records, each with the exact record to add. Use it to recommend the first step that is not done.
 
+**Rule (mandatory): Gmail "Send mail as" needs Google in SPF.** If the student sends as their own domain from Gmail through smtp.gmail.com, the domain's SPF must include `_spf.google.com`. Ask "Do you send from Gmail as this address?" and, if yes, run the check with `--gmail-send-as`. Keep exactly ONE `v=spf1` TXT line: merge every include into it (for example `v=spf1 include:spf.improvmx.com include:_spf.google.com ~all`), never add a second line. The student (or you, with their yes) edits that line at the registrar.
+
 ## 1. Ask one question
 
 "What do you want to do?" Read the matching reference, then follow it:
@@ -37,7 +39,7 @@ Ask for the domain, then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/email-check.mj
 
 All in `${CLAUDE_PLUGIN_ROOT}/scripts/`, run with `node`:
 
-- `email-check.mjs <domain> [--send-subdomain send]` checks MX, SPF, DMARC and Resend DKIM/return path. Exit 0 when receiving, SPF and DMARC are right.
+- `email-check.mjs <domain> [--send-subdomain send] [--gmail-send-as]` checks MX, SPF, DMARC and Resend DKIM/return path; with `--gmail-send-as` it warns when SPF lacks `_spf.google.com`. Exit 0 when receiving, SPF and DMARC are right.
 - `notify.mjs <app> --url <url> [--dry-run]` sends the student one email through Resend with the app's name as sender and a "why you got this" first line. Always run `--dry-run` first and show the result.
 - `launch-email.mjs` (from launch) sets up the Resend sending domain.
 
