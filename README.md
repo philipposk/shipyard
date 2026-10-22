@@ -4,9 +4,21 @@ A plugin for Claude Code (beta: Codex and Cursor) that helps a beginner build an
 
 **Guide and course:** https://shipyard.6x7.gr (install, setup, ten short modules, costs, troubleshooting).
 
-## Install
+## Install in one prompt (Codex, Cursor or Claude Code)
 
-In Claude Code:
+Open your coding agent and type this one line:
+
+```
+Install Shipyard: github.com/philipposk/shipyard
+```
+
+Your agent reads [INSTALL.md](INSTALL.md) and does the rest: it checks Node and Git, installs Shipyard for itself, and tells you the one step it cannot do for you. In Codex that step is a single keypress: Codex asks you to trust the key guard before it runs, and nobody (not Shipyard, not the agent) may approve that for you.
+
+*Note to AI agents: if you were asked to install this repository, follow [INSTALL.md](INSTALL.md).*
+
+## Install by hand in Claude Code
+
+If you prefer to type the commands yourself, in Claude Code:
 
 ```
 /plugin marketplace add philipposk/shipyard
@@ -39,7 +51,7 @@ Shipyard also runs in OpenAI Codex (the CLI, the IDE extension and the ChatGPT d
 
 **You need:** Node 20 or newer, and Git (on Windows install Git for Windows from git-scm.com: Codex and Cursor do not install it). For Codex, the Codex CLI 0.163 or newer: install or update it with `npm install -g @openai/codex@latest`, then check `codex --version` (other ways: https://learn.chatgpt.com/docs/cli).
 
-**Install**, in a terminal (macOS and Linux Terminal, or Windows PowerShell; not cmd.exe), or paste these two lines into your agent and allow it to run them:
+**Install**: easiest is the one-prompt install above. By hand, in a terminal (macOS and Linux Terminal, or Windows PowerShell; not cmd.exe):
 
 ```
 git clone --depth 1 https://github.com/philipposk/shipyard.git "$HOME/.local/share/shipyard"
@@ -48,7 +60,7 @@ node "$HOME/.local/share/shipyard/scripts/install-agents.mjs"
 
 It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent both`), shows every file it will change and asks first. It puts Shipyard's skills in `~/.agents/skills/shipyard-*` and adds the key guard to `~/.codex/hooks.json` and `~/.cursor/hooks.json`, keeping your own entries. It never touches Claude Code's files. Codex and Cursor both read `~/.agents/skills`, so if the other agent is on your computer too it gets the key guard as well, and `--uninstall --agent ...` for one of them stops with a message instead of leaving the other without it.
 
-**Then, in Codex:** run `codex` in a terminal, type `/hooks`, trust the entry whose command ends in `guard-codex.mjs`, quit, start a new session and type `$shipyard-setup`. Do the `/hooks` step once in the terminal even if you use the ChatGPT desktop app or the IDE extension.
+**Then, in Codex:** quit Codex and run `codex '$shipyard-setup'` in a terminal. Codex says "Hooks need review": press 2, then Enter ("Trust all and continue"). Setup then starts and first checks that the key guard is on. (You can also type `/hooks` in Codex and trust the entry ending in `guard-codex.mjs`.) Do this once in the terminal even if you use the ChatGPT desktop app or the IDE extension.
 
 **Then, in Cursor:** open the Command Palette and choose "Developer: Reload Window" (or quit and reopen). In Agent chat type `/shipyard-setup`. In the Cursor CLI, run `agent` and then `/shipyard-setup`.
 
@@ -106,6 +118,10 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - A guard hook blocks your coding agent from reading that file or your `.env` files. Claude Code turns it on at install. For Codex and Cursor the installer adds it, and Codex asks you to trust it once. It is a safety net, not a vault. Shipyard scripts read keys directly and never print them.
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add).
+
+## What changed in 0.6.1
+
+- One-prompt install for Codex, Cursor and Claude Code: [INSTALL.md](INSTALL.md). In Codex, setup now starts with a guard check, and `--check` says whether Codex has a trust record for the hook (it only reads Codex's files, it never writes trust).
 
 ## What changed in 0.6.0
 

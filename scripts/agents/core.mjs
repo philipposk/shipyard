@@ -37,11 +37,58 @@ export function locations(env = process.env) {
     installFile: path.join(shipyardHome, 'install.json'),
     codexHome,
     codexHooks: path.join(codexHome, 'hooks.json'),
+    codexConfig: path.join(codexHome, 'config.toml'),
     codexRules: path.join(codexHome, 'rules', 'shipyard.rules'),
     cursorHome,
     cursorHooks: path.join(cursorHome, 'hooks.json'),
     skillsDir: path.join(home, '.agents', 'skills'),
   };
+}
+
+// ---------- Codex hook trust (read only) ----------
+
+/**
+ * Whether Codex has a trust record for the Shipyard hook. Read only: Shipyard never writes Codex's
+ * trust state, the student gives it in Codex. Codex keeps one `[hooks.state."<hooks file>:pre_tool_use:<group>:<hook>"]`
+ * table per trusted hook, so this finds where the Shipyard hook sits in hooks.json and looks for that table.
+ * A record is not proof the hook is unchanged since (Codex asks again when it changes); the guard check in a session is the proof.
+ * Returns 'yes', 'no', or 'unknown' (no hooks file, or no Shipyard hook in it).
+ */
+export function codexTrustRecorded({ hooksText, configText, hooksFile }) {
+  let found = null;
+  try {
+    const groups = JSON.parse(hooksText ?? '')?.hooks?.PreToolUse;
+    if (Array.isArray(groups)) {
+      groups.forEach((g, i) => (g?.hooks ?? []).forEach((h, j) => {
+        if (found === null && String(h?.command ?? '').includes(CODEX_SCRIPT)) found = [i, j];
+      }));
+    }
+  } catch {
+    return 'unknown';
+  }
+  if (!found) return 'unknown';
+  const wanted = `:pre_tool_use:${found[0]}:${found[1]}`;
+  const tables = [...String(configText ?? '').matchAll(/^\s*\[hooks\.state\.("(?:[^"\\]|\\.)*")\]/gm)];
+  for (const t of tables) {
+    let key;
+    try {
+      key = JSON.parse(t[1]);
+    } catch {
+      continue;
+    }
+    if (!key.endsWith(wanted)) continue;
+    const file = fwd(key.slice(0, -wanted.length));
+    if (file === fwd(hooksFile) || file === fwd(realpathOrSame(hooksFile))) return 'yes';
+  }
+  return 'no';
+}
+
+function realpathOrSame(p) {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
 }
 
 // ---------- the Shipyard folder ----------
