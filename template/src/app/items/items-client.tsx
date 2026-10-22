@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { ListSkeleton } from "@/components/LoadingSkeleton";
 import { ConfirmModal } from "@/components/ConfirmModal";
+import { fetchAll } from "@/lib/paginate.mjs";
 import { MAX_ITEM_TITLE_LENGTH, normalizeItemTitle } from "@/lib/validate.mjs";
 
 interface Item {
@@ -28,16 +29,21 @@ export function ItemsClient() {
 
   useEffect(() => {
     let cancelled = false;
-    createSupabaseBrowser()
-      .from("items")
-      .select("id, title, created_at")
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) setLoadError("Could not load your items. Refresh to try again.");
-        else setItems(data ?? []);
-        setLoading(false);
-      });
+    const supabase = createSupabaseBrowser();
+    // Every list is read with fetchAll and a stable order: one query stops at 1000 rows without saying so.
+    fetchAll<Item>((from, to) =>
+      supabase
+        .from("items")
+        .select("id, title, created_at")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to)
+    ).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) setLoadError("Could not load your items. Refresh to try again.");
+      else setItems(data ?? []);
+      setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
