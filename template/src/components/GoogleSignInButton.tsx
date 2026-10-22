@@ -3,6 +3,7 @@
 import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { GOOGLE_SIGNIN_ENABLED } from "@/lib/constants";
 import { safeNext } from "@/lib/safe-next.mjs";
+import { GoogleIdentityButton } from "./GoogleIdentityButton";
 
 // design-check: allow-file colour (Google requires its own logo colours)
 function GoogleIcon() {
@@ -27,10 +28,17 @@ export function GoogleSignInButton({ next }: { next: string | null }) {
 
   return (
     <div className="space-y-3">
-      <button type="button" className="btn btn-secondary w-full" onClick={() => void signIn()}>
-        <GoogleIcon />
-        Continue with Google
-      </button>
+      {/* Popup sign-in: Google shows the app's domain, not <ref>.supabase.co. Needs NEXT_PUBLIC_GOOGLE_CLIENT_ID
+          and the app's origin in the client's Authorized JavaScript origins; otherwise the redirect button below is used. */}
+      <GoogleIdentityButton
+        getSupabase={createSupabaseBrowser}
+        onSignedIn={() => window.location.assign(safeNext(next, "/"))}
+      >
+        <button type="button" className="btn btn-secondary w-full" onClick={() => void signIn()}>
+          <GoogleIcon />
+          Continue with Google
+        </button>
+      </GoogleIdentityButton>
       <p className="text-xs text-center muted m-0">or use email</p>
     </div>
   );
