@@ -86,8 +86,33 @@ export async function check(ctx) {
       if (bad <= 10) problems.push(`${path.relative(dir, f)}:${u.line} ${u.snippet} has no name a screen reader can read (text hidden at some sizes counts as none). Add aria-label`);
     }
   }
+  // 1b. ARIA roles that promise a widget the markup does not deliver (Lighthouse aria-required-children).
+  for (const f of files) {
+    const code = stripComments(await readFile(f, 'utf8'));
+    const lists = (code.match(/role\s*=\s*["']tablist["']/g) ?? []).length;
+    const tabs = (code.match(/role\s*=\s*["']tab["']/g) ?? []).length;
+    if (lists && !tabs) problems.push(`${path.relative(dir, f)} has role="tablist" but no role="tab" children. Use real tabs (tab, tabpanel, aria-selected, arrow keys) or drop the role and use plain buttons with aria-pressed`);
+    const menus = (code.match(/role\s*=\s*["']menu["']/g) ?? []).length;
+    if (menus && !/role\s*=\s*["']menuitem/.test(code)) problems.push(`${path.relative(dir, f)} has role="menu" but no role="menuitem" children. Drop the role or add the items`);
+  }
   if (bad > 10) problems.push(`...and ${bad - 10} more links or buttons without a name`);
   if (!bad) details.push(`${files.length} component files: every link and button has a name`);
+
+  // 1c. Animations of properties the browser cannot hand to the GPU (Lighthouse non-composited-animations). Warning.
+  const styles = await walk(srcDir, (n) => /\.(css|scss)$/.test(n));
+  const SLOW = /\b(border(?:-[a-z]+)*|width|height|top|left|right|bottom|margin(?:-[a-z]+)?|padding(?:-[a-z]+)?|box-shadow|background-color|color|filter)\b/;
+  for (const f of styles) {
+    const css = stripComments(await readFile(f, 'utf8'));
+    for (const m of css.matchAll(/@keyframes\s+([\w-]+)\s*\{([\s\S]*?\})\s*\}/g)) {
+      const props = [...m[2].matchAll(/([a-z-]+)\s*:/g)].map((x) => x[1]).filter((p) => SLOW.test(p) && p !== 'transform' && p !== 'opacity');
+      if (props.length) warnings.push(`${path.relative(dir, f)} @keyframes ${m[1]} animates ${[...new Set(props)].join(', ')}. Animate transform and opacity only (e.g. a scaled pseudo-element instead of border)`);
+    }
+  }
+
+  // 1d. Content-Security-Policy with script-src (Lighthouse csp-xss). Warning.
+  const nextConfig = await readFile(path.join(dir, 'next.config.ts'), 'utf8').catch(() => readFile(path.join(dir, 'next.config.mjs'), 'utf8').catch(() => ''));
+  const proxyCode = await readFile(path.join(srcDir, 'proxy.ts'), 'utf8').catch(() => '');
+  if (nextConfig && !/script-src/.test(nextConfig + proxyCode)) warnings.push('No Content-Security-Policy with script-src (Lighthouse csp-xss). Add one with a per-request nonce in src/proxy.ts');
 
   // 2. Private marker.
   const env = await readFile(path.join(dir, '.env.local'), 'utf8').catch(() => '');

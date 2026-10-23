@@ -39,5 +39,5 @@ Look at the screenshots and fix these yourself:
 - Legal links (privacy, terms) live in the account menu, not a footer on app screens.
 - One accent colour. No rainbow of buttons.
 - Real numbers and real names only. If there is no data yet, say so honestly.
-- Touch targets at least 44px high, enough space around text, nothing cut off at 375px wide.
+- Touch targets at least 48px high, enough space around text, nothing cut off at 375px wide.
 - Light and dark both look deliberate, not just inverted.
