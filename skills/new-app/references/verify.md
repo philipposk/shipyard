@@ -6,6 +6,8 @@ Re-run after every fix. "Vercel says ready" is not proof; only the real address 
 
 | Check | What it proves | If it fails |
 |---|---|---|
+| hygiene | Every link and button has a readable name (logo text hidden on phones counts as none); CI can pass (local actions exist, lock file matches package.json, workspace packages built before tests); sign-in API routes do not crash without env vars. Warns when the app is marked private (noindex) | Add `aria-label`; run `npm install` and commit the lock file; add the build step; guard the env vars. Private warning: ask the owner, delete the marker to go public |
+| lighthouse (only with `--only lighthouse`) | Lighthouse on `/`, `/about`, `/sign-in`, phone and desktop: performance 90, accessibility 95, best practices 95, SEO 90 (SEO skipped for private apps) | Fix the audits it names (see `launch/references/seo-performance.md`), redeploy, re-run |
 | routes | Home, about, help, privacy, terms, sign-in, manifest, icons, robots, sitemap and llms.txt answer 200; a made-up page gives a styled 404 with the app name; sign-up is not blocked | A route 404 or 500: look at the page file. Sign-up 405: the route is not public in `src/proxy.ts` |
 | protection | Visitors are not stopped by a Vercel login wall | Run `provision-vercel.mjs` again, or turn off Deployment Protection in the Vercel project settings (the script prints the click path) |
 | auth | A throwaway user can be created, sign in, load their profile and sign out | Cookie name in `proxy.ts` must match `src/lib/supabase/cookies.ts`; check Supabase redirect URLs include the app address (`deploy.mjs` adds it) |

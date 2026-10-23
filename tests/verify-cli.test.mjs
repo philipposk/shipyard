@@ -54,7 +54,7 @@ test('usage errors exit 2 with a plain message', async (t) => {
     assert.match(r.stderr, /Usage: node verify\.mjs/);
   }
   const unknown = await verify([dir, '--only', 'routes,nope'], home);
-  assert.match(unknown.stderr, /Unknown check: nope\. Choose from: secrets, proxy, design, routes/);
+  assert.match(unknown.stderr, /Unknown check: nope\. Choose from: secrets, proxy, design, hygiene, routes/);
 });
 
 test('a healthy app: exit 0, JSON result, saved to verify.json and the profile, no keys printed', async (t) => {
@@ -64,9 +64,9 @@ test('a healthy app: exit 0, JSON result, saved to verify.json and the profile, 
   const result = JSON.parse(r.stdout);
   assert.equal(result.ok, true);
   assert.equal(result.url, fake.url);
-  assert.deepEqual(result.checks.map((c) => c.name), ['secrets', 'proxy', 'design', 'routes', 'protection', 'auth', 'isolation', 'browser']);
+  assert.deepEqual(result.checks.map((c) => c.name), ['secrets', 'proxy', 'design', 'hygiene', 'routes', 'protection', 'auth', 'isolation', 'browser']);
   const byName = Object.fromEntries(result.checks.map((c) => [c.name, c]));
-  for (const n of ['secrets', 'proxy', 'design', 'routes', 'protection', 'auth', 'isolation']) assert.equal(byName[n].ok && !byName[n].skipped, true, `${n}: ${JSON.stringify(byName[n])}`);
+  for (const n of ['secrets', 'proxy', 'design', 'hygiene', 'routes', 'protection', 'auth', 'isolation']) assert.equal(byName[n].ok && !byName[n].skipped, true, `${n}: ${JSON.stringify(byName[n])}`);
   assert.equal(byName.browser.skipped, true);
   assert.ok(!r.stdout.includes(SERVER) && !r.stdout.includes(ANON));
 
@@ -75,7 +75,7 @@ test('a healthy app: exit 0, JSON result, saved to verify.json and the profile, 
   const profile = JSON.parse(await readFile(path.join(home, 'profile.json'), 'utf8'));
   const app = profile.apps.find((a) => a.slug === 'fake-planner');
   assert.equal(app.lastVerify.ok, true);
-  assert.equal(app.lastVerify.passed, 7);
+  assert.equal(app.lastVerify.passed, 8);
   assert.deepEqual(app.lastVerify.skippedChecks, ['browser']);
   assert.equal(app.url, fake.url);
   assert.equal(fake.state.users.size, 0);
