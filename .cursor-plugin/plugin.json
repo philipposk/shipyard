@@ -1,7 +1,7 @@
 {
   "name": "shipyard",
   "displayName": "Shipyard",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Set up your accounts once, then build and publish real web apps (Next.js, Supabase, Vercel), with good practices built in.",
   "author": { "name": "Philippos" },
   "homepage": "https://github.com/philipposk/shipyard",

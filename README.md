@@ -136,6 +136,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - Gmail "send as" guide in `launch`: write and reply from your own domain in Gmail, and keep those emails out of junk (SPF, DKIM, DMARC, warm-up).
 - `email`: email on your own domain. Receive at any `@yourdomain` address in Gmail (ImprovMX catch-all), reply from it in Gmail, SPF, DKIM and DMARC, DNS steps for Papaki, Cloudflare or any registrar, a deliverability test (`scripts/email-check.mjs`), and owner emails such as "<App> is live" sent with the app's name and a "why you got this" line (`scripts/notify.mjs`). Run `/shipyard:email`.
 - `apis`: one guide and checker for every service key (OpenRouter, OpenAI, Groq, Deepgram, ElevenLabs, Gemini, NVIDIA, Brave, Serper, SerpAPI, Upstash, Resend, Stripe), web search with fallbacks, voice, an AI model router and shared rate limits. Run `/shipyard:apis`.
+- `ai-visibility`: make a live app easy for AI assistants to understand and recommend. Audits llms.txt, llms-full.txt, JSON-LD, the description, the OG image and robots rules for AI crawlers (`scripts/ai-visibility.mjs audit`), fixes them on a branch, measures whether GPT, Gemini, Claude, Grok, Perplexity, DeepSeek, Qwen and Kimi name your app (`scripts/ai-visibility.mjs baseline`, uses your OpenRouter key), and drafts honest directory listings that you approve before anything is posted. Run `/shipyard:ai-visibility`.
 - A settings page: `/shipyard:setup settings`.
 
 Optional extras for design (not installed for you): the free `frontend-design` plugin, and Impeccable for a polish pass on one page.
@@ -147,6 +148,10 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
+
+## What changed in 0.9.0
+
+- New `ai-visibility` skill and `scripts/ai-visibility.mjs` (audit and OpenRouter baseline), from the Sparks audit where 0 of 39 model answers named the app. Listings are drafts only; nothing public without your yes.
 
 ## What changed in 0.8.0
 
