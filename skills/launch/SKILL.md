@@ -1,6 +1,6 @@
 ---
 name: launch
-description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"desktop app\", or \"/shipyard:launch\"."
+description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"publish to the app stores\", \"Capacitor\", \"TestFlight\", \"store screenshots\", \"desktop app\", or \"/shipyard:launch\"."
 ---
 
 # Shipyard launch
@@ -33,7 +33,7 @@ Use the current folder if it has `.shipyard-app.json`; otherwise `node "${CLAUDE
 3. **Payments in test mode** -> `references/payments.md`
 4. **Take real payments (go live)** -> `references/go-live.md`
 5. **An email list (newsletter)** -> `references/newsletter.md`
-6. **A phone or desktop app** -> `references/stores.md`
+6. **A phone or desktop app** -> `references/stores.md` (all the way to the App Store and Google Play: `stores-audit.md`, `stores-build.md`, `stores-listing.md`, `stores-gotchas.md`)
 7. **Write and reply from my own address in Gmail** (after 1) -> `references/gmail-send-as.md`
 8. **Check if I am ready** -> run the go-live check below, then `references/seo-performance.md` (search setup), `references/search-console.md` (Google verification and sitemaps) and `references/image-rights.md` (image sources audit)
 9. **Receive mail at my domain, ImprovMX, DMARC, owner emails** -> `/shipyard:email`
