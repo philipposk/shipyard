@@ -35,6 +35,46 @@ export const KNOWN_SECRETS = [
     check: (v) => /^[A-Za-z0-9]{32,}$/.test(v),
   },
   {
+    name: 'ELEVENLABS_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (text-to-speech voices). elevenlabs.io > Developers > API Keys > Create key (starts with sk_).',
+    check: hasPrefix('sk_'),
+  },
+  {
+    name: 'NVIDIA_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (free hosted models). build.nvidia.com > any model > Get API Key (starts with nvapi-).',
+    check: hasPrefix('nvapi-'),
+  },
+  {
+    name: 'GEMINI_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (Google Gemini AI, has a free tier). aistudio.google.com > Get API key > Create API key (starts with AIza).',
+    check: (v) => /^AIza[A-Za-z0-9_\-]{30,}$/.test(v),
+  },
+  {
+    name: 'BRAVE_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (web search). api-dashboard.search.brave.com > API Keys > Add API key (about 30 letters and numbers).',
+    check: (v) => /^[A-Za-z0-9_\-]{20,}$/.test(v),
+  },
+  {
+    name: 'SERPER_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (Google search results). serper.dev > API Key (40 letters and numbers).',
+    check: (v) => /^[a-f0-9]{32,}$/i.test(v),
+  },
+  {
+    name: 'SERPAPI_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (Google and other search results). serpapi.com > Your Account > Private API Key (64 letters and numbers).',
+    check: (v) => /^[a-f0-9]{32,}$/i.test(v),
+  },
+  {
+    name: 'UPSTASH_REDIS_REST_URL', required: false, step: 'ai-keys',
+    hint: 'Optional (rate limits and caching). console.upstash.com > your Redis database > REST API > UPSTASH_REDIS_REST_URL (starts with https:// and ends in .upstash.io).',
+    check: (v) => /^https:\/\/[a-z0-9-]+\.upstash\.io\/?$/i.test(v),
+  },
+  {
+    name: 'UPSTASH_REDIS_REST_TOKEN', required: false, step: 'ai-keys',
+    hint: 'Optional (rate limits and caching). Same page as the URL: UPSTASH_REDIS_REST_TOKEN (not the read-only one).',
+    check: (v) => /^[A-Za-z0-9_\-=]{20,}$/.test(v),
+  },
+  {
     name: 'RESEND_API_KEY', required: false, step: 'email',
     hint: 'Optional (sending email). resend.com > API Keys > Create API key (starts with re_).',
     check: (v) => v.startsWith('re_') && v.length >= 10,

@@ -33,7 +33,7 @@ Read `references/pushback.md` and check the spec against it. If something is wea
 
 ## 3. Recommend where to build it
 
-Read `references/build-or-extend.md`. With their yes, look at their codebase and agent chats (the instruction files, recent work, and repeated requests or mistakes in the chats). Recommend one of three, with one line of why:
+Read `references/build-or-extend.md`. First check `references/external-skills.md`: if a good existing skill already does the job, point to it instead of building (install only with their yes). With their yes, look at their codebase and agent chats (the instruction files, recent work, and repeated requests or mistakes in the chats). Recommend one of three, with one line of why:
 
 1. **A new skill inside Shipyard** (it is about building, publishing or running web apps the Shipyard way).
 2. **A new plugin built on Shipyard's shape** (their own name and repo, Shipyard's rules, tests and installer pattern).
