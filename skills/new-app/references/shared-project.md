@@ -6,6 +6,8 @@ Use this when the free plan allows no more projects, or the student wants one pr
 
 "Apps in the same project share one login list: someone with an account in another app there can sign in here with the same email and password. Each app's data stays separate." The script prints the same sentence once.
 
+To make people sign in once across apps on subdomains of one domain, see `shared-sign-in.md`.
+
 ## Steps
 
 1. Find the project id: Supabase dashboard, the project, the address contains it (20 letters and numbers). Never ask for the access token in chat.

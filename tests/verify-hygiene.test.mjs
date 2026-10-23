@@ -138,3 +138,24 @@ test('fails on locked zoom, missing description and an SPA rewrite without robot
   assert.match(text, /robots\.txt/);
   assert.match(text, /client\/index\.html has no <meta name="description">/);
 });
+
+test('search and launch warnings: robots, sitemap, noindex, shared cookie, image log', async (t) => {
+  const dir = await app(t);
+  const { rm } = await import('node:fs/promises');
+  await rm(path.join(dir, 'src/app/robots.ts'), { force: true });
+  await rm(path.join(dir, 'src/app/sitemap.ts'), { force: true });
+  await mkdir(path.join(dir, 'src/app/about'), { recursive: true });
+  await mkdir(path.join(dir, 'public'), { recursive: true });
+  await writeFile(path.join(dir, 'src/app/about/page.tsx'), 'export const metadata = { robots: { index: false } };\nexport default function P() { return <h1>About</h1>; }\n');
+  await writeFile(path.join(dir, '.shipyard-app.json'), JSON.stringify({ shared: true }));
+  await writeFile(path.join(dir, 'public/team-photo.jpg'), 'x');
+  const r = await run(dir);
+  const w = (r.warnings ?? []).join('\n');
+  assert.match(w, /No robots/);
+  assert.match(w, /No sitemap/);
+  assert.match(w, /hard-codes noindex/);
+  assert.match(w, /auth cookie has no domain/);
+  assert.match(w, /IMAGE-SOURCES\.md/);
+  await writeFile(path.join(dir, 'IMAGE-SOURCES.md'), '| file | source |\n');
+  assert.doesNotMatch(((await run(dir)).warnings ?? []).join('\n'), /IMAGE-SOURCES/);
+});
