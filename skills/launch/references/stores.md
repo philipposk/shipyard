@@ -38,3 +38,12 @@ Apple rejects apps that are only a website in a frame. Before submitting: a nati
 ## Testers
 
 Tell them early: Google Play needs 12 testers for 14 days, so find friends now. Apple uses TestFlight for testers. Student does the store sign-ups and payments themselves.
+
+## Going all the way to the stores
+
+When the student really wants the App Store and Google Play, work through these in order. They come from shipping a real Next.js, Supabase and Vercel app to both stores.
+
+1. `stores-audit.md`: the readiness audit. Fix every point before building anything.
+2. `stores-build.md`: the Capacitor 7 wrapper, Android AAB build and signing on Linux, iOS build on a Mac.
+3. `stores-listing.md`: screenshots, the Play feature graphic, listing text, App Privacy and Data safety answers, and which developer account to open.
+4. `stores-gotchas.md`: problems that cost hours last time. Read it before starting.

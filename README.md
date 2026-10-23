@@ -148,6 +148,10 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.2
+
+- `launch` gains a full App Store and Google Play guide from shipping a real app: a store-readiness audit (account deletion in the app and on the web, Sign in with Apple, OAuth in the system browser, permission strings, Apple 4.2, a privacy policy that matches the data, a reviewer password login and demo account), the Capacitor 7 wrapper, signing an Android AAB on Linux, iOS screenshots on a Mac, panoramic Playwright screenshots, listing text with App Privacy and Data safety answers, Apple and Google account types, and the gotchas that cost hours.
+
 ## What changed in 0.8.1
 
 - Security from the CommitR review: the app template's "finished profile" cookie is now signed and tied to the person (a typed-in value no longer skips setup), and API routes refuse people who have not finished setup (403 `onboarding_required`). Existing apps keep working: old cookies are checked once against the database and replaced.
