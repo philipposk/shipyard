@@ -93,3 +93,17 @@ test('lighthouse budgets name the failing audits; SEO ignored for private apps',
   assert.doesNotMatch(pub.problems[0], /color-contrast/);
   assert.equal(judge(report, { label: '/', privateApp: true }).problems.length, 1);
 });
+
+test('a fake tablist fails; a non-composited keyframe and missing CSP are warnings', async (t) => {
+  const dir = await app(t);
+  await mkdir(path.join(dir, 'src/components'), { recursive: true });
+  await writeFile(path.join(dir, 'src/components/Modes.tsx'), '<div role="tablist"><button aria-pressed="true">A</button></div>\n');
+  await writeFile(path.join(dir, 'src/glow.css'), '@keyframes pulse { from { border-color: red; } to { border-color: blue; } }\n');
+  await writeFile(path.join(dir, 'next.config.ts'), 'export default { headers: [] };\n');
+  const r = await run(dir);
+  assert.equal(r.ok, false);
+  assert.match(r.problems.join('\n'), /tablist/);
+  const w = r.warnings.join('\n');
+  assert.match(w, /pulse animates border-color/);
+  assert.match(w, /script-src/);
+});

@@ -59,5 +59,5 @@ Or the project's own CLI: `npm install -g ui-ux-pro-max-cli` then, in the app fo
 - Icon-only buttons and links, and the logo link when its text is hidden on phones, need `aria-label`.
 - Every pack, light and dark, keeps body text at 4.5:1 contrast and large text and icons at 3:1. Check muted text and accent-on-surface pairs in both modes.
 - Animate only `transform` and `opacity` (Lighthouse "non-composited-animations"); respect `prefers-reduced-motion`.
-- Tap targets at least 44px with 8px between them.
+- Tap targets at least 48px with 8px between them.
 - Before calling a look done: `verify.mjs <appDir> --only hygiene,lighthouse` on the deployed preview.

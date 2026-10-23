@@ -37,7 +37,7 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - No em dashes in text people read. Use commas or full stops.
 - No explanatory sentences in menus, no subtitle that repeats the title, no "Tip:" boxes, no developer words (API, token, schema, RLS) where visitors can see them. If something needs explaining, one plain line, or a small "?" that opens a popover on tap (never hover only: phones cannot hover).
 - Legal links live in the account menu, not in a crowded footer.
-- Touch targets at least 44px. Inputs at least 16px so iPhones do not zoom. Light mode by default with dark mode available, no flash on load.
+- Touch targets at least 48px. Inputs at least 16px so iPhones do not zoom. Light mode by default with dark mode available, no flash on load.
 - Do not hardcode copy that is really data. Do not show debug or backend wording to visitors.
 - Phone-first does not mean phone-only. On a computer (1024px and wider) the app uses the screen: the tab bar becomes a left rail and pages use the content width. Do not wrap pages in a narrow `max-w-md mx-auto` column; lay lists out as a wider table or a grid of cards on big screens. Look at a 1440px wide screenshot too, and compare with how big comparable apps look on a desktop.
 - Switching tabs must feel instant: every signed-in page folder has a `loading.tsx` that returns `<PageLoading />`, and data loads in the page, not in shared layouts.
@@ -51,3 +51,12 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Themes: one look = a light and dark pair (a pack). Extra looks only on request, always as packs in Settings > Appearance; never a theme that locks the mode (see the design skill).
 - Optional extras (blur, glow, grain, sound) default off.
 - Lighthouse budgets on public pages: performance 90 (phone), accessibility 95, best practices 95, SEO 90. See `launch/references/seo-performance.md`.
+
+### From the Praiser fix (Oct 2026)
+- No fake ARIA roles: `role="tablist"` only with real `role="tab"` children, `aria-selected` and arrow-key handling; otherwise plain buttons with `aria-pressed`. Same for `menu`/`menuitem`. (hygiene fails on it.)
+- Faint grey text must still reach 4.5:1 contrast against its background, in light and dark. Muted text is where every theme fails first. (Lighthouse color-contrast.)
+- A Content-Security-Policy with `script-src` (nonce from `src/proxy.ts`), not only `frame-ancestors`. (hygiene warns; Lighthouse csp-xss.)
+- Animate only `transform` and `opacity`. A highlight that animates `border`, `width`, `box-shadow` or colours runs on the main thread; use a scaled pseudo-element. (hygiene warns; Lighthouse non-composited-animations.)
+- Touch targets at least 48x48px with 8px apart.
+- A floating input or bar fixed to the bottom on phones reserves its height (`padding-bottom` on the page, plus `env(safe-area-inset-bottom)`) so it never covers the last content or the on-screen keyboard's field.
+- Every CI job you add must actually run: after the first push, `gh run list --workflow <file> --branch main` shows a run that executed its steps (not skipped, not failing at setup). A Lighthouse job that starts the app from a wrong path or URL never scores anything and hides problems for months.
