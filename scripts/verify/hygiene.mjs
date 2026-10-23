@@ -7,6 +7,8 @@
 //   4. Sign-in API routes that crash when Supabase env vars are missing (`process.env.X!`) instead of answering cleanly.
 //   5. Pages that lock zoom, an SPA rewrite that serves index.html as /robots.txt, no meta description,
 //      and an accent colour used as text that is unreadable on the dark background.
+//   6. Search and launch (warnings): no robots or sitemap, no canonical/metadataBase, a hard-coded noindex outside the
+//      private switch, a shared Supabase app whose auth cookie has no domain, images in public/ without a source log.
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { stripComments, pass, failed } from './util.mjs';
@@ -230,6 +232,34 @@ export async function check(ctx) {
   for (const f of styles) {
     for (const d of darkAccentText(await readFile(f, 'utf8'))) problems.push(`${path.relative(dir, f)} uses color: var(--${d.token}) as text but in dark mode ${d.fg} on ${d.bg} is only ${d.ratio}:1. Add a lighter --${d.token}-text for dark (e.g. color-mix toward the text colour) and use it for text`);
   }
+
+  // 6. Search and launch.
+  const appDir = path.join(srcDir, 'app');
+  const isPrivate = (await exists(path.join(dir, '.shipyard-private'))) || (await exists(path.join(dir, '.6x7-private'))) || /^NEXT_PUBLIC_SITE_PRIVATE\s*=\s*"?true/m.test(env);
+  const anyOf = async (list) => { for (const p of list) if (await exists(p)) return true; return false; };
+  if (await exists(appDir)) {
+    const pub = path.join(dir, 'public');
+    if (!(await anyOf(['robots.ts', 'robots.js', 'robots.txt'].map((n) => path.join(appDir, n)).concat(path.join(pub, 'robots.txt'))))) warnings.push('No robots (src/app/robots.ts or public/robots.txt). Allow public pages, disallow /api, /admin, /settings, and point to the sitemap');
+    if (!isPrivate && !(await anyOf(['sitemap.ts', 'sitemap.js', 'sitemap.xml'].map((n) => path.join(appDir, n)).concat(path.join(pub, 'sitemap.xml'))))) warnings.push('No sitemap (src/app/sitemap.ts). List the real public pages so search engines find them');
+    if (rootLayout) {
+      const code = stripComments(await readFile(rootLayout, 'utf8'));
+      if (!/metadataBase|canonical/.test(code)) warnings.push(`${path.relative(dir, rootLayout)} sets no metadataBase or canonical, so share images get relative URLs and duplicate addresses compete. Set metadataBase from the lowercase site URL and alternates.canonical per page`);
+    }
+    if (!isPrivate) {
+      for (const f of await walk(appDir, (n) => /\.(tsx|jsx|ts|js)$/.test(n))) {
+        const code = stripComments(await readFile(f, 'utf8'));
+        if (/index\s*:\s*false|["']noindex/.test(code) && !/SITE_PRIVATE|isPrivate/.test(code)) warnings.push(`${path.relative(dir, f)} hard-codes noindex although the app is not marked private. If this is a launched public page, remove it (a noindex left on from beta keeps it out of Google)`);
+      }
+    }
+  }
+  const appMeta = await readJson(path.join(dir, '.shipyard-app.json'));
+  if (appMeta?.shared) {
+    const cookieFile = await readFile(path.join(srcDir, 'lib', 'supabase', 'cookies.ts'), 'utf8').catch(() => '');
+    if (cookieFile && !/\bdomain\s*:/.test(stripComments(cookieFile))) warnings.push('This app shares its Supabase project but its auth cookie has no domain, so people must sign in again on each subdomain. If the apps share one domain, set domain: ".<domain>" in production (see new-app references/shared-sign-in.md)');
+  }
+  const IMG = /\.(jpe?g|png|webp|gif|avif)$/i;
+  const images = (await walk(path.join(dir, 'public'), (n) => IMG.test(n))).filter((f) => !/(^|[\\/])(icon|apple-touch|favicon|og-image|logo)[^\\/]*$/i.test(f));
+  if (images.length && !(await anyOf(['IMAGE-SOURCES.md', 'docs/image-sources.md', 'image-sources.md'].map((n) => path.join(dir, n))))) warnings.push(`${images.length} image(s) in public/ but no IMAGE-SOURCES.md licence log. List each image's source and licence; replace unknown ones, especially real people's faces (see launch references/image-rights.md)`);
 
   const extra = warnings.length ? { warnings } : {};
   if (problems.length) return failed(name, `${problems.length} problem(s) that break accessibility, search or CI`, [...problems, ...warnings.map((w) => `warning: ${w}`)], extra);
