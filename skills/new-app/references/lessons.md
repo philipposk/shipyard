@@ -9,6 +9,8 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - ★ Row level security update rules must limit columns, or a user can make themself admin.
 - ★ Admin comes from a database flag only the server key can set, never from an email address. Starter-mode sign-up does not prove the person owns the email, so an email match would hand admin to the first stranger who types the owner's address.
 - ★ The secret server key skips every privacy rule. A route that uses it and does `select *` without a user filter hands out everyone's rows even when every table has RLS. Use the signed-in person's own client.
+- ★ A "finished setup" cookie (onboarding, age check, consent) is signed with a server secret and bound to the user id (`<userId>.<HMAC>`, `src/lib/auth/onboarded-cookie.mjs`). A plain `1` or bare user id can be typed into the browser to skip setup. API routes enforce the same gate (403 `onboarding_required`), not only pages, or a script skips the setup page.
+- A column people may write but only under a rule (an `onboarding_complete` flag that needs a name first, counters, plan, Stripe ids) needs the rule on the server: the route sets it only after checking the required fields and never lets the client set it back, and a `before update` trigger (or no grant at all) stops a direct write with the browser key. Write counters and billing columns with the server key, filtered to the person's id.
 - ★ Never put a wildcard host (`https://<app>-*.vercel.app/**`) in Supabase's redirect list: anyone can register a matching address and receive sign-in tokens.
 - Views ignore RLS unless `with (security_invoker = true)`; a policy without `to authenticated` applies to visitors who are not signed in; security definer functions must be revoked from public, anon and authenticated. The app's `schema-rules` test checks all three.
 - A key deleted in the next commit is still in the history that gets pushed. The pre-push hook and CI scan every pushed commit, not just the files on disk.
@@ -50,6 +52,11 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - OpenRouter: some models reject the `temperature` setting when `require_parameters` is on; drop it.
 - OpenAI voice can take 30 seconds: longer timeout and cache the audio.
 - Webhooks: verify the signature, store event ids, ignore out-of-order events.
+- Payment webhooks: write the event id down only after the change is saved, re-read the subscription from Stripe instead of trusting the event copy, and answer 500 on any database error so Stripe retries. The event-id table has RLS on and no grants for the browser roles. (The billing module does all this.)
+- Webhooks out to an address the person typed: https only, port 443, resolve the name and refuse if any address is private (127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, 100.64/10, ::1, fc00::/7, IPv4-mapped IPv6), connect to the checked IP (no second lookup), no redirects, a timeout and a response size cap. Check at save time and again at send time.
+- Tokens for agents and scripts expire: short access tokens with rotating refresh tokens (a reused refresh token revokes the whole family), personal tokens with a chosen lifetime and "last used", and per-IP / per-token rate limits answering 429 with `Retry-After`.
+- Analytics (PostHog, GA) starts only after the visitor accepts it; withdrawing is one click in Settings and the footer and stops capture at once.
+- A paid plan whose payments are not set up yet shows a disabled "Coming soon" button, never a checkout that cannot finish.
 - Spend limits at every AI provider, plus a daily cap in the app.
 - Optimistic send plus polling can show a message twice; dedupe by id.
 
