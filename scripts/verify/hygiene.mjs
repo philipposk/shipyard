@@ -5,6 +5,8 @@
 //   3. CI that cannot pass: `uses: ./local-action` that does not exist, `npm ci` with no package-lock.json,
 //      a package-lock.json out of step with package.json, or workspace packages tests import from dist/ without a build step first.
 //   4. Sign-in API routes that crash when Supabase env vars are missing (`process.env.X!`) instead of answering cleanly.
+//   5. Pages that lock zoom, an SPA rewrite that serves index.html as /robots.txt, no meta description,
+//      and an accent colour used as text that is unreadable on the dark background.
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { stripComments, pass, failed } from './util.mjs';
@@ -63,6 +65,43 @@ export function lockDrift(pkg, lock) {
     for (const name of Object.keys(have)) if (!(name in want)) problems.push(`${name} is in the lock file but not in package.json ${field}`);
   }
   return problems;
+}
+
+/** Viewport settings that stop pinch-zoom (WCAG 1.4.4, Lighthouse meta-viewport). Pure: exported for tests. */
+export function zoomLock(source) {
+  const code = stripComments(source);
+  return /maximumScale\s*:\s*1(?:\.0)?\b|userScalable\s*:\s*false|user-scalable\s*=\s*(?:no|0)\b|maximum-scale\s*=\s*1(?:\.0)?\b/.test(code);
+}
+
+const hexLum = (h) => {
+  let x = h.replace('#', '');
+  if (x.length === 3) x = [...x].map((c) => c + c).join('');
+  const c = [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+export const contrast = (a, b) => { const [x, y] = [hexLum(a), hexLum(b)].sort((p, q) => p - q); return (y + 0.05) / (x + 0.05); };
+
+const DARK_BLOCK = /(?:\.dark|\[data-theme=["']?dark["']?\]|@media\s*\(prefers-color-scheme:\s*dark\)\s*\{[^{]*)\s*\{([^}]*)\}/g;
+const varsIn = (body) => Object.fromEntries([...body.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+
+/** `color: var(--accent)` where the dark theme's accent (often unchanged from light) fails 4.5:1 on the dark background.
+ *  Returns [{ token, ratio, fg, bg }]. Pure: exported for tests. */
+export function darkAccentText(css) {
+  const code = stripComments(css);
+  const root = Object.assign({}, ...[...code.matchAll(/:root\s*\{([^}]*)\}/g)].map((m) => varsIn(m[1])));
+  const dark = Object.assign({}, ...[...code.matchAll(DARK_BLOCK)].map((m) => varsIn(m[1])));
+  if (!Object.keys(dark).length) return [];
+  const bgName = ['background', 'bg', 'surface', 'card'].find((n) => /^#[0-9a-f]{3,6}$/i.test(dark[n] ?? ''));
+  if (!bgName) return [];
+  const used = new Set([...code.matchAll(/(?:^|[;{\s])color\s*:\s*var\(--(accent[\w-]*|primary[\w-]*|brand[\w-]*)\)/g)].map((m) => m[1]));
+  const out = [];
+  for (const token of used) {
+    const fg = dark[token] ?? root[token];
+    if (!/^#[0-9a-f]{3,6}$/i.test(fg ?? '')) continue;
+    const ratio = contrast(fg, dark[bgName]);
+    if (ratio < 4.5) out.push({ token, ratio: Math.round(ratio * 100) / 100, fg, bg: dark[bgName] });
+  }
+  return out;
 }
 
 async function readJson(p) {
@@ -160,6 +199,36 @@ export async function check(ctx) {
   for (const f of authRoutes) {
     const code = stripComments(await readFile(f, 'utf8'));
     if (/process\.env\.\w+!/.test(code)) problems.push(`${path.relative(dir, f)} reads env vars with "!", so it throws a 500 when they are not set (preview, CI). Check them and answer cleanly (no user, or 503 with a message)`);
+  }
+
+  // 5. Zoom, robots.txt, description, accent text in dark mode.
+  const pageFiles = [
+    ...(await walk(path.join(srcDir, 'app'), (n) => /^layout\.(tsx|jsx|ts|js)$/.test(n))),
+    ...(await walk(dir, (n) => n === 'index.html')).filter((f) => !f.includes(`${path.sep}public${path.sep}`)),
+  ];
+  for (const f of pageFiles) {
+    const code = await readFile(f, 'utf8');
+    if (zoomLock(code)) problems.push(`${path.relative(dir, f)} stops pinch-zoom (maximumScale 1 / user-scalable=no). Remove it: people with low vision must be able to zoom (Lighthouse meta-viewport)`);
+  }
+  const rootLayout = pageFiles.find((f) => path.relative(srcDir, f) === path.join('app', 'layout.tsx'));
+  if (rootLayout) {
+    const code = stripComments(await readFile(rootLayout, 'utf8'));
+    if (/export\s+const\s+metadata/.test(code) && !/\bdescription\s*:/.test(code) && !/generateMetadata/.test(code)) problems.push(`${path.relative(dir, rootLayout)} metadata has no description, so search results show random page text (Lighthouse meta-description)`);
+  }
+  for (const f of pageFiles.filter((p) => p.endsWith('index.html'))) {
+    const html = await readFile(f, 'utf8');
+    if (/<head/i.test(html) && !/<meta\s+[^>]*name=["']description["']/i.test(html)) problems.push(`${path.relative(dir, f)} has no <meta name="description">, so search results show random page text (Lighthouse meta-description)`);
+  }
+  const vercel = await readJson(path.join(dir, 'vercel.json'));
+  const catchAll = (vercel?.rewrites ?? []).some((r) => /index\.html$/.test(r.destination ?? '') && /^\/\(\.\*\)$|^\/:path\*$|^\/\(\(\?!/.test(r.source ?? ''));
+  if (catchAll) {
+    const publics = [path.join(dir, 'public'), ...(await readdir(dir, { withFileTypes: true }).catch(() => [])).filter((e) => e.isDirectory() && !SKIP_DIRS.has(e.name)).map((e) => path.join(dir, e.name, 'public'))];
+    let found = false;
+    for (const p of publics) if (await exists(path.join(p, 'robots.txt'))) found = true;
+    if (!found) problems.push('vercel.json rewrites every path to index.html and there is no public/robots.txt, so /robots.txt returns the app page and search engines read it as invalid (Lighthouse robots-txt). Add public/robots.txt');
+  }
+  for (const f of styles) {
+    for (const d of darkAccentText(await readFile(f, 'utf8'))) problems.push(`${path.relative(dir, f)} uses color: var(--${d.token}) as text but in dark mode ${d.fg} on ${d.bg} is only ${d.ratio}:1. Add a lighter --${d.token}-text for dark (e.g. color-mix toward the text colour) and use it for text`);
   }
 
   const extra = warnings.length ? { warnings } : {};

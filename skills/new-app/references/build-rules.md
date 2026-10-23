@@ -60,3 +60,10 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Touch targets at least 48x48px with 8px apart.
 - A floating input or bar fixed to the bottom on phones reserves its height (`padding-bottom` on the page, plus `env(safe-area-inset-bottom)`) so it never covers the last content or the on-screen keyboard's field.
 - Every CI job you add must actually run: after the first push, `gh run list --workflow <file> --branch main` shows a run that executed its steps (not skipped, not failing at setup). A Lighthouse job that starts the app from a wrong path or URL never scores anything and hides problems for months.
+
+### From the Lighthouse sweep of all apps (Oct 2026)
+- Never lock zoom: no `maximumScale: 1`, `userScalable: false` or `user-scalable=no`. (hygiene fails on it; Lighthouse meta-viewport.)
+- Every app has a meta description (Next `metadata.description`, or `<meta name="description">` in a Vite `index.html`). (hygiene fails without it.)
+- A single-page app whose `vercel.json` rewrites every path to `index.html` ships a real `public/robots.txt`; otherwise `/robots.txt` returns the app page. (hygiene fails on it.)
+- The accent colour is rarely readable as small text on the dark background. Use a separate `--accent-text` (in dark, mixed toward the text colour) for accent-coloured words and links. (hygiene fails when `color: var(--accent)` is under 4.5:1 in dark.)
+- Small controls (checkboxes, calendar/habit cells) still get a 24px hit area: draw the small visual with a pseudo-element.
