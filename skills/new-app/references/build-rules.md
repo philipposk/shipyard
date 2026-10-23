@@ -9,7 +9,9 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - The server key lives only in server files. Never put a secret in a name starting with `NEXT_PUBLIC_`: that publishes it to every visitor.
 - Never set or change a password from an email address alone. Passwords change only through the person's own session.
 - Keys live in `.env.local` (never committed) and in Vercel settings. A leaked-key scan runs before every push and on every pull request.
-- Every route under `/api/auth/` must be public in `src/proxy.ts`; other API routes need a signed-in person.
+- Every route under `/api/auth/` must be public in `src/proxy.ts`; other API routes need a signed-in person who finished setup (the proxy answers 403 `onboarding_required` otherwise; list setup-page APIs in `ONBOARDING_ALLOWED`).
+- A cookie that skips a check (finished setup, age check) is signed with a server secret and bound to the user id. Never trust a plain value.
+- A flag the client may set only under a rule (finished setup needs a name) is checked on the server and can never be set back; billing and counter columns are written only with the server key.
 - Nothing changes on a GET (sign-out, delete, join, confirm are POST buttons). A one-time sign-in token is never used by opening a link: the link opens a page, and a button confirms. Mail scanners and crafted links fire GETs.
 - Any link sent by email is built from the site address setting, never from the request's Host header. Check every `next` or redirect value points to the same site.
 - Lists, totals and leaderboards read every row (the database returns at most 1000 per request) in a fixed order. Never trust one query for "all".
@@ -28,7 +30,9 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Brand name only from `BRAND` in `src/lib/constants.ts`.
 - A designed empty state, loading skeleton and error message for every screen that loads data.
 - Test with a real second account, not only simulated sessions.
-- Webhooks (later): check the signature, store event ids, ignore out-of-order events.
+- Webhooks (later): check the signature, store event ids only after the change is saved, ignore out-of-order events, answer 500 on a database error so the sender retries.
+- Webhooks out to an address the person typed: refuse private and local addresses after resolving the name, pin the checked IP, no redirects, timeout and size cap (see `api-and-mcp.md`).
+- Analytics only after consent; paid plans show "Coming soon" until payments work.
 - Work on a branch and open a pull request once the app is live; merge only on green checks.
 
 ## Copy and look (what visitors read)
