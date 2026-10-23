@@ -113,7 +113,7 @@ export function SidebarShell({ children, userLabel, activeHref, isAdmin = false 
 
       <div className="sb-main">
         <header className="sb-topbar">
-          <Link href="/" className="app-brand">
+          <Link href="/" aria-label={`${BRAND.name} home`} className="app-brand">
             <AppMark size={32} />
             <span className="max-[359px]:hidden">{BRAND.name}</span>
           </Link>

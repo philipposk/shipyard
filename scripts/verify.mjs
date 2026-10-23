@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import * as log from './lib/log.mjs';
 import { parseEnv } from './lib/secrets.mjs';
 import { getApp, upsertApp } from './lib/profile.mjs';
-import { CHECK_NAMES, loadCheck } from './verify/index.mjs';
+import { CHECK_NAMES, OPTIONAL_CHECKS, loadCheck } from './verify/index.mjs';
 import { formatReport, summarizeForProfile, tally } from './verify/format.mjs';
 import { readAppFile, makeRedactor } from './verify/util.mjs';
 
@@ -22,7 +22,8 @@ other's data, nothing leaks keys, and the home page looks right on a phone.
   <appDir>        the app's folder
   --url <address> the live address (default: the one saved for this app)
   --only <list>   run only some checks, separated by commas
-                  (${CHECK_NAMES.join(', ')})
+                  (${CHECK_NAMES.join(', ')};
+                  only when named: ${OPTIONAL_CHECKS.join(', ')})
   --allow-test-users
                   an app that shares its Supabase project with other apps skips the
                   checks that make test users (sign-in, privacy), because a test user
@@ -111,11 +112,11 @@ export async function main(argv) {
   let selected = CHECK_NAMES;
   if (args.only !== undefined) {
     const asked = args.only.split(',').map((s) => s.trim()).filter(Boolean);
-    const unknown = asked.filter((n) => !CHECK_NAMES.includes(n));
+    const unknown = asked.filter((n) => !CHECK_NAMES.includes(n) && !OPTIONAL_CHECKS.includes(n));
     if (asked.length === 0 || unknown.length > 0) {
-      return usage(`Unknown check${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ') || '(none given)'}. Choose from: ${CHECK_NAMES.join(', ')}.`);
+      return usage(`Unknown check${unknown.length === 1 ? '' : 's'}: ${unknown.join(', ') || '(none given)'}. Choose from: ${[...CHECK_NAMES, ...OPTIONAL_CHECKS].join(', ')}.`);
     }
-    selected = CHECK_NAMES.filter((n) => asked.includes(n));
+    selected = [...CHECK_NAMES, ...OPTIONAL_CHECKS].filter((n) => asked.includes(n));
   }
 
   const appFile = await readAppFile(appDir);

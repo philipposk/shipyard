@@ -2,7 +2,7 @@
 import { NEVER_CHECKED } from './index.mjs';
 
 const LABELS = {
-  secrets: 'Keys', proxy: 'Sign-in gate', design: 'Design rules', routes: 'Pages', protection: 'Public access',
+  secrets: 'Keys', proxy: 'Sign-in gate', design: 'Design rules', hygiene: 'Accessibility, search and CI', lighthouse: 'Lighthouse', routes: 'Pages', protection: 'Public access',
   auth: 'Sign-in', isolation: 'Privacy between users', browser: 'Phone browser',
 };
 export const labelFor = (name) => LABELS[name] ?? name;

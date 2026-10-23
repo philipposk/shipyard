@@ -1,9 +1,11 @@
 // The list of checks, in the order they run: quick offline ones first, then the ones that call the live app.
-export const CHECK_NAMES = ['secrets', 'proxy', 'design', 'routes', 'protection', 'auth', 'isolation', 'browser'];
+export const CHECK_NAMES = ['secrets', 'proxy', 'design', 'hygiene', 'routes', 'protection', 'auth', 'isolation', 'browser'];
+// Slow checks that run only when asked for with --only (lighthouse downloads and drives Chrome for about a minute).
+export const OPTIONAL_CHECKS = ['lighthouse'];
 
 /** Load one check module. Returns its `check` function. */
 export async function loadCheck(name) {
-  if (!CHECK_NAMES.includes(name)) throw new Error(`Unknown check "${name}".`);
+  if (!CHECK_NAMES.includes(name) && !OPTIONAL_CHECKS.includes(name)) throw new Error(`Unknown check "${name}".`);
   const mod = await import(`./${name}.mjs`);
   return mod.check;
 }

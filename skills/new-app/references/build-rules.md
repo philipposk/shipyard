@@ -42,3 +42,12 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Phone-first does not mean phone-only. On a computer (1024px and wider) the app uses the screen: the tab bar becomes a left rail and pages use the content width. Do not wrap pages in a narrow `max-w-md mx-auto` column; lay lists out as a wider table or a grid of cards on big screens. Look at a 1440px wide screenshot too, and compare with how big comparable apps look on a desktop.
 - Switching tabs must feel instant: every signed-in page folder has a `loading.tsx` that returns `<PageLoading />`, and data loads in the page, not in shared layouts.
 - Before saying ready, look at the home page on a phone width and check it against this list.
+
+## Lessons from the Oct 2026 audit of the 6x7 apps (each one is also caught by `verify --only hygiene`)
+- Every link and button has a name a screen reader can read. An icon-only control, or a logo link whose text is hidden at phone size (`max-[430px]:hidden`), gets `aria-label` (logo: `` aria-label={`${BRAND.name} home`} ``). Lighthouse calls this "link-name" / "button-name".
+- Private (noindex) is a choice the owner makes, not a default. Scaffold with `--private` only when they say the app is private; otherwise public pages (home, about, help, pricing, legal, sign-in) are indexable and in the sitemap, and signed-in routes are disallowed in robots.txt.
+- CI must be able to pass on main: commit `package-lock.json` and re-run `npm install` after any dependency change (`npm ci` fails on drift); no `uses: ./local-action` that is not in the repo; in a workspace repo, build the workspace packages before the tests (`npm run build --workspaces --if-present`). No deploy workflow when Vercel deploys from GitHub; a build check is enough.
+- API routes, sign-in ones above all, never read env vars with `!`. When Supabase is not configured (preview, CI), answer cleanly: "no user" or a 503 with a message, never a crash.
+- Themes: one look = a light and dark pair (a pack). Extra looks only on request, always as packs in Settings > Appearance; never a theme that locks the mode (see the design skill).
+- Optional extras (blur, glow, grain, sound) default off.
+- Lighthouse budgets on public pages: performance 90 (phone), accessibility 95, best practices 95, SEO 90. See `launch/references/seo-performance.md`.

@@ -59,7 +59,7 @@ export function TopNavShell({ children, userLabel, activeHref, isAdmin = false }
       <header className="app-header">
         <SkipLink />
         <div className="tn-in">
-          <Link href="/" className="app-brand tn-brand">
+          <Link href="/" aria-label={`${BRAND.name} home`} className="app-brand tn-brand">
             <AppMark size={32} />
             <span className="max-[359px]:hidden">{BRAND.name}</span>
           </Link>

@@ -1,0 +1,38 @@
+# Optional. Scores the live public pages with Google Lighthouse (speed, accessibility, best practices, search).
+# Runs when Vercel finishes a deploy (preview or production) and by hand from the Actions tab.
+# Budgets live in lighthouserc.json: performance 90, accessibility 95, best practices 95, SEO 90.
+# A red result here does not block anything by itself; fix the audits it names before launch.
+# Private apps: SEO is meant to fail (noindex). Set the repo variable LIGHTHOUSE_SKIP_SEO=true.
+name: Lighthouse
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Address to test (default: the production address in the repo variable SITE_URL)"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "24"
+      - name: Lighthouse (phone)
+        env:
+          BASE: ${{ inputs.url || github.event.deployment_status.target_url || vars.SITE_URL }}
+          SKIP_SEO: ${{ vars.LIGHTHOUSE_SKIP_SEO }}
+        run: node scripts/lighthouse-ci.mjs "$BASE"
+      - name: Lighthouse (desktop)
+        env:
+          BASE: ${{ inputs.url || github.event.deployment_status.target_url || vars.SITE_URL }}
+          SKIP_SEO: ${{ vars.LIGHTHOUSE_SKIP_SEO }}
+        run: node scripts/lighthouse-ci.mjs "$BASE" --desktop
