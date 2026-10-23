@@ -108,16 +108,21 @@ test('analyse: existing non-Resend sending records are only reported, never repl
   assert.match(none.fix, /Only if/);
 });
 
-test('analyse: Gmail send-as warns when the one SPF line lacks Google and suggests a merged line', () => {
+test('analyse: Gmail send-as recommends Resend SMTP, never smtp.gmail.com, and needs Resend DKIM', () => {
   const rec = { mx: [{ exchange: 'mx1.improvmx.com' }], txt: [['v=spf1 include:spf.improvmx.com ~all']], dmarc: [['v=DMARC1; p=none;']] };
-  assert.equal(analyse('6x7.gr', rec, '').checks.some((c) => c.id === 'spf-gmail'), false);
-  const r = analyse('6x7.gr', rec, '', { gmailSendAs: true });
-  const w = r.checks.find((c) => c.id === 'spf-gmail');
-  assert.ok(w && !w.ok && w.optional);
-  assert.match(w.fix, /"v=spf1 include:spf\.improvmx\.com include:_spf\.google\.com ~all"/);
-  assert.match(w.fix, /exactly one/);
-  const good = { ...rec, txt: [['v=spf1 include:spf.improvmx.com include:_spf.google.com ~all']] };
-  assert.equal(analyse('6x7.gr', good, '', { gmailSendAs: true }).checks.some((c) => c.id === 'spf-gmail'), false);
-  const none = analyse('6x7.gr', { ...rec, txt: [] }, '', { gmailSendAs: true }).checks.find((c) => c.id === 'spf');
-  assert.match(none.fix, /include:spf\.improvmx\.com include:_spf\.google\.com ~all/);
+  assert.equal(analyse('6x7.gr', rec, '').checks.some((c) => c.id === 'gmail-send-as'), false);
+  const missing = analyse('6x7.gr', rec, '', { gmailSendAs: true }).checks.find((c) => c.id === 'gmail-send-as');
+  assert.ok(missing && !missing.ok && missing.optional);
+  assert.match(missing.fix, /Verify 6x7\.gr in Resend/);
+  const ready = analyse('6x7.gr', { ...rec, dkim: [['p=MIGf']] }, '', { gmailSendAs: true });
+  const c = ready.checks.find((x) => x.id === 'gmail-send-as');
+  assert.ok(c.ok && ready.ok);
+  assert.match(c.fix, /smtp\.resend\.com, port 587 \(TLS\) or 465 \(SSL\), username resend/);
+  assert.match(c.fix, /mail-tester\.com.*9\/10/);
+  assert.match(c.text, /not smtp\.gmail\.com/);
+  // SPF without Google is fine; no extra include is suggested, and one SPF line is still required.
+  assert.equal(ready.checks.find((x) => x.id === 'spf').ok, true);
+  const none = analyse('6x7.gr', { ...rec, txt: [] }, '', { gmailSendAs: true }).checks.find((x) => x.id === 'spf');
+  assert.doesNotMatch(none.fix, /_spf\.google\.com/);
+  assert.equal(analyse('6x7.gr', { ...rec, txt: [['v=spf1 a ~all'], ['v=spf1 mx ~all']] }, '', { gmailSendAs: true }).checks.find((x) => x.id === 'spf').ok, false);
 });

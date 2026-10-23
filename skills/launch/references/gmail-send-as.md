@@ -13,7 +13,7 @@ Pick one:
 1. In Resend make a sending key for this (Sending access, only this domain), named "Gmail". The student creates it in the Resend dashboard and pastes it only into Gmail, never in the chat.
 2. Gmail on a computer: Settings (gear) > See all settings > Accounts and Import > "Send mail as" > Add another email address.
 3. Name: their name. Address: `hello@<domain>`. Untick "Treat as an alias" only if replies should go to a separate inbox.
-4. SMTP server `smtp.resend.com`, port `465` (SSL), username `resend`, password: the Resend key from step 1.
+4. SMTP server `smtp.resend.com`, port `587` (TLS) or `465` (SSL), username `resend`, password: the Resend key from step 1. Do not use `smtp.gmail.com`: it fails DMARC for the domain (measured 5.7/10 on mail-tester vs 10/10 through Resend SMTP).
 5. Gmail sends a code to that address; it arrives by the forwarding from section 1. Paste it.
 6. Optional: "Reply from the same address the message was sent to".
 

@@ -13,8 +13,9 @@ Looks up the email records of <domain> on public DNS (Google's DNS over HTTPS, f
 back to this computer's resolver; only the domain name is sent) and says
 what is right and what to add at the registrar (Papaki, Cloudflare, Namecheap, ...).
   --send-subdomain <name>  Resend sending subdomain (default "send"; "" to skip)
-  --gmail-send-as          you send as @<domain> from Gmail ("Send mail as"): SPF must
-                           include _spf.google.com (warns if it does not)
+  --gmail-send-as          you send as @<domain> from Gmail ("Send mail as"): checks the
+                           domain is ready for Resend SMTP (smtp.resend.com), the only
+                           route that passes DMARC; smtp.gmail.com fails it
   --json                   machine-readable output
 Exit code: 0 = receiving, SPF and DMARC are fine, 1 = something to fix, 2 = bad usage.
 `;
@@ -35,7 +36,7 @@ export function analyse(domain, rec, sendSub = 'send', opts = {}) {
 
   const spf = joinTxt(rec.txt).filter((t) => /^v=spf1\b/i.test(t));
   if (spf.length === 0) {
-    checks.push({ id: 'spf', ok: false, text: 'SPF: missing on the main domain', fix: `TXT @ "v=spf1${improv ? ' include:spf.improvmx.com' : ''}${gmail ? ' include:_spf.google.com' : ''} ~all" (one SPF line only; add include: entries for every service that sends as @${domain})` });
+    checks.push({ id: 'spf', ok: false, text: 'SPF: missing on the main domain', fix: `TXT @ "v=spf1${improv ? ' include:spf.improvmx.com' : ''} ~all" (one SPF line only; add include: entries for every service that sends as @${domain})` });
   } else if (spf.length > 1) {
     checks.push({ id: 'spf', ok: false, text: 'SPF: more than one SPF record (both are then ignored)', fix: 'Merge them into one TXT line starting v=spf1.' });
   } else if (improv && !/include:spf\.improvmx\.com/i.test(spf[0])) {
@@ -43,12 +44,15 @@ export function analyse(domain, rec, sendSub = 'send', opts = {}) {
   } else {
     checks.push({ id: 'spf', ok: true, text: `SPF: ${spf[0]}` });
   }
-  // Gmail "Send mail as" sends from Google's servers, so the one SPF line must list Google.
-  if (gmail && spf.length === 1 && !/include:_spf\.google\.com/i.test(spf[0])) {
-    const merged = spf[0].replace(/\s+([~?+-]all)\b/i, ' include:_spf.google.com $1');
-    checks.push({ id: 'spf-gmail', ok: false, optional: true,
-      text: `SPF: you send from Gmail as @${domain}, but "${spf[0]}" does not include Google, so that mail often lands in spam`,
-      fix: `Edit the existing SPF line (keep exactly one): "${merged === spf[0] ? `${spf[0]} include:_spf.google.com` : merged}"` });
+  // Gmail "Send mail as": smtp.gmail.com keeps a gmail.com envelope and Google's DKIM, so DMARC
+  // fails for @<domain> (measured 5.7/10 on mail-tester for 6x7.gr). Resend SMTP signs as the
+  // domain and aligns (10/10). _spf.google.com in SPF is harmless but does not fix it.
+  if (gmail) {
+    const resendDkim = joinTxt(rec.dkim).some((t) => /p=/.test(t));
+    const how = 'In Gmail: Settings > Accounts and Import > Send mail as > edit info: SMTP server smtp.resend.com, port 587 (TLS) or 465 (SSL), username resend, password a Resend API key (sending access). Then send a test to a mail-tester.com address and aim for 9/10 or better.';
+    checks.push(resendDkim
+      ? { id: 'gmail-send-as', ok: true, optional: true, text: `Gmail send-as: ${domain} is verified in Resend, so send through Resend SMTP (not smtp.gmail.com, which fails DMARC)`, fix: how }
+      : { id: 'gmail-send-as', ok: false, optional: true, text: `Gmail send-as: smtp.gmail.com fails DMARC for @${domain}, and no Resend DKIM key was found, so Resend SMTP is not ready yet`, fix: `Verify ${domain} in Resend first (launch-email.mjs prints the records). ${how}` });
   }
 
   const dmarc = joinTxt(rec.dmarc).find((t) => /^v=DMARC1\b/i.test(t));
@@ -156,7 +160,10 @@ export async function main(argv, deps = {}) {
     json(result);
   } else {
     for (const c of result.checks) {
-      if (c.ok) ok(c.text);
+      if (c.ok) {
+        ok(c.text);
+        if (c.fix) info(`  How: ${c.fix}`);
+      }
       else {
         (c.optional ? warn : fail)(c.text);
         if (c.fix) info(`  Add: ${c.fix}`);

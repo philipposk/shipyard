@@ -150,7 +150,7 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 
 ## What changed in 0.8.0
 
-- New `email` skill: ImprovMX catch-all to Gmail, Gmail "Send mail as", SPF/DKIM/DMARC, Papaki and Cloudflare DNS steps, `email-check.mjs` (reads public DNS, no keys) and `notify.mjs` (the "<App> is live" email from 6x7-app-factory, with the app as sender, a "why you got this" line and `--dry-run`).
+- New `email` skill: ImprovMX catch-all to Gmail, Gmail "Send mail as" through Resend SMTP (smtp.gmail.com fails DMARC), SPF/DKIM/DMARC, Papaki and Cloudflare DNS steps, `email-check.mjs` (reads public DNS, no keys) and `notify.mjs` (the "<App> is live" email from 6x7-app-factory, with the app as sender, a "why you got this" line and `--dry-run`).
 - New `apis` skill: key guide for 13 services; `secrets-check.mjs --live` now also tests ElevenLabs, Gemini, Brave, Serper, SerpAPI and Upstash (NVIDIA by format). Web search, voice, AI router and Upstash rate-limit guides are marked new, untested in production.
 - `new-skill` points to good existing skills (find-skills, superpowers, caveman, compound-engineering, Anthropic's skill-creator and engineering skills) instead of copying them.
 - `launch` gains a search-engine and speed checklist from the 6x7 launches.
