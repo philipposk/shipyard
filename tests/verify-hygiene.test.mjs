@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
-import { check, unlabeledControls, lockDrift } from '../scripts/verify/hygiene.mjs';
+import { check, unlabeledControls, lockDrift, zoomLock, darkAccentText } from '../scripts/verify/hygiene.mjs';
 import { judge } from '../scripts/verify/lighthouse.mjs';
 import { CHECK_NAMES, OPTIONAL_CHECKS } from '../scripts/verify/index.mjs';
 import { tempDir, removeDir, makeAppFromTemplate } from './verify-helpers.mjs';
@@ -106,4 +106,35 @@ test('a fake tablist fails; a non-composited keyframe and missing CSP are warnin
   const w = r.warnings.join('\n');
   assert.match(w, /pulse animates border-color/);
   assert.match(w, /script-src/);
+});
+
+test('zoom lock is detected in Next viewport and plain HTML', () => {
+  assert.equal(zoomLock('export const viewport = { width: "device-width", initialScale: 1, maximumScale: 1 };'), true);
+  assert.equal(zoomLock('<meta name="viewport" content="width=device-width, user-scalable=no">'), true);
+  assert.equal(zoomLock('export const viewport = { width: "device-width", initialScale: 1 };'), false);
+  assert.equal(zoomLock('<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">'), false);
+});
+
+test('accent used as text fails only when unreadable on the dark background', () => {
+  const base = ':root { --accent: #5C6B4A; --bg: #FAF8F4; }\n[data-theme="dark"] { --bg: #15140F; }\n.link { color: var(--accent); }\n';
+  const r = darkAccentText(base);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].token, 'accent');
+  assert.equal(darkAccentText(base.replace('--bg: #15140F;', '--bg: #15140F; --accent: #b8c79f;')).length, 0);
+  assert.equal(darkAccentText(base.replace('color: var(--accent)', 'border-color: var(--accent)')).length, 0);
+});
+
+test('fails on locked zoom, missing description and an SPA rewrite without robots.txt', async (t) => {
+  const dir = await app(t);
+  await mkdir(path.join(dir, 'src/app'), { recursive: true });
+  await writeFile(path.join(dir, 'src/app/layout.tsx'), 'export const metadata = { title: "x", description: "y" };\nexport const viewport = { width: "device-width", maximumScale: 1 };\n');
+  await writeFile(path.join(dir, 'vercel.json'), JSON.stringify({ rewrites: [{ source: '/(.*)', destination: '/index.html' }] }));
+  await mkdir(path.join(dir, 'client'), { recursive: true });
+  await writeFile(path.join(dir, 'client/index.html'), '<!doctype html><html><head><title>x</title></head><body></body></html>');
+  const r = await run(dir);
+  assert.equal(r.ok, false);
+  const text = r.problems.join('\n');
+  assert.match(text, /pinch-zoom/);
+  assert.match(text, /robots\.txt/);
+  assert.match(text, /client\/index\.html has no <meta name="description">/);
 });
