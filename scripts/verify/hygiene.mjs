@@ -7,8 +7,8 @@
 //   4. Sign-in API routes that crash when Supabase env vars are missing (`process.env.X!`) instead of answering cleanly.
 //   5. Pages that lock zoom, an SPA rewrite that serves index.html as /robots.txt, no meta description,
 //      and an accent colour used as text that is unreadable on the dark background.
-//   6. Search and launch (warnings): no robots or sitemap, no canonical/metadataBase, a hard-coded noindex outside the
-//      private switch, a shared Supabase app whose auth cookie has no domain, images in public/ without a source log.
+//   6. Search and launch (warnings): no robots or sitemap, no canonical/metadataBase, a hard-coded noindex on the root layout or
+//      home page outside the private switch, a shared Supabase app whose auth cookie has no domain, images in public/ without a source log.
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { stripComments, pass, failed } from './util.mjs';
@@ -246,9 +246,11 @@ export async function check(ctx) {
       if (!/metadataBase|canonical/.test(code)) warnings.push(`${path.relative(dir, rootLayout)} sets no metadataBase or canonical, so share images get relative URLs and duplicate addresses compete. Set metadataBase from the lowercase site URL and alternates.canonical per page`);
     }
     if (!isPrivate) {
-      for (const f of await walk(appDir, (n) => /\.(tsx|jsx|ts|js)$/.test(n))) {
+      // Only the root layout and home page: admin, auth, reset-password and preview pages are noindex on purpose.
+      const roots = (await readdir(appDir).catch(() => [])).filter((n) => /^(layout|page)\.(tsx|jsx|ts|js)$/.test(n)).map((n) => path.join(appDir, n));
+      for (const f of roots) {
         const code = stripComments(await readFile(f, 'utf8'));
-        if (/index\s*:\s*false|["']noindex/.test(code) && !/SITE_PRIVATE|isPrivate/.test(code)) warnings.push(`${path.relative(dir, f)} hard-codes noindex although the app is not marked private. If this is a launched public page, remove it (a noindex left on from beta keeps it out of Google)`);
+        if (/\bindex\s*:\s*false|["']noindex/.test(code) && !/SITE_PRIVATE|isPrivate/.test(code)) warnings.push(`${path.relative(dir, f)} hard-codes noindex for the whole site or home page although the app is not marked private. Remove it at launch, or use the private switch (a noindex left on from beta keeps it out of Google)`);
       }
     }
   }

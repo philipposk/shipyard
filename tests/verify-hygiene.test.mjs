@@ -144,18 +144,35 @@ test('search and launch warnings: robots, sitemap, noindex, shared cookie, image
   const { rm } = await import('node:fs/promises');
   await rm(path.join(dir, 'src/app/robots.ts'), { force: true });
   await rm(path.join(dir, 'src/app/sitemap.ts'), { force: true });
-  await mkdir(path.join(dir, 'src/app/about'), { recursive: true });
+  await mkdir(path.join(dir, 'src/app/admin'), { recursive: true });
   await mkdir(path.join(dir, 'public'), { recursive: true });
-  await writeFile(path.join(dir, 'src/app/about/page.tsx'), 'export const metadata = { robots: { index: false } };\nexport default function P() { return <h1>About</h1>; }\n');
+  await writeFile(path.join(dir, 'src/app/page.tsx'), 'export const metadata = { robots: { index: false } };\nexport default function P() { return <h1>Home</h1>; }\n');
+  await writeFile(path.join(dir, 'src/app/admin/page.tsx'), 'export const metadata = { robots: { index: false } };\nexport default function P() { return <h1>Admin</h1>; }\n');
   await writeFile(path.join(dir, '.shipyard-app.json'), JSON.stringify({ shared: true }));
   await writeFile(path.join(dir, 'public/team-photo.jpg'), 'x');
   const r = await run(dir);
   const w = (r.warnings ?? []).join('\n');
   assert.match(w, /No robots/);
   assert.match(w, /No sitemap/);
-  assert.match(w, /hard-codes noindex/);
+  assert.match(w, /src\/app\/page\.tsx hard-codes noindex/);
+  assert.doesNotMatch(w, /admin\/page\.tsx hard-codes noindex/);
   assert.match(w, /auth cookie has no domain/);
   assert.match(w, /IMAGE-SOURCES\.md/);
   await writeFile(path.join(dir, 'IMAGE-SOURCES.md'), '| file | source |\n');
   assert.doesNotMatch(((await run(dir)).warnings ?? []).join('\n'), /IMAGE-SOURCES/);
+});
+
+test('the full template raises none of the search and launch warnings', async () => {
+  const tpl = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'template');
+  const w = ((await run(tpl)).warnings ?? []).join('\n');
+  assert.doesNotMatch(w, /No robots|No sitemap|metadataBase or canonical|hard-codes noindex|auth cookie has no domain|IMAGE-SOURCES/);
+});
+
+test('adding robots and sitemap clears their warnings', async (t) => {
+  const dir = await app(t);
+  await mkdir(path.join(dir, 'src/app'), { recursive: true });
+  assert.match(((await run(dir)).warnings ?? []).join('\n'), /No robots[\s\S]*No sitemap|No sitemap[\s\S]*No robots/);
+  await writeFile(path.join(dir, 'src/app/robots.ts'), 'export default function r() { return {}; }\n');
+  await writeFile(path.join(dir, 'src/app/sitemap.ts'), 'export default function s() { return []; }\n');
+  assert.doesNotMatch(((await run(dir)).warnings ?? []).join('\n'), /No robots|No sitemap/);
 });
