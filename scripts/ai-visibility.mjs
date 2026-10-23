@@ -53,16 +53,29 @@ export function parseRobots(text) {
       if (!groups.has(value.toLowerCase())) groups.set(value.toLowerCase(), []);
     } else if (k === 'disallow' || k === 'allow') {
       inRules = true;
-      if (k === 'disallow') for (const a of agents) groups.get(a).push(value);
+      if (value) for (const a of agents) groups.get(a).push({ allow: k === 'allow', path: value });
     }
   }
   return groups;
 }
 
-/** True when the agent may fetch "/" (its own group, else the * group). */
+/** True when the agent may fetch "/" (its own group, else the * group).
+ *  RFC 9309: the longest matching rule wins and Allow wins a tie, so an
+ *  allowlist ("Allow: /$" + "Disallow: /") still opens the homepage. */
 export function rootAllowed(groups, agent) {
   const rules = groups.get(agent.toLowerCase()) ?? groups.get('*') ?? [];
-  return !rules.includes('/');
+  const matchesRoot = (path) => ['/', '/$', '/*', '*'].includes(path);
+  const hits = rules.filter((r) => matchesRoot(r.path));
+  if (!hits.length) return true;
+  const best = Math.max(...hits.map((r) => r.path.length));
+  return hits.some((r) => r.allow && r.path.length >= best);
+}
+
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+/** Decode the HTML entities a framework puts into attribute values. */
+export function decodeEntities(text) {
+  return text?.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) =>
+    e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : Number(e.slice(1))) : (ENTITIES[e.toLowerCase()] ?? m));
 }
 
 /** All JSON-LD nodes in an HTML page, flattened through @graph. Bad JSON is skipped. */
@@ -78,7 +91,8 @@ export function jsonLdNodes(html) {
 }
 
 const types = (node) => [node['@type']].flat();
-export const meta = (html, attr, name) =>
+export const meta = (html, attr, name) => decodeEntities(rawMeta(html, attr, name));
+const rawMeta = (html, attr, name) =>
   new RegExp(`<meta[^>]*${attr}="${name}"[^>]*content="([^"]*)"`).exec(html)?.[1]
   ?? new RegExp(`<meta[^>]*content="([^"]*)"[^>]*${attr}="${name}"`).exec(html)?.[1];
 
