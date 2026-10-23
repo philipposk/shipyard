@@ -123,6 +123,10 @@ export async function main(args, deps = {}) {
     if (v) {
       env[n] = v;
       values.push(v);
+    } else {
+      // run() merges over process.env, so a key exported in the shell would slip through
+      // even though it is not in the keys file. Undefined drops it from the child's environment.
+      env[n] = undefined;
     }
   }
   log.info('Making the voice and word timings. This usually takes under a minute...');

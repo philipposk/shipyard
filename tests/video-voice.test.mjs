@@ -47,6 +47,9 @@ const report = async (app) => JSON.parse(await readFile(path.join(app.dir, 'vide
 
 test('keys reach the voice step through its environment only: never argv, never a file in video/', async () => {
   const app = await fixture();
+  // A voice key exported in the shell (not in the keys file) must not reach the child either.
+  const saved = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = GEMINI;
   try {
     const r = await main(args({ _: [app.dir], tag: 'launch', provider: 'openai', voice: 'cedar', pace: 'fast' }), {
       run: realRun,
@@ -71,6 +74,8 @@ test('keys reach the voice step through its environment only: never argv, never 
     assert.equal(r.seconds, 10);
     assert.match(r.captions, /launch\.vtt$/);
   } finally {
+    if (saved === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = saved;
     await removeDir(app.parent);
   }
 });
@@ -86,7 +91,10 @@ test('only the voice keys are handed over: account-level keys stay home', async 
       run, readSecrets: secrets({ OPENAI_API_KEY: OPENAI, SUPABASE_ACCESS_TOKEN: ('sbp_' + 'account_level_0123456789'), STRIPE_SECRET_KEY: ('sk_' + 'test_0123456789abcdefghij') }),
     });
     const env = run.calls[0].env;
-    assert.deepEqual(Object.keys(env).sort(), ['OPENAI_API_KEY', 'VOICE_PROVIDER']);
+    // Only these carry values; voice keys not in the keys file are set to undefined so the shell's copies are dropped.
+    assert.deepEqual(Object.keys(env).filter((k) => env[k] !== undefined).sort(), ['OPENAI_API_KEY', 'VOICE_PROVIDER']);
+    assert.ok('DEEPGRAM_API_KEY' in env && env.DEEPGRAM_API_KEY === undefined);
+    assert.ok(!('SUPABASE_ACCESS_TOKEN' in env) && !('STRIPE_SECRET_KEY' in env));
     assert.equal(run.calls[0].input, undefined);
     assert.equal(run.calls[0].cmd, 'node');
     assert.deepEqual(run.calls[0].args, ['scripts/voice.mjs', '--script=launch', '--tag=launch']);
