@@ -80,3 +80,19 @@ test('the new text has no em dashes', async () => {
   ];
   for (const [rel, rd] of files) assert.ok(!(await rd(rel)).includes('—'), `${rel} has an em dash`);
 });
+
+test('onboarding: the skip cookie is signed and bound to the user, and API routes are gated too (CommitR)', async () => {
+  const proxy = await read('src/proxy.ts');
+  assert.match(proxy, /from "@\/lib\/auth\/onboarded-cookie\.mjs"/);
+  assert.match(proxy, /verifyOnboarded\(req\.cookies\.get\(ONBOARDED_COOKIE\)\?\.value, user\.id, secret\)/, 'the cookie is checked against this user');
+  assert.match(proxy, /res\.cookies\.set\(ONBOARDED_COOKIE, signed,/, 'only a signed value is stored');
+  assert.doesNotMatch(proxy, /cookies\.set\(ONBOARDED_COOKIE, (user\.id|"1")/, 'never a plain value');
+  assert.doesNotMatch(proxy, /if \(pathname\.startsWith\("\/api\/"\)\) return res;/, 'API routes must not skip the onboarding gate');
+  assert.match(proxy, /"onboarding_required"[^\n]*status: 403/);
+  for (const allowed of ['"/profile/edit"', '"/api/profile"', '"/api/account"', '"/settings"']) {
+    assert.ok(proxy.slice(proxy.indexOf('const ONBOARDING_ALLOWED'), proxy.indexOf('const ONBOARDED_COOKIE')).includes(allowed), `${allowed} stays reachable before setup`);
+  }
+  const lib = await read('src/lib/auth/onboarded-cookie.mjs');
+  assert.doesNotMatch(lib, /NEXT_PUBLIC_/, 'the secret is never a public variable');
+  assert.doesNotMatch(lib, /from "node:/, 'Web Crypto only, so it runs in the proxy');
+});

@@ -1,13 +1,15 @@
 // Next 16 renamed middleware.ts to proxy.ts (the function is called `proxy`). It runs before every page and:
 //   1. refreshes the login session so it does not expire while someone is using the app,
 //   2. sends signed-out visitors to /sign-in for private pages,
-//   3. sends signed-in visitors who have not finished their profile to /profile/edit.
+//   3. sends signed-in visitors who have not finished their profile to /profile/edit (pages), or answers
+//      403 {"error":"onboarding_required"} (API routes), so skipping the page does not skip onboarding.
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { authCookieOptions } from "@/lib/supabase/cookies";
 import { SUPABASE_SCHEMA } from "@/lib/supabase/schema.mjs";
 import { SITE_SLUG } from "@/lib/constants";
 import { safeNext } from "@/lib/safe-next.mjs";
+import { onboardedCookieSecret, signOnboarded, verifyOnboarded } from "@/lib/auth/onboarded-cookie.mjs";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -35,10 +37,12 @@ const PUBLIC_PREFIXES = [
 // The route itself must check the token. Keep this list short: any route listed here is reachable without a cookie.
 const BEARER_API_PREFIXES = ["/api/profile"];
 
-// A signed-in person who has not finished their profile may only open these.
-const ONBOARDING_ALLOWED = ["/profile/edit", "/api/profile", "/auth/sign-out", "/settings"];
+// A signed-in person who has not finished their profile may only open these (pages and API routes).
+// Every API route that the pages below call must be listed too, or they answer 403 before setup is done.
+const ONBOARDING_ALLOWED = ["/profile/edit", "/api/profile", "/api/account", "/auth/sign-out", "/settings"];
 
-// Remembers (per browser) which user has a finished profile, so we skip one database lookup per page.
+// Remembers (per browser) which user has a finished profile, so we skip one database lookup per request.
+// The value is `<userId>.<signature>` (src/lib/auth/onboarded-cookie.mjs): a plain value could be typed in by anyone.
 const ONBOARDED_COOKIE = `${SITE_SLUG}_onboarded`;
 
 function matchesPrefix(pathname: string, prefix: string): boolean {
@@ -124,18 +128,29 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (pathname.startsWith("/api/")) return res;
+  if (ONBOARDING_ALLOWED.some((p) => matchesPrefix(pathname, p))) return res;
 
-  if (!ONBOARDING_ALLOWED.some((p) => matchesPrefix(pathname, p)) && req.cookies.get(ONBOARDED_COOKIE)?.value !== user.id) {
-    if (!(await isOnboarded(supabase, user.id))) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/profile/edit";
-      url.search = "";
-      const redirect = NextResponse.redirect(url);
-      res.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-      return redirect;
+  const secret = onboardedCookieSecret();
+  if (await verifyOnboarded(req.cookies.get(ONBOARDED_COOKIE)?.value, user.id, secret)) return res;
+
+  if (!(await isOnboarded(supabase, user.id))) {
+    // API routes enforce onboarding too: otherwise a script (or the browser console) skips the setup page.
+    if (pathname.startsWith("/api/")) {
+      const denied = NextResponse.json({ error: "onboarding_required" }, { status: 403 });
+      res.cookies.getAll().forEach((c) => denied.cookies.set(c));
+      return denied;
     }
-    res.cookies.set(ONBOARDED_COOKIE, user.id, {
+    const url = req.nextUrl.clone();
+    url.pathname = "/profile/edit";
+    url.search = "";
+    const redirect = NextResponse.redirect(url);
+    res.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+    return redirect;
+  }
+
+  const signed = await signOnboarded(user.id, secret);
+  if (signed) {
+    res.cookies.set(ONBOARDED_COOKIE, signed, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

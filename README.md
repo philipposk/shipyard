@@ -148,6 +148,11 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.1
+
+- Security from the CommitR review: the app template's "finished profile" cookie is now signed and tied to the person (a typed-in value no longer skips setup), and API routes refuse people who have not finished setup (403 `onboarding_required`). Existing apps keep working: old cookies are checked once against the database and replaced.
+- New lessons and build rules: server-checked setup flags and protected billing/counter columns, safe outgoing webhooks (no calls to private addresses), token lifetimes and rate limits for agents, payment webhooks that record the event only after saving, analytics only after consent, and "Coming soon" instead of a checkout that cannot finish.
+
 ## What changed in 0.8.0
 
 - New `email` skill: ImprovMX catch-all to Gmail, Gmail "Send mail as" through Resend SMTP (smtp.gmail.com fails DMARC), SPF/DKIM/DMARC, Papaki and Cloudflare DNS steps, `email-check.mjs` (reads public DNS, no keys) and `notify.mjs` (the "<App> is live" email from 6x7-app-factory, with the app as sender, a "why you got this" line and `--dry-run`).
