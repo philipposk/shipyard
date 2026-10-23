@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRobots, rootAllowed, jsonLdNodes, auditChecks, audit, mentions, baseline, summaryMarkdown, main, AI_CRAWLERS } from '../scripts/ai-visibility.mjs';
+import { parseRobots, rootAllowed, decodeEntities, jsonLdNodes, auditChecks, audit, mentions, baseline, summaryMarkdown, main, AI_CRAWLERS } from '../scripts/ai-visibility.mjs';
 
 const DESC = 'A free idea notebook for developers that turns GitHub repos into projects and sorts notes-to-self.';
 const goodHome = `<html><head><meta name="description" content="${DESC}"/><meta property="og:description" content="${DESC}"/>
@@ -71,4 +71,12 @@ test('main: bad usage and missing key', async () => {
   await assert.rejects(main(['baseline', 'https://x.example']), /--name and --queries/);
   const code = await main(['baseline', 'https://x.example', '--name', 'X', '--queries', 'q.json', '--json'], { readFile: async () => '["q"]', readSecrets: async () => new Map(), noWrite: true });
   assert.equal(code, 1);
+});
+
+test('rootAllowed honours an allowlist (Allow: /$ beats Disallow: /) and decodeEntities unescapes meta', () => {
+  const g = parseRobots('User-agent: GPTBot\nAllow: /$\nDisallow: /\n\nUser-agent: *\nDisallow: /\nAllow: /\n');
+  assert.equal(rootAllowed(g, 'GPTBot'), true);
+  assert.equal(rootAllowed(g, 'CCBot'), true);
+  assert.equal(rootAllowed(parseRobots('User-agent: *\nAllow: /help\nDisallow: /'), 'GPTBot'), false);
+  assert.equal(decodeEntities('a business&#x27;s &amp; &quot;x&quot; &#39;y&#39;'), 'a business\'s & "x" \'y\'');
 });
