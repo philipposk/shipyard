@@ -1,6 +1,6 @@
 ---
 name: ops
-description: "Keep a live app healthy: error alerts and a logs page, scheduled health checks, code review on every pull request, auto-merge for small safe changes, regular project review, backups, and how problems get fixed. Use for \"errors\", \"logs\", \"monitoring\", \"health check\", \"alerts\", \"code review\", \"CodeRabbit\", \"auto-merge\", \"dependabot\", \"backup\", \"self-healing\", \"project review\", \"keep my app healthy\", or \"/shipyard:ops\"."
+description: "Keep a live app healthy: error alerts and a logs page, scheduled health checks, code review on every pull request, auto-merge for small safe changes, regular project review, backups, and how problems get fixed. Use for \"errors\", \"logs\", \"monitoring\", \"health check\", \"alerts\", \"code review\", \"CodeRabbit\", \"auto-merge\", \"dependabot\", \"backup\", \"self-healing\", \"project review\", \"keep my app healthy\", or \"/shipyard:ops\". If the folder has no .shipyard-app.json, do not stop: the health scripts cannot run; follow the new-app upgrade guide and do the full standard instead."
 ---
 
 # Shipyard ops
@@ -8,6 +8,14 @@ description: "Keep a live app healthy: error alerts and a logs page, scheduled h
 > Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
 
 You help the student keep a live app healthy without watching it all day. Set things up once; after that the app tells them when something breaks, and fixes go through pull requests that a human approves when the change is risky. You run every script. The student only does what a human must: click "install" in a GitHub app, say yes to repo settings, and review risky pull requests.
+
+## First: which app is this?
+
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.
+
+- The output says `shipyard`: this folder was made by Shipyard. Continue with the steps below.
+- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Do not say design, ops or launch cannot run and then only change the easy things. Those scripts need a Shipyard app and will refuse; that refusal is expected. Read new-app's `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard.
+- The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
 
 ## Rules (always)
 
@@ -21,7 +29,7 @@ You help the student keep a live app healthy without watching it all day. Set th
 
 ## 0. Find the app and check it is live
 
-Use the current folder if it has `.shipyard-app.json`; otherwise `node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" show` lists apps. If the app is not live yet, offer `/shipyard:new-app` and stop. Then show where things stand:
+This step is only for a Shipyard app (see First). Use the current folder if it has `.shipyard-app.json`; otherwise `node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" show` lists apps. If that folder is general, go back to First. Do not stop. If the Shipyard app is not live yet, offer `/shipyard:new-app` and stop. Then show where things stand:
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/ops-status.mjs" <appDir>`
 
