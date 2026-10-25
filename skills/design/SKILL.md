@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Choose or change how an app looks: colours, fonts, layout, homepage style, dark mode, icons. Use for \"design\", \"how my app looks\", \"change the look\", \"change the colours\", \"change the fonts\", \"copy this website's style\", \"make it look like\", \"3 directions\", \"/shipyard:design\", or the sentences \"Shipyard: use the <name> look\" and \"Shipyard: use direction <A|B|C> for <app>\"."
+description: "Choose or change how an app looks: colours, fonts, layout, homepage style, dark mode, icons. Use for \"design\", \"how my app looks\", \"change the look\", \"change the colours\", \"change the fonts\", \"copy this website's style\", \"make it look like\", \"3 directions\", \"/shipyard:design\", or the sentences \"Shipyard: use the <name> look\" and \"Shipyard: use direction <A|B|C> for <app>\". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide and do the full standard, including a proposed look."
 ---
 
 # Shipyard design
@@ -8,6 +8,14 @@ description: "Choose or change how an app looks: colours, fonts, layout, homepag
 > Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
 
 You help a beginner pick how their app looks. A look is more than colours: it also sets the menu style, the homepage style, how cards and buttons feel, and how big the text is. All ways of choosing are free, need no extra account, and end the same way: checked colours and fonts written into the app, a fresh `DESIGN.md` (the app's written look guide), and matching icons.
+
+## First: which app is this?
+
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.
+
+- The output says `shipyard`: this folder was made by Shipyard. Continue with the steps below.
+- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Do not say design, ops or launch cannot run and then only change the easy things. Those scripts need a Shipyard app and will refuse; that refusal is expected. Read new-app's `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard.
+- The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
 
 ## Rules (always)
 
@@ -19,7 +27,7 @@ You help a beginner pick how their app looks. A look is more than colours: it al
 
 ## 1. Find the app
 
-Use the current folder if it has `.shipyard-app.json`. Otherwise ask which app (`node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" show` lists them). No such file means it is not a Shipyard app: stop and explain.
+You already ran `which-app.mjs` (see First). This step is only for a Shipyard app. Use the current folder if it has `.shipyard-app.json`. Otherwise ask which app (`node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" show` lists them). If the chosen folder is general, go back to First. Do not stop.
 
 `Shipyard: tidy themes for <App name>` goes straight to "Tidy themes" below. Two sentences skip the questions. `Shipyard: use the <Look name> look for <App name>` goes straight to step 5 with that look (match the name to an id in `references/presets.md`). `Shipyard: use direction <A|B|C> for <App name>` goes to step 4, "Apply a direction".
 
@@ -117,7 +125,7 @@ For depth and motion (shadows, transitions, glass, grain) read `references/depth
 
 ## Handy facts
 
-- `apply-design.mjs` options: `--preset`, `--tokens`, `--source preset|screenshot|url|design-md|custom`, `--fix`, `--dry-run`, `--set-default`, `--keep-layout`, `--languages`, `--no-icons`, `--json`. Running it twice gives the same result. If it says the colour markers are missing, the app was not made from the Shipyard template: do not hand-edit, explain it.
+- `apply-design.mjs` options: `--preset`, `--tokens`, `--source preset|screenshot|url|design-md|custom`, `--fix`, `--dry-run`, `--set-default`, `--keep-layout`, `--languages`, `--no-icons`, `--json`. Running it twice gives the same result. If it says the colour markers are missing, run `which-app.mjs` again. `general`: do not use this script; write the chosen look into the app's own styles, light and dark, as the upgrade guide says. `shipyard`: the template markers are missing, so do not hand-edit between the markers; explain it.
 - Never edit between the `shipyard:tokens` markers in `globals.css` by hand. Always go through the script.
 - Wanting one colour changed: copy `.shipyard/design/applied.tokens.json`, change it, apply with `--tokens ... --fix`.
 - Apps made before this version lack the size and spacing block. They still get the new colours, with a note that sizes were skipped.

@@ -1,6 +1,6 @@
 ---
 name: new-app
-description: Build and publish a new web app, or bring an existing app up to standard. Use for "new app", "build me an app", "make a website", "publish my app", or "upgrade my app".
+description: Build and publish a new web app, or bring an existing app up to the full Shipyard standard (secrets, data rules, tests, deploy, legal pages, and a proposed look). Use for "new app", "build me an app", "make a website", "publish my app", "upgrade my app", "review my app", "review an existing app", "run Shipyard on this app", or "improve this app". If the folder has no .shipyard-app.json, follow references/upgrade.md. Do not stop.
 ---
 
 # Shipyard new app
@@ -8,6 +8,15 @@ description: Build and publish a new web app, or bring an existing app up to sta
 > Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
 
 You build a real app from an idea and publish it, then prove it works. The student describes what they want in plain words; you do everything technical.
+
+## First: which app is this?
+
+When the current folder is an app that already exists, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` before the steps below.
+
+- The output says `shipyard`: Shipyard made it. If they asked to review it or bring it up to standard, read `references/upgrade.md` and follow it. If they asked for a new app, continue below.
+- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Do not say design, ops or launch cannot run and then only change the easy things. Those scripts will refuse; that is expected. Read `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard.
+- The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
+- There is no app folder yet, only an idea: continue below.
 
 ## Rules (always)
 

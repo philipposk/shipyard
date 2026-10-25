@@ -112,6 +112,36 @@ export const REWRITES = [
     find: 'a lot of Claude usage',
     replace: "a lot of your plan's usage",
   },
+  {
+    id: 'U1',
+    file: 'new-app/references/upgrade.md',
+    find: "Read the design skill's `references/propose.md` and `references/directions.md`.",
+    replace: 'Read `{{SKILLS_DIR}}/shipyard-design/references/propose.md` and `{{SKILLS_DIR}}/shipyard-design/references/directions.md`.',
+  },
+  {
+    id: 'W1',
+    file: 'design/SKILL.md',
+    find: "Read new-app's `references/upgrade.md` and follow it.",
+    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+  },
+  {
+    id: 'W2',
+    file: 'ops/SKILL.md',
+    find: "Read new-app's `references/upgrade.md` and follow it.",
+    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+  },
+  {
+    id: 'W3',
+    file: 'launch/SKILL.md',
+    find: "Read new-app's `references/upgrade.md` and follow it.",
+    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+  },
+  {
+    id: 'W4',
+    file: 'video/SKILL.md',
+    find: "Read new-app's `references/upgrade.md` and follow it.",
+    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+  },
 
   // ---------- design ----------
   {

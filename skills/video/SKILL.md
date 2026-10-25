@@ -1,6 +1,6 @@
 ---
 name: video
-description: Make a motion-designed product video of the student's app (promo, feature walkthrough, how-to) with an AI voice, light and dark, wide and phone cuts, no screen recording. Use for "video", "product video", "demo video", "promo", "explainer", "how-to video", "trailer for my app", or "/shipyard:video".
+description: Make a motion-designed product video of the student's app (promo, feature walkthrough, how-to) with an AI voice, light and dark, wide and phone cuts, no screen recording. Use for "video", "product video", "demo video", "promo", "explainer", "how-to video", "trailer for my app", or "/shipyard:video". If the folder has no .shipyard-app.json and they asked to review or improve the app, do not stop: follow the new-app upgrade guide. The video engine itself still needs a Shipyard app.
 ---
 
 # Shipyard video
@@ -8,6 +8,14 @@ description: Make a motion-designed product video of the student's app (promo, f
 > Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
 
 You make a short, polished video of the student's own app: its screens are rebuilt as code from the app's real colours and fonts, an AI voice narrates, and every animation lands on a spoken word. One set of scenes renders as light, dark, phone (9:16) and silent-with-captions cuts. No screen recording, no editing software.
+
+## First: which app is this?
+
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.
+
+- The output says `shipyard`: this folder was made by Shipyard. Continue with the steps below.
+- The output says `general`: this is an existing app Shipyard did not make. Do not stop. If they asked to review or improve the app, do not make a video yet. Read new-app's `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard. The video engine itself needs a Shipyard app, so say that in one sentence and do the upgrade.
+- The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
 
 ## Rules (always)
 

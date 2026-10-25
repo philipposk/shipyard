@@ -1,6 +1,6 @@
 ---
 name: launch
-description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"publish to the app stores\", \"Capacitor\", \"TestFlight\", \"store screenshots\", \"desktop app\", or \"/shipyard:launch\"."
+description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"publish to the app stores\", \"Capacitor\", \"TestFlight\", \"store screenshots\", \"desktop app\", or \"/shipyard:launch\". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide and do the full standard instead of the launch scripts."
 ---
 
 # Shipyard launch
@@ -8,6 +8,14 @@ description: "Take an app from a free test address to a real product: own domain
 > Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
 
 You take a working app (from `/shipyard:new-app`) to something real users can sign up for, trust and pay. You run every script. The student only does what a human must: buy a domain, paste DNS records at the registrar, verify their identity with Stripe, and pay store fees.
+
+## First: which app is this?
+
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.
+
+- The output says `shipyard`: this folder was made by Shipyard. Continue with the steps below.
+- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Do not say design, ops or launch cannot run and then only change the easy things. Those scripts need a Shipyard app and will refuse; that refusal is expected. Read new-app's `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard.
+- The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
 
 ## Rules (always)
 
@@ -22,7 +30,7 @@ You take a working app (from `/shipyard:new-app`) to something real users can si
 
 ## 0. Find the app and check setup
 
-Use the current folder if it has `.shipyard-app.json`; otherwise `node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" show` lists apps. Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-status.mjs"`. If the app is not live yet, offer `/shipyard:new-app` and stop. An old app without the launch pieces (signup modes, `/privacy`, account deletion, Health page): offer the upgrade in new-app's `references/upgrade.md` first.
+This step is only for a Shipyard app (see First). Use the current folder if it has `.shipyard-app.json`; otherwise `node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" show` lists apps. If that folder is general, go back to First. Do not stop. Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-status.mjs"`. If the Shipyard app is not live yet, offer `/shipyard:new-app` and stop. An old Shipyard app without the launch pieces (signup modes, `/privacy`, account deletion, Health page): offer the upgrade in new-app's `references/upgrade.md` first.
 
 ## 1. Ask one question
 
