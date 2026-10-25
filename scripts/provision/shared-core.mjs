@@ -26,6 +26,7 @@ import {
 
 export const SCHEMA_ENV_NAME = 'NEXT_PUBLIC_SUPABASE_SCHEMA';
 export const SHARED_WARNING = 'Apps in the same project share one login list: someone with an account in another app there can sign in here with the same email and password. Each app\'s data stays separate.';
+export const SHARED_IO_WARNING = 'This project has one disk IO budget for every app in it. Do not add a job that runs every minute, a new realtime feed, or tight polling without saying what it costs. Frequent work belongs in the app, not in database cron.';
 
 const isTrue = (v) => v === true || v === 't' || v === 'true' || v === 1;
 const asRows = (result) => (Array.isArray(result) ? result : []);
@@ -172,6 +173,7 @@ export async function provisionShared(opts, deps = {}) {
   const skipped = planned.filter((m) => applied.has(m.file)).map((m) => m.file);
 
   log.warn(SHARED_WARNING);
+  log.warn(SHARED_IO_WARNING);
 
   const plan = {
     createSchema: !exists,
@@ -196,7 +198,7 @@ export async function provisionShared(opts, deps = {}) {
     log.info('Site URL, email settings, providers, the public schema and auth.users triggers: never touched.');
     return {
       ok: true, dryRun: true, shared: true, ref, schema, snapshotFile: snapshotRel, plan,
-      probesBefore: preProbe, warnings: [SHARED_WARNING],
+      probesBefore: preProbe, warnings: [SHARED_WARNING, SHARED_IO_WARNING],
     };
   }
 
@@ -264,7 +266,7 @@ export async function provisionShared(opts, deps = {}) {
   const diff = diffSnapshots(pre, post, { schema, dbSchemasAfter: merge.list, allowListAdds: additions });
   const probeAfter = await probe([...new Set([...baseList, schema])], 4);
   const broken = [];
-  const warnings = [SHARED_WARNING];
+  const warnings = [SHARED_WARNING, SHARED_IO_WARNING];
   for (const s of baseList) {
     if (probeAfter[s] === 'not-exposed') {
       if (preProbe[s] === 'not-exposed') warnings.push(`The API did not serve "${s}" before this run either, so that is not caused by this change.`);

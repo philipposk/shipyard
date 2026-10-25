@@ -63,7 +63,7 @@ After the report, do every **Fix now** item, then **Should fix**, unless they na
 
 ## 5. Stack differences
 
-- **Next.js with Supabase**: use the template's pieces as the model (proxy, cookies, migrations with row level security, `secret-scan.mjs`, `.github/workflows/test.yml`, `AGENTS.md`). Copy the idea, adapt names.
+- **Next.js with Supabase**: use the template's pieces as the model (proxy, cookies, migrations with row level security and explicit grants, `/api/health` that really reads one row, sign-in timeouts in `auth-fetch.mjs`, `secret-scan.mjs`, `.github/workflows/test.yml`, `AGENTS.md`). Copy the idea, adapt names. If sign-in hangs, check the Supabase project before the browser (`skills/ops/references/db-outage.md`).
 - **Other stacks** (Flutter, plain HTML, other servers): no template. Turn each rule into a check that fits their stack, and say clearly what could not be automated. For mobile apps, a web version can be built later with `/shipyard:new-app` and share the same Supabase project.
 
 ## 6. Finish

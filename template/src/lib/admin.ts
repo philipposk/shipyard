@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
+import { authRequestFetch } from "@/lib/supabase/auth-fetch.mjs";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { SUPABASE_SCHEMA } from "@/lib/supabase/schema.mjs";
 
@@ -17,6 +18,7 @@ export function createSupabaseAdmin() {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
     db: { schema: SUPABASE_SCHEMA },
+    global: { fetch: authRequestFetch() },
   });
 }
 

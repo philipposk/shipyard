@@ -85,7 +85,7 @@ Google's screen reads "Sign in to continue to <host>". With Supabase's redirect 
 
 ## Go-live check
 
-`node "${CLAUDE_PLUGIN_ROOT}/scripts/launch-check.mjs" <appDir>` (add `--live` before taking real money). It runs the full verify plus launch checks (legal pages, domain, email, Stripe objects, account deletion, store files). Show the tick/cross list. For each cross say what it means for their users, then fix it or give the one thing the student must do. The admin Health page (`/admin/health`, admins only) shows the same kind of list on the live site.
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/launch-check.mjs" <appDir>` (add `--live` before taking real money). It runs the full verify plus launch checks (legal pages, domain, email, Stripe objects, account deletion, store files). Show the tick/cross list. For each cross say what it means for their users, then fix it or give the one thing the student must do. The admin Health page (`/admin/health`, admins only) shows the same kind of list on the live site. Also register an outside uptime check on `https://<the app>/api/health`, about every 5 minutes, expecting 200 (see the ops skill's `references/db-outage.md`). The GitHub health workflow only runs every 6 hours.
 
 ## Hand off
 

@@ -106,17 +106,51 @@ export function relations(sql) {
 }
 
 
-/** Roles a grant is given to, from the text after its last " to ". */
-function grantedTo(st) {
-  const idx = st.toLowerCase().lastIndexOf(" to ");
+/** Roles named after the last ` to ` or ` from `. */
+function rolesAfter(st, word) {
+  const idx = st.toLowerCase().lastIndexOf(` ${word} `);
   if (idx === -1) return [];
   return st
-    .slice(idx + 4)
+    .slice(idx + word.length + 2)
     .replace(/\bwith\s+grant\s+option\b/i, "")
     .replace(/\bgranted\s+by\b.*$/i, "")
+    .replace(/\bcascade\b|\brestrict\b/gi, "")
     .split(",")
     .map((r) => r.replace(/^\s*group\s+/i, "").replace(/"/g, "").trim().toLowerCase())
     .filter(Boolean);
+}
+
+/** Roles a grant is given to, from the text after its last " to ". */
+function grantedTo(st) {
+  return rolesAfter(st, "to");
+}
+
+/** Table names in a grant or revoke, lowercase, public schema only. `["*"]` means every table in public. */
+function tablesInPrivilege(st, word) {
+  if (new RegExp(`\\bon\\s+all\\s+tables\\s+in\\s+schema\\s+(?:"public"|public)\\b`, "i").test(st)) return ["*"];
+  if (/\bon\s+(?:schema|function|procedure|routine|sequence|type|domain)\b/i.test(st)) return [];
+  const on = new RegExp(`\\bon\\s+(?:table\\s+)?([\\s\\S]+?)\\s+${word}\\s+`, "i").exec(st);
+  if (!on) return [];
+  const names = [];
+  const re = new RegExp(QUALIFIED, "gi");
+  for (const m of on[1].matchAll(re)) {
+    const [schema, name] = qualified(m, 1);
+    if (name && isPublicSchema(schema)) names.push(name);
+  }
+  return names;
+}
+
+/**
+ * Cron schedules in the migrations (including inside `do $$` bodies, which `statements()` blanks).
+ * A minute field that is not one number runs more than once an hour.
+ * @returns {{ name: string, schedule: string }[]}
+ */
+function cronJobs(sql) {
+  const text = sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const jobs = [];
+  const re = /cron\.schedule\w*\s*\(\s*'+\s*([^']*?)\s*'+\s*,\s*'+\s*([^']*?)\s*'+/gi;
+  for (const m of text.matchAll(re)) jobs.push({ name: m[1], schedule: m[2] });
+  return jobs;
 }
 
 /**
@@ -228,6 +262,53 @@ export function findProblems(sql, isolation = []) {
       if (m[1] && /^auth\s*\.$/i.test(m[1].trim())) continue;
       problems.push(`policy "${name}" calls ${fn}(${m[3]}) once per row. Check it as  ${m[3]} in (select <schema>.allowed_ids())  with a stable security definer function that returns the allowed ids.`);
       break;
+    }
+  }
+
+  // 6. Every table names who may use it. From 30 Oct 2026 Supabase does not grant new public tables
+  // to anon, authenticated or service_role. A missing grant fails before any privacy rule runs.
+  const serviceRole = new Set();
+  const authenticated = new Set();
+  const authenticatedRevoked = new Set();
+  let serviceRoleAll = false;
+  let authenticatedAll = false;
+  let authenticatedRevokedAll = false;
+  for (const st of sts) {
+    if (/^grant\b/i.test(st)) {
+      const roles = grantedTo(st);
+      const names = tablesInPrivilege(st, "to");
+      const all = names.includes("*");
+      if (roles.includes("service_role")) {
+        if (all) serviceRoleAll = true;
+        for (const name of names) if (name !== "*") serviceRole.add(name);
+      }
+      if (roles.includes("authenticated")) {
+        if (all) authenticatedAll = true;
+        for (const name of names) if (name !== "*") authenticated.add(name);
+      }
+    } else if (/^revoke\s+all\b/i.test(st) && rolesAfter(st, "from").includes("authenticated")) {
+      const names = tablesInPrivilege(st, "from");
+      if (names.includes("*")) authenticatedRevokedAll = true;
+      for (const name of names) if (name !== "*") authenticatedRevoked.add(name);
+    }
+  }
+  for (const table of tables) {
+    const hasService = serviceRoleAll || serviceRole.has(table);
+    const hasAuth = authenticatedAll || authenticated.has(table) || authenticatedRevokedAll || authenticatedRevoked.has(table);
+    if (hasService && hasAuth) continue;
+    const missing = [hasService ? "" : "service_role", hasAuth ? "" : "authenticated"].filter(Boolean).join(" and ");
+    problems.push(
+      `public.${table} has no explicit grant for ${missing}. From 30 Oct 2026 Supabase does not grant new public tables for you. Add \`grant ... on public.${table} to service_role\`, and either grant signed-in people the privileges they need or \`revoke all on public.${table} from authenticated\` for a server-only table.`
+    );
+  }
+
+  // 7. A database job that runs more than once an hour spends the shared project's disk IO budget.
+  for (const job of cronJobs(sql)) {
+    const minute = job.schedule.trim().split(/\s+/)[0] ?? "";
+    if (!/^\d{1,2}$/.test(minute) || Number(minute) > 59) {
+      problems.push(
+        `cron job "${job.name}" runs more than once an hour (${job.schedule}). On a shared database that burns the disk IO budget. Run it at most hourly, or move the work into the app.`
+      );
     }
   }
 

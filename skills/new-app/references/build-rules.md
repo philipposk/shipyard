@@ -15,6 +15,8 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Nothing changes on a GET (sign-out, delete, join, confirm are POST buttons). A one-time sign-in token is never used by opening a link: the link opens a page, and a button confirms. Mail scanners and crafted links fire GETs.
 - Any link sent by email is built from the site address setting, never from the request's Host header. Check every `next` or redirect value points to the same site.
 - Lists, totals and leaderboards read every row (the database returns at most 1000 per request) in a fixed order. Never trust one query for "all".
+- A shared database has one disk IO budget. Do not add a job that runs every minute, a new realtime feed, or tight polling without stating the cost. Frequent work runs in the app. New tables need an explicit grant (`service_role`, and `authenticated` or a full revoke for a server-only table).
+- If sign-in or a page hangs, check the Supabase project's health before changing code or opening the browser. `/api/health` must keep doing a real one-row read.
 - Limits go on what strangers can trigger (sign-up, emails sent), never on the sign-in of someone who already has an account.
 - If the app keeps score (points, streaks, correct answers), the server works it out and stores it. Answers and solutions never reach the browser before the person has played.
 

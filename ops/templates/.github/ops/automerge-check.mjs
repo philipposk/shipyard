@@ -51,6 +51,8 @@ export const RISKY_PATHS = [
   ".githooks/",
   "scripts/",
   "src/app/api/ops/",
+  // Uptime probe. It uses the server key for one row-less read, so a robot must not change it.
+  "src/app/api/health/route.ts",
   // How the app is built and shipped.
   "package.json",
   "next.config.ts",

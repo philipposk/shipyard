@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { authRequestFetch } from "./auth-fetch.mjs";
 import { authCookieOptions } from "./cookies";
 import { SUPABASE_SCHEMA } from "./schema.mjs";
 
@@ -12,6 +13,7 @@ export async function createSupabaseServer() {
     {
       cookieOptions: authCookieOptions,
       db: { schema: SUPABASE_SCHEMA },
+      global: { fetch: authRequestFetch() },
       cookies: {
         getAll() {
           return cookieStore.getAll();

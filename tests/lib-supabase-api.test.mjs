@@ -204,3 +204,19 @@ test('orgSlug prefers slug, falls back to id', () => {
   assert.equal(S.orgSlug({ id: 'old', slug: 'new' }), 'new');
   assert.equal(S.orgSlug({ id: 'old' }), 'old');
 });
+
+test('projectHealth asks for the database, sign-in and data API', async () => {
+  const f = fakeFetch([{ status: 200, body: [{ name: 'db', healthy: true, status: 'ACTIVE_HEALTHY' }] }]);
+  const rows = await S.projectHealth(auth(f), 'abcdefghijklmnopqrst');
+  assert.equal(rows[0].name, 'db');
+  assert.equal(f.calls[0].method, 'GET');
+  assert.equal(f.calls[0].url, 'https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/health?services=db&services=auth&services=rest');
+});
+
+test('restartProject POSTs the restart endpoint and sends no body', async () => {
+  const f = fakeFetch([{ status: 200, body: {} }]);
+  await S.restartProject(auth(f), 'abcdefghijklmnopqrst');
+  assert.equal(f.calls[0].method, 'POST');
+  assert.equal(f.calls[0].url, 'https://api.supabase.com/v1/projects/abcdefghijklmnopqrst/restart');
+  assert.equal(f.calls[0].body, undefined);
+});

@@ -3,9 +3,13 @@
 //   2. sends signed-out visitors to /sign-in for private pages,
 //   3. sends signed-in visitors who have not finished their profile to /profile/edit (pages), or answers
 //      403 {"error":"onboarding_required"} (API routes), so skipping the page does not skip onboarding.
+// Each Supabase call from here gives up after a few seconds. A stalled database must not hold the page
+// open: the sign-in page then shows a plain message instead of spinning. /api/health never waits on
+// sign-in; it checks the database itself.
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { authCookieOptions } from "@/lib/supabase/cookies";
+import { AUTH_DEADLINE_MS, AUTH_REQUEST_MS, AUTH_TIMEOUT_MESSAGE, gateFetch, withDeadline } from "@/lib/supabase/auth-fetch.mjs";
+import { authCookieOptions, hasAuthCookie } from "@/lib/supabase/cookies";
 import { SUPABASE_SCHEMA } from "@/lib/supabase/schema.mjs";
 import { SITE_SLUG } from "@/lib/constants";
 import { safeNext } from "@/lib/safe-next.mjs";
@@ -49,10 +53,15 @@ function matchesPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
+function isPublic(pathname: string): boolean {
+  return pathname === "/" || PUBLIC_PREFIXES.some((p) => matchesPrefix(pathname, p));
+}
+
 function createProxySupabase(req: NextRequest, res: NextResponse) {
   return createServerClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
     cookieOptions: authCookieOptions,
     db: { schema: SUPABASE_SCHEMA },
+    global: { fetch: gateFetch() },
     cookies: {
       getAll() {
         return req.cookies.getAll();
@@ -65,14 +74,20 @@ function createProxySupabase(req: NextRequest, res: NextResponse) {
   });
 }
 
-// A person with no profile row yet counts as not finished: they go to /profile/edit, which creates the row.
-async function isOnboarded(supabase: ReturnType<typeof createProxySupabase>, userId: string): Promise<boolean> {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("onboarding_complete")
-    .eq("id", userId)
-    .maybeSingle();
-  return profile?.onboarding_complete === true;
+// true = finished, false = not finished, null = the database did not answer in time.
+async function isOnboarded(supabase: ReturnType<typeof createProxySupabase>, userId: string): Promise<boolean | null> {
+  try {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("onboarding_complete")
+      .eq("id", userId)
+      .abortSignal(AbortSignal.timeout(AUTH_REQUEST_MS))
+      .maybeSingle();
+    if (error) return null;
+    return profile?.onboarding_complete === true;
+  } catch {
+    return null;
+  }
 }
 
 export async function proxy(req: NextRequest) {
@@ -84,10 +99,11 @@ export async function proxy(req: NextRequest) {
     return process.env.NODE_ENV === "production" ? new NextResponse(null, { status: 404 }) : NextResponse.next();
   }
 
+  // Uptime probe. It must not wait on sign-in: while the database is stuck, that wait never ends,
+  // and the probe would time out before it could report the database as down.
+  if (matchesPrefix(pathname, "/api/health")) return NextResponse.next();
+
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    if (pathname.startsWith("/api/health")) {
-      return NextResponse.json({ status: "degraded", app: SITE_SLUG });
-    }
     // API callers read JSON, so they get JSON here too.
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
@@ -95,23 +111,41 @@ export async function proxy(req: NextRequest) {
     return new NextResponse("Service temporarily unavailable", { status: 503 });
   }
 
-  // Always ask Supabase who this is, so an expiring session gets renewed on its way through.
   const res = NextResponse.next({ request: req });
-  const supabase = createProxySupabase(req, res);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: { id: string } | null = null;
+  let databaseUnreachable = false;
 
-  // Already signed in: skip the sign-in page.
-  if (pathname === "/sign-in" && user) {
-    const url = req.nextUrl.clone();
-    url.pathname = (await isOnboarded(supabase, user.id))
-      ? safeNext(req.nextUrl.searchParams.get("next"), "/")
-      : "/profile/edit";
-    url.search = "";
-    const redirect = NextResponse.redirect(url);
-    res.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-    return redirect;
+  // No login cookie means signed out. Do not call Supabase: every anonymous page view would
+  // spend the shared database's IO budget, and a stuck database would freeze the public pages.
+  if (hasAuthCookie(req.cookies.getAll())) {
+    const supabase = createProxySupabase(req, res);
+    try {
+      const raced = await withDeadline(supabase.auth.getUser(), AUTH_DEADLINE_MS);
+      if (raced.timedOut) databaseUnreachable = true;
+      else if (raced.value.error?.name === "AuthRetryableFetchError") databaseUnreachable = true;
+      else user = raced.value.data.user;
+    } catch {
+      databaseUnreachable = true;
+    }
+
+    if (!databaseUnreachable && user && pathname === "/sign-in") {
+      const onboarded = await isOnboarded(supabase, user.id);
+      if (onboarded === null) databaseUnreachable = true;
+      else {
+        const url = req.nextUrl.clone();
+        url.pathname = onboarded ? safeNext(req.nextUrl.searchParams.get("next"), "/") : "/profile/edit";
+        url.search = "";
+        const redirect = NextResponse.redirect(url);
+        res.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+        return redirect;
+      }
+    }
+
+    if (databaseUnreachable) {
+      const down = databaseDown(req);
+      if (down) return down;
+      return res;
+    }
   }
 
   if (PUBLIC_PREFIXES.some((p) => matchesPrefix(pathname, p))) return res;
@@ -139,7 +173,14 @@ export async function proxy(req: NextRequest) {
   const secret = onboardedCookieSecret();
   if (await verifyOnboarded(req.cookies.get(ONBOARDED_COOKIE)?.value, user.id, secret)) return res;
 
-  if (!(await isOnboarded(supabase, user.id))) {
+  const supabase = createProxySupabase(req, res);
+  const onboarded = await isOnboarded(supabase, user.id);
+  if (onboarded === null) {
+    const down = databaseDown(req);
+    if (down) return down;
+    return res;
+  }
+  if (!onboarded) {
     // API routes enforce onboarding too: otherwise a script (or the browser console) skips the setup page.
     if (pathname.startsWith("/api/")) {
       const denied = NextResponse.json({ error: "onboarding_required" }, { status: 403 });
@@ -166,6 +207,25 @@ export async function proxy(req: NextRequest) {
   }
 
   return res;
+}
+
+// The database did not answer. Private pages go to the sign-in page, which says so. Public pages still render.
+// Defined below the proxy on purpose: the signed-out 401-JSON branch must stay the first sign-in answer in the file.
+function databaseDown(req: NextRequest): NextResponse | null {
+  const { pathname } = req.nextUrl;
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: AUTH_TIMEOUT_MESSAGE }, { status: 503, headers: { "Cache-Control": "no-store" } });
+  }
+  if (pathname === "/sign-in" && req.nextUrl.searchParams.get("error") === "unavailable") return null;
+  if (!isPublic(pathname) || pathname === "/sign-in") {
+    const url = req.nextUrl.clone();
+    url.pathname = "/sign-in";
+    url.search = "";
+    url.searchParams.set("error", "unavailable");
+    if (pathname !== "/sign-in") url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+  return null;
 }
 
 export const config = {

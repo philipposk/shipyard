@@ -12,3 +12,4 @@
 - Use cheaper models or helper agents for mechanical work (renames, running tests, searching). Keep the strongest model for hard decisions and security.
 - Keep few MCP servers and skills switched on. Each one uses up part of my usage every turn.
 - Say so when you are unsure. Do not invent numbers, reviews or facts.
+- If sign-in or a page hangs, check the Supabase project's health (database, sign-in, and the data API) before the browser. `/auth/v1/health` can say OK while the database is stuck.

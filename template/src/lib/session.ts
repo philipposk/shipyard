@@ -1,16 +1,25 @@
 import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { AUTH_DEADLINE_MS, withDeadline } from "@/lib/supabase/auth-fetch.mjs";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { hasAuthCookie } from "@/lib/supabase/cookies";
 
-/** The verified signed-in user (Supabase checks the login), or null. Cached for one request. */
+/**
+ * The verified signed-in user (Supabase checks the login), or null. Cached for one request.
+ * No login cookie means we do not call Supabase at all. A call that does not answer in time
+ * is treated as signed out for this request, so a stalled database cannot hold the page open.
+ */
 export const getSessionUser = cache(async () => {
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  try {
+    if (!(await hasSessionCookie())) return null;
+    const supabase = await createSupabaseServer();
+    const raced = await withDeadline(supabase.auth.getUser(), AUTH_DEADLINE_MS);
+    if (raced.timedOut) return null;
+    return raced.value.data.user ?? null;
+  } catch {
+    return null;
+  }
 });
 
 /** Cheap check for public pages that only need to pick a header: is there a login cookie? Does not call Supabase. */

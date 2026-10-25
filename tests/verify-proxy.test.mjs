@@ -141,8 +141,13 @@ test('works for apps without a src folder', async (t) => {
   const dir = await tempDir();
   t.after(() => removeDir(dir));
   await mkdir(path.join(dir, 'lib/supabase'), { recursive: true });
-  await writeFile(path.join(dir, 'proxy.ts'), 'const PUBLIC_PREFIXES = ["/api/auth"];\nexport function proxy() {}\n');
+  await mkdir(path.join(dir, 'app/api/health'), { recursive: true });
+  await writeFile(path.join(dir, 'proxy.ts'), 'const PUBLIC_PREFIXES = ["/api/auth", "/api/health"];\nexport function proxy() { matchesPrefix(pathname, "/api/health"); gateFetch(); AUTH_DEADLINE_MS; }\n');
   await writeFile(path.join(dir, 'lib/supabase/cookies.ts'), 'export const AUTH_COOKIE_NAME = "sb-x-auth";\n');
+  await writeFile(path.join(dir, 'lib/supabase/auth-fetch.mjs'), 'export const AUTH_TIMEOUT_MESSAGE = "x";\nexport function authTimeoutFetch() {}\nexport function authRequestFetch() {}\nexport function gateFetch() {}\nif (url.includes("/storage/v1/")) {}\n');
+  await writeFile(path.join(dir, 'lib/supabase/client.ts'), 'authTimeoutFetch();\n');
+  await writeFile(path.join(dir, 'lib/supabase/server.ts'), 'authRequestFetch();\n');
+  await writeFile(path.join(dir, 'app/api/health/route.ts'), 'head: true;\nAbortSignal.timeout(5000);\nstatus: 503;\n');
   const r = await run(dir);
   assert.equal(r.ok, true, JSON.stringify(r));
 });

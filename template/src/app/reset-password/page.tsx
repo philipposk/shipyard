@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AUTH_TIMEOUT_MESSAGE, isAuthTimeout } from "@/lib/supabase/auth-fetch.mjs";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/PasswordInput";
 import { BRAND } from "@/lib/constants";
@@ -23,7 +24,16 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     createSupabaseBrowser()
       .auth.getUser()
-      .then(({ data: { user } }) => setEmail(user?.email ?? null))
+      .then(({ data: { user }, error }) => {
+        if (isAuthTimeout(error)) {
+          setError(AUTH_TIMEOUT_MESSAGE);
+          return;
+        }
+        setEmail(user?.email ?? null);
+      })
+      .catch((err: unknown) => {
+        if (isAuthTimeout(err)) setError(AUTH_TIMEOUT_MESSAGE);
+      })
       .finally(() => setChecking(false));
   }, []);
 
@@ -44,7 +54,7 @@ export default function ResetPasswordPage() {
       const supabase = createSupabaseBrowser();
       const { error: updateErr } = await supabase.auth.updateUser({ password });
       if (updateErr) {
-        setError(updateErr.message);
+        setError(isAuthTimeout(updateErr) ? AUTH_TIMEOUT_MESSAGE : updateErr.message);
         return;
       }
       // Sign this account out on every other device; this browser stays signed in.
@@ -69,7 +79,7 @@ export default function ResetPasswordPage() {
 
       {!email ? (
         <>
-          <p className="text-sm text-center mb-6 muted">This reset link is invalid or has expired. Each link works once.</p>
+          <p className="text-sm text-center mb-6 muted">{error || "This reset link is invalid or has expired. Each link works once."}</p>
           <Link href="/sign-in?mode=forgot" className="btn btn-primary w-full">Request a new link</Link>
         </>
       ) : done ? (

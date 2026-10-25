@@ -1,6 +1,7 @@
 -- 0002_items.sql
 -- Example table: a personal list. Every row belongs to one person, and only that person can see or change it.
 -- Copy this pattern for each new table: user_id column, RLS on, one policy per action, an index on user_id,
+-- explicit grants (service_role, and authenticated only for what signed-in people may do; nothing for anon),
 -- and an entry in supabase/isolation.json so `verify` tests it.
 -- Safe to run more than once.
 

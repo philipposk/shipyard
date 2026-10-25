@@ -1,4 +1,5 @@
-// Guards the rules in AGENTS.md: every table has privacy rules (RLS) and is listed in supabase/isolation.json,
+// Guards the rules in AGENTS.md: every table has privacy rules (RLS), is listed in supabase/isolation.json,
+// names who may use it (explicit grants), and no cron job runs more than once an hour,
 // so `verify` checks that one person cannot read another's rows. Runs in CI on every pull request.
 // The rules themselves live in schema-rules-lib.mjs and are tested on bad examples in schema-rules-checker.test.mjs.
 import { test } from "node:test";

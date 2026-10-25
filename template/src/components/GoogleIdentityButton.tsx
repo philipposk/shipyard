@@ -10,6 +10,7 @@
  * If the GIS script can't load (blocked, offline), the children (the old redirect button) render.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AUTH_TIMEOUT_MESSAGE, isAuthTimeout } from "@/lib/supabase/auth-fetch.mjs";
 
 /** The app's Google OAuth client id (public). Same client as Supabase → Auth → Providers → Google. */
 export const DEFAULT_GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
@@ -106,7 +107,7 @@ export function GoogleIdentityButton({
               token: credential,
               nonce: rawNonce,
             });
-            if (error) cb.current.onError?.("Google sign-in failed. Please try again.");
+            if (error) cb.current.onError?.(isAuthTimeout(error) ? AUTH_TIMEOUT_MESSAGE : "Google sign-in failed. Please try again.");
             else cb.current.onSignedIn();
           },
         });

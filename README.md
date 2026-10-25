@@ -201,6 +201,7 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 ## What changed in 0.8.2
 
 - `launch` gains a full App Store and Google Play guide from shipping a real app: a store-readiness audit (account deletion in the app and on the web, Sign in with Apple, OAuth in the system browser, permission strings, Apple 4.2, a privacy policy that matches the data, a reviewer password login and demo account), the Capacitor 7 wrapper, signing an Android AAB on Linux, iOS screenshots on a Mac, panoramic Playwright screenshots, listing text with App Privacy and Data safety answers, Apple and Google account types, and the gotchas that cost hours.
+- New apps fail closed when the shared database stops answering: `/api/health` reads one row (503 on failure), sign-in gives up instead of spinning, and migrations must grant table access explicitly. `verify` checks the guards. See `skills/ops/references/db-outage.md`.
 
 ## What changed in 0.8.1
 

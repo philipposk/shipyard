@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { AUTH_TIMEOUT_MESSAGE, isAuthTimeout } from "@/lib/supabase/auth-fetch.mjs";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { PasswordInput } from "@/components/PasswordInput";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
@@ -21,7 +22,9 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(
-    searchParams.get("error") === "link_expired"
+    searchParams.get("error") === "unavailable"
+      ? AUTH_TIMEOUT_MESSAGE
+      : searchParams.get("error") === "link_expired"
       ? "That reset link is invalid or has expired. Request a new one."
       : searchParams.get("error") === "confirm_failed"
         ? "That confirmation link did not work. It may have expired or been opened on another device. Sign in, and ask for a new link if asked."
@@ -100,14 +103,15 @@ export default function SignInPage() {
         }
         // The account exists and is confirmed, so sign straight in. The proxy sends new people to finish their profile.
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInErr) setError(signInErr.message);
+        if (signInErr) setError(isAuthTimeout(signInErr) ? AUTH_TIMEOUT_MESSAGE : signInErr.message);
         else window.location.replace(next);
         return;
       }
 
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signInErr) {
-        if (isEmailNotConfirmed(signInErr)) {
+        if (isAuthTimeout(signInErr)) setError(AUTH_TIMEOUT_MESSAGE);
+        else if (isEmailNotConfirmed(signInErr)) {
           setError("Your email is not confirmed yet. Open the link we sent you, or ask for a new one.");
           setOfferResend(true);
         } else {
@@ -117,8 +121,8 @@ export default function SignInPage() {
       }
       // Full page load so the server sees the new login cookie.
       window.location.replace(next);
-    } catch {
-      setError("Could not reach the server. Check your connection and try again.");
+    } catch (err) {
+      setError(isAuthTimeout(err) ? AUTH_TIMEOUT_MESSAGE : "Could not reach the server. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -131,7 +135,7 @@ export default function SignInPage() {
         {mode === "signin" ? BRAND.tagline : mode === "signup" ? "Create your account" : "Reset your password"}
       </p>
 
-      {mode !== "forgot" && <GoogleSignInButton next={nextParam} />}
+      {mode !== "forgot" && <GoogleSignInButton next={nextParam} onError={setError} />}
 
       {confirmSent ? (
         <div className="space-y-4 mt-6">

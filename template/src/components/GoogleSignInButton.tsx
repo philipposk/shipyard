@@ -1,5 +1,6 @@
 "use client";
 
+import { AUTH_TIMEOUT_MESSAGE, isAuthTimeout } from "@/lib/supabase/auth-fetch.mjs";
 import { createSupabaseBrowser } from "@/lib/supabase/client";
 import { GOOGLE_SIGNIN_ENABLED } from "@/lib/constants";
 import { safeNext } from "@/lib/safe-next.mjs";
@@ -18,12 +19,17 @@ function GoogleIcon() {
 }
 
 /** Shows "Continue with Google" only when NEXT_PUBLIC_GOOGLE_SIGNIN_ENABLED=true (needs a Google client set up first). */
-export function GoogleSignInButton({ next }: { next: string | null }) {
+export function GoogleSignInButton({ next, onError }: { next: string | null; onError?: (message: string) => void }) {
   if (!GOOGLE_SIGNIN_ENABLED) return null;
 
   async function signIn() {
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext(next, "/"))}`;
-    await createSupabaseBrowser().auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+    try {
+      const { error } = await createSupabaseBrowser().auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
+      if (error) onError?.(isAuthTimeout(error) ? AUTH_TIMEOUT_MESSAGE : "Google sign-in failed. Please try again.");
+    } catch (err) {
+      onError?.(isAuthTimeout(err) ? AUTH_TIMEOUT_MESSAGE : "Google sign-in failed. Please try again.");
+    }
   }
 
   return (
@@ -33,6 +39,7 @@ export function GoogleSignInButton({ next }: { next: string | null }) {
       <GoogleIdentityButton
         getSupabase={createSupabaseBrowser}
         onSignedIn={() => window.location.assign(safeNext(next, "/"))}
+        onError={onError}
       >
         <button type="button" className="btn btn-secondary w-full" onClick={() => void signIn()}>
           <GoogleIcon />

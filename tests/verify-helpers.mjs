@@ -26,6 +26,8 @@ export async function makeAppFromTemplate(dir, { slug = 'fake-planner', name = A
     'src/lib/supabase/cookies.ts',
     'src/lib/supabase/client.ts',
     'src/lib/supabase/server.ts',
+    'src/lib/supabase/auth-fetch.mjs',
+    'src/app/api/health/route.ts',
     'src/lib/constants.ts',
     'src/app/api/auth/signup/route.ts',
     'src/app/api/auth/forgot-password/route.ts',

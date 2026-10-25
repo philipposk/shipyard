@@ -49,6 +49,8 @@ It lists what is on (error log, health workflow and its last run, review config,
 
 Good order for most people: 1, 2, 3, then 4. Option 1 is the base: the others read from it.
 
+When sign-in or a page hangs, or `/api/health` is not 200, read `references/db-outage.md` before looking at the app or the browser. Check the Supabase project's health first.
+
 ## What each script does
 
 All are in `${CLAUDE_PLUGIN_ROOT}/scripts/`, run with `node`:

@@ -228,6 +228,23 @@ export async function getPostgrestConfig(auth, ref) {
   return { dbSchema: typeof cfg?.db_schema === 'string' ? cfg.db_schema : '' };
 }
 
+/**
+ * Is the project's database, sign-in and data API actually up?
+ * GET /v1/projects/{ref}/health?services=db&services=auth&services=rest
+ * Supabase's own /auth/v1/health can answer 200 while the database is stuck, so it is the wrong check.
+ * `services` defaults to db, auth and rest.
+ */
+export function projectHealth(auth, ref, services = ['db', 'auth', 'rest']) {
+  const q = services.map((s) => `services=${encodeURIComponent(s)}`).join('&');
+  return request(auth, 'GET', `/projects/${seg(ref)}/health?${q}`);
+}
+
+/**
+ * Restart the project. Takes about 5 minutes. Does not refill a used-up disk IO budget:
+ * the same load can stall it again, so cut that load after it comes back.
+ */
+export const restartProject = (auth, ref) => request(auth, 'POST', `/projects/${seg(ref)}/restart`);
+
 /** Run SQL as the database owner. Resolves to the result rows (an array). */
 export const runSql = (auth, ref, query) =>
   request(auth, 'POST', `/projects/${seg(ref)}/database/query`, { query });

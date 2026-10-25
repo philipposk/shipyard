@@ -19,6 +19,8 @@ export const SERVER_KEY_ALLOWED = [
   'lib/newsletter/store.ts',
   // Added by the errors module: the only file that reads and writes the error log.
   'lib/errors/store.ts',
+  // Public uptime probe. One head-only read of profiles, no row returned. See app/api/health/route.ts.
+  'app/api/health/route.ts',
 ];
 
 const USES_SERVER_KEY = /@\/lib\/admin\b|\blib\/admin["'`]|\bSUPABASE_SERVICE_ROLE_KEY\b|\bcreateSupabaseAdmin\b/;

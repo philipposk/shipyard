@@ -130,6 +130,50 @@ export async function check(ctx) {
     }
   }
 
+  // 5. A stuck database must fail in a few seconds, and /api/health must be able to say so
+  // without waiting on sign-in. See skills/ops/references/db-outage.md.
+  const libDir = path.join(srcDir, 'lib', 'supabase');
+  const authFetchPath = path.join(libDir, 'auth-fetch.mjs');
+  if (!(await exists(authFetchPath))) {
+    problems.push('src/lib/supabase/auth-fetch.mjs is missing, so a stuck database can leave sign-in spinning with no error');
+  } else {
+    const authFetch = stripComments(await readFile(authFetchPath, 'utf8'));
+    if (!authFetch.includes('AUTH_TIMEOUT_MESSAGE') || !authFetch.includes('/storage/v1/')) {
+      problems.push('auth-fetch.mjs must time out sign-in and must not time out storage uploads');
+    }
+    const clientPath = path.join(libDir, 'client.ts');
+    const serverPath = path.join(libDir, 'server.ts');
+    const clientCode = await exists(clientPath) ? stripComments(await readFile(clientPath, 'utf8')) : '';
+    const serverCode = await exists(serverPath) ? stripComments(await readFile(serverPath, 'utf8')) : '';
+    if (!clientCode.includes('authTimeoutFetch(')) problems.push('the browser Supabase client does not use authTimeoutFetch, so sign-in can wait forever');
+    if (!serverCode.includes('authRequestFetch(')) problems.push('the server Supabase client does not use authRequestFetch, so a server sign-in check can wait forever');
+    if (!code.includes('gateFetch(') || !code.includes('AUTH_DEADLINE_MS')) {
+      problems.push('proxy.ts does not limit how long it waits for Supabase (gateFetch and AUTH_DEADLINE_MS)');
+    }
+    if (!code.includes('matchesPrefix(pathname, "/api/health")')) {
+      problems.push('proxy.ts calls Supabase before /api/health can answer, so a stuck database hides the outage');
+    }
+  }
+  if (!publicList?.includes('/api/health')) {
+    problems.push('/api/health is not in PUBLIC_PREFIXES, so the uptime check is asked to sign in');
+  }
+  const healthPath = path.join(srcDir, 'app', 'api', 'health', 'route.ts');
+  if (!(await exists(healthPath))) {
+    problems.push('src/app/api/health/route.ts is missing');
+  } else {
+    const health = stripComments(await readFile(healthPath, 'utf8'));
+    if (!/head:\s*true/.test(health) || !/AbortSignal\.timeout/.test(health) || !/status:\s*503/.test(health)) {
+      problems.push('/api/health must read one row with a 5 second limit and answer 503 when that fails. Answering 200 without asking the database hides an outage');
+    }
+  }
+  const signInPath = path.join(srcDir, 'app', 'sign-in', 'page.tsx');
+  if (await exists(signInPath)) {
+    const signIn = stripComments(await readFile(signInPath, 'utf8'));
+    if (!signIn.includes('AUTH_TIMEOUT_MESSAGE')) {
+      problems.push('the sign-in page does not show AUTH_TIMEOUT_MESSAGE, so a stuck sign-in keeps spinning');
+    }
+  }
+
   if (problems.length > 0) return failed(name, `${problems.length} problem${problems.length === 1 ? '' : 's'} in the sign-in gate`, problems, { details });
   return pass(name, 'sign-in gate looks right', details);
 }

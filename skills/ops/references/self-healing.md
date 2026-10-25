@@ -2,6 +2,10 @@
 
 Plain version: the app notices a problem, writes it down, tells the owner, and an agent proposes a fix. A human approves anything risky. The student stays in charge.
 
+## Before the loop, if sign-in or a page hangs
+
+Check the Supabase project's health first (`references/db-outage.md`, `scripts/supabase-health.mjs`). Do not start in the browser. `/auth/v1/health` returning 200 does not mean the database is up. A stuck database looks like a spinner with no error.
+
 ## The loop
 
 1. **Something breaks.** A visitor hits a crash (logged to `/admin/logs`, owner emailed), or the 6-hourly check fails (GitHub issue labelled `ops-alert`).

@@ -6,6 +6,8 @@ Use this when the free plan allows no more projects, or the student wants one pr
 
 "Apps in the same project share one login list: someone with an account in another app there can sign in here with the same email and password. Each app's data stays separate." The script prints the same sentence once.
 
+They also share one disk IO budget. Say that too. Do not add a job that runs every minute, a new realtime feed, or tight polling without saying the cost. The script prints that warning as well. Read `${CLAUDE_PLUGIN_ROOT}/skills/ops/references/db-outage.md`. Do not put a heavy app (realtime, a job every minute, tight polling, a background worker) on a shared free project that is already near its disk IO limit: one budget serves every app there, and a heavy app can use it up and stall them all.
+
 To make people sign in once across apps on subdomains of one domain, see `shared-sign-in.md`.
 
 ## Steps

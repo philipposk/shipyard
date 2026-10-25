@@ -48,6 +48,8 @@ Run `check-tools.mjs`. It prints the install line for the student's system. Typi
 
 The token can manage all their Supabase projects. It stays in the keys file on their computer; nothing else gets it.
 
+Ask them to filter mail from `noreply@supabase.com` (Disk IO budget, usage quota, a project pausing) so it is starred and marked important. That warning sat unread through a six-hour outage. A shared free project has one disk IO budget; see the ops skill's `references/db-outage.md` before adding a heavy app to one.
+
 ## 5. AI keys (optional)
 
 - OpenRouter: openrouter.ai, Keys, Create key. Set a credit limit on the key. Paste into `OPENROUTER_API_KEY`.

@@ -6,6 +6,9 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - ★ Never set a password from an email address alone (account takeover).
 - ★ The login cookie name in `proxy.ts` must match the one Supabase sets; otherwise sign-in appears to work and then loops. Do not share a cookie across domains you do not control.
 - ★ Next.js 16 renamed `middleware.ts` to `proxy.ts`. All `/api/auth/*` routes must be public in it or sign-up answers 405 or shows the sign-in page.
+- ★ `/api/health` is public, skips the sign-in check, and reads one database row with a 5 second limit (503 on failure, no user data). Answering 200 without asking the database hides an outage. `/auth/v1/health` can say OK while the database is stuck.
+- ★ Browser sign-in calls (`/auth/v1/`) give up after about 20 seconds and the sign-in page says it is not responding. Proxy and server sign-in checks give up after 3 seconds each and 5 seconds overall. Storage uploads are never timed out.
+- ★ Every new table has an explicit grant: `service_role`, and either `authenticated` or `revoke all` from `authenticated` for a server-only table. From 30 Oct 2026 Supabase does not grant new `public` tables. Do not grant `anon`. A cron schedule that runs more than once an hour fails the same test.
 - ★ Row level security update rules must limit columns, or a user can make themself admin.
 - ★ Admin comes from a database flag only the server key can set, never from an email address. Starter-mode sign-up does not prove the person owns the email, so an email match would hand admin to the first stranger who types the owner's address.
 - ★ The secret server key skips every privacy rule. A route that uses it and does `select *` without a user filter hands out everyone's rows even when every table has RLS. Use the signed-in person's own client.
@@ -39,6 +42,7 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - A production deploy can end up staged and not live; check the address, and set the alias if needed.
 - Vercel Hobby allows 100 deploys a day: skip deploys for data-only commits.
 - Free Supabase projects pause after a week of no use; wake it in the dashboard before testing.
+- A shared Supabase project has one disk IO budget. A job every minute, a new realtime feed, or tight polling can use it up and stall every app. Sign-in then hangs with no error. Check project health before the browser. Restart does not refill the budget. Filter `noreply@supabase.com` to starred and important.
 - Vercel Hobby forbids commercial use, including taking payments.
 - ★ Vercel Hobby has 4 hours of server CPU a month across all your apps, and going over stops all of them for up to 30 days. One account reached 10 hours in a month: an MCP client reconnecting nonstop (169,000 calls), a job calling an app every minute with nothing to do, open tabs refreshing every 4 seconds, and crawlers. Rules are in `build-rules.md`, "Hosting costs".
 - Crawlers can cost more than visitors. Search crawlers (Googlebot, Bingbot, OAI-SearchBot, PerplexityBot) and link previews (facebookexternalhit) bring people in, so keep them. AI training and SEO crawlers (Amazonbot, KeenableBot, MJ12bot, ElevenlabsCrawler, GPTBot, meta-externalagent, Bytespider, CCBot, AhrefsBot, SemrushBot, DotBot, PetalBot) bring almost nobody. Other AI companies run both kinds too: read their crawler pages for the exact names. Deny them with a Vercel firewall rule on `user_agent`: it stops them before the server wakes, needs no deploy, and is free. `robots.txt` is only a request.

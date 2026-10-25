@@ -30,6 +30,10 @@ A small GitHub workflow looks at the live app every 6 hours and opens one issue 
 - The workflow has the smallest permissions it needs (read the code, write issues) and never uses pull request text in a command.
 - A failing check is not always a bug in the app: a paused Supabase project (free tier, a week of no use) or an expired key also show up here. Read the issue body first.
 
-## When an issue appears
+## An outside check as well
 
-Follow `self-healing.md`. Do not close the issue by hand; fix the cause and let the next run close it.
+The workflow above runs every 6 hours. That is too slow for a database that stops answering: sign-in hangs with no error long before the next run. At launch, also register an outside uptime check (UptimeRobot or the same kind of service) on `https://<the app>/api/health`, about every 5 minutes. Expect HTTP 200. Alert on 503, on a timeout, and on anything else. `/api/health` reads one database row; it is not a process-is-up check.
+
+## When an issue appears, or sign-in hangs
+
+Read `db-outage.md` first and check the Supabase project's health (`scripts/supabase-health.mjs`) before reproducing anything in the browser. Supabase's `/auth/v1/health` can say OK while the database is stuck. Then follow `self-healing.md`. Do not close the issue by hand; fix the cause and let the next run close it.

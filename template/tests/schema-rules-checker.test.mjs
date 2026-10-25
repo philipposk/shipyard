@@ -11,6 +11,7 @@ alter table public.notes enable row level security;
 create policy "notes select own" on public.notes for select to authenticated using (user_id = (select auth.uid()));
 revoke all on public.notes from anon;
 grant select on public.notes to authenticated;
+grant all on public.notes to service_role;
 `;
 
 test("a correct table passes", () => {
@@ -34,15 +35,16 @@ for (const [label, create] of [
 ]) {
   test(`a table created ${label} still needs RLS and an isolation.json entry`, () => {
     const problems = findProblems(create, []);
-    assert.equal(problems.length, 2, problems.join(" | "));
+    assert.equal(problems.length, 3, problems.join(" | "));
     assert.match(problems.join("\n"), /enable row level security/);
     assert.match(problems.join("\n"), /isolation\.json/);
+    assert.match(problems.join("\n"), /explicit grant/);
   });
 }
 
 test("RLS written without the public. prefix or with quotes is recognised", () => {
   for (const alter of ["alter table notes enable row level security;", 'alter table "notes" enable row level security;', "alter table only public.notes enable row level security;"]) {
-    const sql = `create table notes (id uuid, user_id uuid); ${alter}`;
+    const sql = `create table notes (id uuid, user_id uuid); ${alter} revoke all on notes from authenticated; grant all on notes to service_role;`;
     assert.deepEqual(findProblems(sql, iso("notes")), [], alter);
   }
 });
@@ -151,6 +153,29 @@ test("a revoke for a different function does not count", () => {
 test("security definer without an empty search_path is flagged", () => {
   const sql = "create function public.f() returns int language sql security definer as $$ select 1 $$; revoke execute on function public.f() from public, anon, authenticated;";
   assert.match(findProblems(sql, []).join(), /set search_path = ''/);
+});
+
+test("a table with no grant is flagged", () => {
+  const sql = "create table public.notes (id int); alter table public.notes enable row level security;";
+  assert.match(findProblems(sql, iso("notes")).join("\n"), /explicit grant for service_role and authenticated/);
+});
+
+test("a server-only table passes with revoke all from authenticated and a service_role grant", () => {
+  const sql = `
+    create table public.secrets (id int);
+    alter table public.secrets enable row level security;
+    revoke all on public.secrets from anon, authenticated;
+    grant all on public.secrets to service_role;`;
+  assert.deepEqual(findProblems(sql, iso("secrets")), []);
+});
+
+test("a cron job that runs every minute is flagged, a daily one is not", () => {
+  const daily = `${GOOD_TABLE} select cron.schedule('keep', '41 3 * * *', 'select 1');`;
+  assert.deepEqual(findProblems(daily, iso("notes")), []);
+  const often = `${GOOD_TABLE} select cron.schedule('busy', '*/1 * * * *', 'select net.http_post()');`;
+  assert.match(findProblems(often, iso("notes")).join("\n"), /busy/);
+  const commented = `${GOOD_TABLE}\n-- select cron.schedule('busy', '* * * * *', 'select 1');\n`;
+  assert.deepEqual(findProblems(commented, iso("notes")), []);
 });
 
 test("ordinary (security invoker) functions need nothing", () => {

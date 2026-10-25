@@ -53,8 +53,10 @@ grant execute on function public.error_log_delete_old() to service_role;
 -- Everything between these two marker lines changes the whole Supabase project (extensions and the shared Cron list),
 -- so it is left out when the app shares a project with other apps (Shipyard "shared" mode). There the scheduled
 -- health check deletes the old rows instead.
--- Daily at 03:41 UTC with Supabase Cron (the pg_cron extension). Supabase's own install line is
--- "create extension pg_cron with schema pg_catalog" (or Dashboard, Integrations, Cron). If the extension is not
+-- Daily at 03:41 UTC with Supabase Cron (the pg_cron extension). Once a day is the most often this file may run:
+-- a shared database has one disk IO budget, and a job every minute (or pg_net on that schedule) can use it up.
+-- Do not add a tighter schedule here. Pruning cron.job_run_details is done once for the whole project, not once per app.
+-- Supabase's own install line is "create extension pg_cron with schema pg_catalog" (or Dashboard, Integrations, Cron). If the extension is not
 -- there and cannot be switched on from here, this only prints a notice. Running it again updates the same job.
 do $$
 begin
