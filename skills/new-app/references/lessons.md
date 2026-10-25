@@ -59,6 +59,10 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - A paid plan whose payments are not set up yet shows a disabled "Coming soon" button, never a checkout that cannot finish.
 - Spend limits at every AI provider, plus a daily cap in the app.
 - Optimistic send plus polling can show a message twice; dedupe by id.
+- A share button that only copies, with a short message at the bottom of the screen, feels broken. Change the button itself to "Copied!", use the share sheet on phones, and fall back to a copy-by-hand box when the browser blocks copying.
+- Pop-up messages (toasts) go straight under `<body>` (a React portal) with their own animation; inside a moving or transformed parent, "fixed" stops meaning the screen, and an animation that ends in `transform: none` breaks the centring.
+- Leaderboards and group stats must include things done late (archive days), marked as late. Hiding them made two players who both scored 100 show "Not played yet". Keep streaks for on-the-day only and say so in the help text.
+- A daily-content app with an empty archive at launch has nothing to do after day one: ship a back catalogue (Ballpark launched again with 300 past days), with every fact sourced.
 
 ## Working with the agent
 - A helper agent's "passed" is not evidence. Re-run the flow that was reported broken before saying done.

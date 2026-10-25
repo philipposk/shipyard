@@ -29,7 +29,10 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 ## Behaviour
 - Brand name only from `BRAND` in `src/lib/constants.ts`.
 - A designed empty state, loading skeleton and error message for every screen that loads data.
-- Test with a real second account, not only simulated sessions.
+- Test with a real second account, not only simulated sessions. Do things in an unusual order too (play first then join a group, catch up on an old day) and check what each account sees of the other.
+- Share and copy buttons always show a result: the share sheet on phones; on computers the button itself changes to "Copied!". If the browser blocks copying, show the text in a box to copy by hand. Never let a tap do nothing.
+- One rule for what counts in stats, used on every screen (personal stats, group tables, leaderboards) and written in the help text. Things done late (an old day from the archive, offline, catch-up) still show up, marked as late; only streaks can be "on the day only".
+- Apps built around content (a daily question, prompts, a quiz) launch with a full back catalogue and months of future content, and every fact has a source someone checked.
 - Webhooks (later): check the signature, store event ids only after the change is saved, ignore out-of-order events, answer 500 on a database error so the sender retries.
 - Webhooks out to an address the person typed: refuse private and local addresses after resolving the name, pin the checked IP, no redirects, timeout and size cap (see `api-and-mcp.md`).
 - Analytics only after consent; paid plans show "Coming soon" until payments work.
