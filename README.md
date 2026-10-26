@@ -150,6 +150,7 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 
 ## What changed in 0.8.2
 
+- `verify` (hygiene) now warns about SDK clients built at the top of a file (they break builds without keys), more than 12 functions in a root `api/` folder (Vercel Hobby limit), and relative imports with no `.js` extension there. New lessons on long live sessions, provider fallback, time limits, approving AI writes, and shipping AI features dark.
 - `launch` gains a full App Store and Google Play guide from shipping a real app: a store-readiness audit (account deletion in the app and on the web, Sign in with Apple, OAuth in the system browser, permission strings, Apple 4.2, a privacy policy that matches the data, a reviewer password login and demo account), the Capacitor 7 wrapper, signing an Android AAB on Linux, iOS screenshots on a Mac, panoramic Playwright screenshots, listing text with App Privacy and Data safety answers, Apple and Google account types, and the gotchas that cost hours.
 
 ## What changed in 0.8.1
