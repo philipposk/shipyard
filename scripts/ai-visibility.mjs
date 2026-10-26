@@ -138,10 +138,14 @@ export async function audit(base, f = fetch) {
   return auditChecks({ home, llms, llmsFull, robots, sitemapOk: sitemap.status === 200, ogImageType: ogRes?.type });
 }
 
-/** Does an answer name the app? Word match on the name, or the extra pattern (default: host). */
+/**
+ * Does an answer name the app? Case-sensitive whole-word match on the name (app names are
+ * often everyday words: "quick sparks" or "total recall" must not count), or the extra
+ * pattern (default: host), which stays case-insensitive.
+ */
 export function mentions(answer, name, match) {
   const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`\\b${esc}\\b`, 'i').test(answer) || (match ? new RegExp(match, 'i').test(answer) : false);
+  return new RegExp(`\\b${esc}\\b`).test(answer) || (match ? new RegExp(match, 'i').test(answer) : false);
 }
 
 async function ask(key, model, query, f) {

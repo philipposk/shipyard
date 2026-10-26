@@ -50,6 +50,9 @@ test('audit fetches the OG image path from the audited host', async () => {
 test('mentions matches whole words or the host pattern', () => {
   assert.equal(mentions('Try Sparks for this', 'Sparks', 'sparks\\.6x7\\.gr'), true);
   assert.equal(mentions('it sparkles', 'Sparks'), false);
+  assert.equal(mentions('quick sparks you capture on the go', 'Sparks'), false);
+  assert.equal(mentions('total recall of your chats', 'Recall', 'recall\\.6x7\\.gr'), false);
+  assert.equal(mentions('see HTTPS://RECALL.6X7.GR', 'Recall', 'recall\\.6x7\\.gr'), true);
   assert.equal(mentions('see https://sparks.6x7.gr', 'Nope', 'sparks\\.6x7\\.gr'), true);
 });
 
