@@ -10,3 +10,5 @@ Build in this order, each step only when needed:
 4. **An MCP server** so AI assistants can use the app as tools: a route at `src/app/api/mcp/route.ts` that speaks MCP over HTTP (the official `@modelcontextprotocol/sdk`), authenticated with the same personal tokens (or OAuth for directory-listed assistants: access tokens of about an hour, rotating refresh tokens, and a reused refresh token revokes the whole family). One tool per action the person would ask for ("list notes", "add a note", "mark done"), with short plain descriptions and input limits. Add a "Connect an AI assistant" box in Settings with the address and how to add it.
 
 Every one of these gets tests (token hashing and revoking, signature of webhooks, each MCP tool refuses other people's data) and an entry in `HANDOFF.md`.
+
+AI tools that write (save a document, change a brief, send something) ask before they run, and the question shows exactly what will be written: where, the name, and the full text. A generic "Confirm this action?" is not consent for something a model wrote. Create nothing, not even an empty folder, before the yes.

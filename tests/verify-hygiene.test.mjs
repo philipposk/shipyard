@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
-import { check, unlabeledControls, lockDrift, zoomLock, darkAccentText } from '../scripts/verify/hygiene.mjs';
+import { check, unlabeledControls, lockDrift, zoomLock, darkAccentText, eagerClients, vercelApiFunctions, extensionlessImports } from '../scripts/verify/hygiene.mjs';
 import { judge } from '../scripts/verify/lighthouse.mjs';
 import { CHECK_NAMES, OPTIONAL_CHECKS } from '../scripts/verify/index.mjs';
 import { tempDir, removeDir, makeAppFromTemplate } from './verify-helpers.mjs';
@@ -175,4 +175,41 @@ test('adding robots and sitemap clears their warnings', async (t) => {
   await writeFile(path.join(dir, 'src/app/robots.ts'), 'export default function r() { return {}; }\n');
   await writeFile(path.join(dir, 'src/app/sitemap.ts'), 'export default function s() { return []; }\n');
   assert.doesNotMatch(((await run(dir)).warnings ?? []).join('\n'), /No robots|No sitemap/);
+});
+
+test('eagerClients flags SDK clients built at the top of a file only', () => {
+  assert.deepEqual(eagerClients("import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);\n").map((e) => e.what), ['Stripe']);
+  assert.equal(eagerClients("const db = createClient(process.env.URL!, process.env.KEY!);").length, 1);
+  assert.equal(eagerClients("const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);").length, 0);
+  assert.equal(eagerClients("let c;\nexport function get() { if (!c) c = new Stripe(key); return c; }\n").length, 0);
+  assert.equal(eagerClients("export async function POST() { const ai = new OpenAI({ apiKey: process.env.K }); }").length, 0);
+  assert.equal(eagerClients("// const s = new Stripe(k);\n").length, 0);
+});
+
+test('vercelApiFunctions skips helpers under _ and test files', () => {
+  assert.deepEqual(vercelApiFunctions(['search.ts', 'lib/db.ts', '_lib/db.ts', 'users/_shared.ts', 'users/[id].ts', 'search.test.ts', 'README.md']), ['search.ts', 'lib/db.ts', 'users/[id].ts']);
+});
+
+test('extensionlessImports finds relative imports Node ESM cannot resolve', () => {
+  const src = "import a from './_lib/db';\nimport b from './_lib/ok.js';\nimport x from 'zod';\nexport { y } from '../util';\nconst z = await import('./lazy');\nimport './side';\nimport type { T } from './types';\n";
+  assert.deepEqual(extensionlessImports(src), ['./_lib/db', '../util', './lazy', './side']);
+});
+
+test('warns on top-level SDK clients, too many api/ functions and extensionless ESM imports', async (t) => {
+  const dir = await app(t);
+  await mkdir(path.join(dir, 'src/app/api/pay'), { recursive: true });
+  await writeFile(path.join(dir, 'src/app/api/pay/route.ts'), "import Stripe from 'stripe';\nconst stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);\nexport async function POST() { return Response.json({}); }\n");
+  await mkdir(path.join(dir, 'api/lib'), { recursive: true });
+  for (let i = 0; i < 12; i++) await writeFile(path.join(dir, `api/fn${i}.ts`), "import { db } from './lib/db';\nexport default function h() { return db; }\n");
+  await writeFile(path.join(dir, 'api/lib/db.ts'), 'export const db = 1;\n');
+  await writeFile(path.join(dir, 'package.json'), JSON.stringify({ name: 'x', type: 'module' }));
+  const w = ((await run(dir)).warnings ?? []).join('\n');
+  assert.match(w, /src\/app\/api\/pay\/route\.ts:2 builds a Stripe client/);
+  assert.match(w, /api\/ has 13 files Vercel deploys as functions/);
+  assert.match(w, /12 file\(s\) in api\/ import relative paths with no extension: api\/fn0\.ts \(\.\/lib\/db\)/);
+});
+
+test('the full template builds no SDK client at the top of a file', async () => {
+  const tpl = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'template');
+  assert.doesNotMatch(((await run(tpl)).warnings ?? []).join('\n'), /client at the top of the file|deploys as functions|with no extension/);
 });
