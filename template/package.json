@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "knip": "npx --yes knip@5 --no-progress",
     "check:design": "node scripts/design-check.mjs",
     "test": "node scripts/run-tests.mjs",
     "lighthouse": "node scripts/lighthouse-ci.mjs"

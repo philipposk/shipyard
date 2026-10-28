@@ -54,7 +54,7 @@ export async function copyTemplateDir(dir) {
 /**
  * Fake app + fake Supabase. `opts`:
  *   leak: array of 'read' | 'update' | 'delete' | 'anon' | 'spoof'  (turn privacy rules off)
- *   noProfileTrigger, failUserDelete, failCreateAfter (number of users that may exist before creating one fails), gate404, plain404, vercelWall, signupOptions (status), badPage / redirectPage / placeholderPage (path)
+ *   apiGate: 'redirect' | 'open' | 'html' (break the signed-out API answer), noProfileTrigger, failUserDelete, failCreateAfter (number of users that may exist before creating one fails), gate404, plain404, vercelWall, signupOptions (status), badPage / redirectPage / placeholderPage (path)
  * Returns { url, state, close }.
  */
 export async function startFake(opts = {}) {
@@ -195,6 +195,13 @@ export async function startFake(opts = {}) {
       return send(res, 401, '<html><title>Authentication Required</title><a href="https://vercel.com/sso-api?url=x">log in</a></html>', { 'set-cookie': '_vercel_sso_nonce=abc; Path=/' });
     }
     if (p === '/api/auth/signup' && req.method === 'OPTIONS') return send(res, opts.signupOptions ?? 204, undefined);
+    // Any other API path, signed out: the proxy's login gate (apiGate: 'redirect' | 'open' | 'html' to break it).
+    if (p.startsWith('/api/')) {
+      if (opts.apiGate === 'redirect') return send(res, 307, undefined, { location: `/sign-in?next=${encodeURIComponent(p)}` });
+      if (opts.apiGate === 'open') return send(res, 200, '<html><body>ok</body></html>');
+      if (opts.apiGate === 'html') return send(res, 401, '<html><body>Please sign in</body></html>');
+      return send(res, 401, { error: 'Unauthorized' });
+    }
 
     const pages = ['/', '/about', '/help', '/privacy', '/terms', '/sign-in', '/robots.txt', '/sitemap.xml', '/llms.txt', '/icon.svg'];
     if (opts.badPage === p) return send(res, 500, 'boom');

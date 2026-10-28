@@ -88,6 +88,10 @@ export async function proxy(req: NextRequest) {
     if (pathname.startsWith("/api/health")) {
       return NextResponse.json({ status: "degraded", app: SITE_SLUG });
     }
+    // API callers read JSON, so they get JSON here too.
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
+    }
     return new NextResponse("Service temporarily unavailable", { status: 503 });
   }
 
@@ -116,6 +120,8 @@ export async function proxy(req: NextRequest) {
   if (pathname === "/" && !user) return res;
 
   if (!user) {
+    // Never redirect an API call to the sign-in page: fetch follows the redirect, gets the page with status 200,
+    // and the app thinks the call worked. Shipyard verify checks this answer on the live app.
     if (pathname.startsWith("/api/")) {
       const hasBearer = req.headers.get("authorization")?.toLowerCase().startsWith("bearer ");
       if (hasBearer && BEARER_API_PREFIXES.some((p) => matchesPrefix(pathname, p))) return res;

@@ -249,6 +249,14 @@ export const REWRITES = [
     replace: 'Open each sheet image file and look at it (if you cannot see images, say so).',
   },
 
+  // ---------- review ----------
+  {
+    id: 'RV1',
+    file: 'review/references/workflows.md',
+    find: /## Claude Code: the Workflow tool\n[\s\S]*?(?=\n## Without a workflow tool)/,
+    replace: '## Workflow tool\n\nClaude Code only. Here, follow the next section.\n',
+  },
+
   // ---------- ops ----------
   {
     id: 'O1',

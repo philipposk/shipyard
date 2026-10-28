@@ -69,6 +69,31 @@ export function lockDrift(pkg, lock) {
   return problems;
 }
 
+/** package.json scripts that run `next lint`, which Next 16 removed. Pure: exported for tests. */
+export function nextLintScripts(pkg) {
+  const spec = String(pkg?.dependencies?.next ?? pkg?.devDependencies?.next ?? '');
+  const major = Number(/(\d+)/.exec(spec)?.[1]);
+  if (!(major >= 16) && spec !== 'latest') return [];
+  return Object.entries(pkg?.scripts ?? {}).filter(([, cmd]) => /\bnext\s+lint\b/.test(String(cmd))).map(([name]) => name);
+}
+
+/**
+ * Does CI type-check? `next build` type-checks every .ts file, tests included, but `node --test` only strips the
+ * types, so CI that runs the tests and neither a type check nor a build lets a typo through to the deploy build.
+ * `texts`: the workflow files; `pkg`: package.json, whose test or pretest script may type-check already.
+ * Returns { tests, typed }. Pure: exported for tests.
+ */
+export function ciTypeCheck(texts, pkg = null) {
+  const all = texts.map((t) => stripYamlComments(t)).join('\n');
+  const typeCheck = /\btsc\b|\bnpm run (?:typecheck|type-check|check-types|types)\b|\bnpm run build\b|\bnext build\b/;
+  const viaNpmTest = /\bnpm (?:run )?test\b/.test(all) && [pkg?.scripts?.test, pkg?.scripts?.pretest].some((cmd) => typeCheck.test(String(cmd ?? '')));
+  return {
+    tests: /\bnpm (?:run )?test\b|\bnode\s+--test\b|\bnpx\s+(?:vitest|jest)\b|\bnpm run test:/.test(all),
+    typed: typeCheck.test(all) || viaNpmTest,
+  };
+}
+const stripYamlComments = (text) => String(text).split('\n').map((l) => l.replace(/(^|\s)#.*$/, '')).join('\n');
+
 /** Viewport settings that stop pinch-zoom (WCAG 1.4.4, Lighthouse meta-viewport). Pure: exported for tests. */
 export function zoomLock(source) {
   const code = stripComments(source);
@@ -193,6 +218,11 @@ export async function check(ctx) {
   if (hasLock && pkg) {
     const drift = lockDrift(pkg, await readJson(path.join(dir, 'package-lock.json')));
     if (drift.length) problems.push(`package-lock.json is out of step with package.json, so npm ci fails in CI: ${drift.slice(0, 3).join('; ')}. Run npm install and commit the lock file`);
+  }
+  for (const name of nextLintScripts(pkg)) problems.push(`package.json script "${name}" runs next lint, which Next 16 removed, so it fails. Run ESLint directly ("${name}": "eslint .")`);
+  if (workflows.length && (await exists(path.join(dir, 'tsconfig.json')))) {
+    const ci = ciTypeCheck(await Promise.all(workflows.map((wf) => readFile(wf, 'utf8'))), pkg);
+    if (ci.tests && !ci.typed) problems.push('CI runs the tests but never type-checks. next build type-checks every .ts file, tests included, while the test runner only strips the types, so a typo passes CI and breaks the production build. Add a "npm run typecheck" step (tsc --noEmit) before the tests');
   }
   if (workflows.length) details.push(`${workflows.length} workflow file(s) checked`);
 

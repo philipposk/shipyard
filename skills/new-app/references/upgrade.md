@@ -34,12 +34,15 @@ Read the code. Answer with file names. Do not edit yet.
 - **Sign-in**: passwords set from an email alone, redirect values not checked, login cookie handling, public versus protected routes.
 - **Data isolation**: does each person only see their own data? Row level security on every table? Admin flags editable by users? Server key used in browser code?
 - **Costs**: AI or paid API calls without caps, keys shared between apps.
-- **Tests and checks**: tests exist and run? A test gate on pull requests? A leaked-key scan?
+- **Tests and checks**: tests exist and run? A test gate on pull requests? A leaked-key scan? Does CI run the type check (`tsc --noEmit`) before the tests? Is `next lint` still in `package.json` on Next 16 (it no longer exists)?
+- **API routes and AI**: a signed-out call to an API route answers 401 JSON, not a redirect to sign-in. Server-key deletes or writes steered by a path the person can change check the prefix and owner. The browser cannot choose the AI model on the app's key; AI, speech and MCP routes have per-person rate limits and body size caps (MCP: a batch cap, a charge per tool call). Lookups with typed keys use `Object.hasOwn`. Deleting data does not reset usage counters. Debounced saves flush on `pagehide`.
 - **Deploy**: pushing straight to the publishing branch, deployment protection, environment values.
 - **Phone and behaviour**: phone layout, system light and dark, empty and error states, fake numbers or reviews, em dashes, the copy rules in `build-rules.md`.
 - **Legal and basics**: privacy and terms pages, 404 page, favicon, robots, sitemap.
 - **Look**: what is hard-coded, what is one accent with no dark pair, what a visitor cannot read. This feeds the proposal. It is not the whole job.
 - **Lessons**: go through `lessons.md` and mark which apply.
+
+For a big app (hundreds of files, several features) or after another agent added a lot of code, offer the review skill (`/shipyard:review`): it runs this audit with one helper per area and a skeptic for every finding, then fixes in waves and reviews the fixes again. It uses a large share of the student's plan, so say that first.
 
 ## 2. Report
 

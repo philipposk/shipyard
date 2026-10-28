@@ -32,6 +32,8 @@ jobs:
         run: npm ci
       # Every check reports on its own, so one failure never hides another.
       # The npm ones are skipped only when the install itself failed.
+      # Before the tests: `next build` type-checks every .ts file, tests included, while `node --test` only strips the types.
+      # Without this step a typo in a test passes here and breaks the production build.
       - name: Typecheck
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run typecheck

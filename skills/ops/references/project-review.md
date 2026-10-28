@@ -22,7 +22,7 @@ A review uses a lot of the student's Claude Pro allowance (it reads the whole pr
 
 ## How often
 
-Roughly monthly for an app with real users, or before a big launch step (taking payments, opening sign-ups). A lighter option: ask Claude to review just the last month's merged pull requests.
+Roughly monthly for an app with real users, or before a big launch step (taking payments, opening sign-ups). For the whole app at once (before a big release, or after another agent added a lot of code), the review skill (`/shipyard:review`) covers every area with helper agents and reviews its own fixes; it uses much more of the plan. A lighter option: ask Claude to review just the last month's merged pull requests.
 
 ## Scheduling
 
