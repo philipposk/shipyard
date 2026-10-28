@@ -13,6 +13,17 @@ export const MIN_FREE_BYTES = 3e9;
 /** One frame at a time and a smaller frame cache, for a computer short of memory (long real-app captures). */
 export const LOW_MEMORY_ENV = { CONCURRENCY: '1', OTV_CACHE: '400000000' };
 
+/**
+ * Is another Remotion render running on this computer (another project or chat)? true, false, or null when the
+ * system cannot say (no pgrep, for example on Windows). Never `pgrep -l`: it would print environments with keys.
+ */
+export async function otherRenderRunning(run) {
+  const r = await run('pgrep', ['-f', 'remotion rende[r] src/'], { timeoutMs: 10_000 });
+  if (r.code === 0) return true;
+  if (r.code === 1) return false;
+  return null;
+}
+
 /** Free bytes on the disk that holds `dir`, or null when the system cannot say. */
 export async function freeBytes(dir) {
   try {
@@ -109,11 +120,15 @@ export function volumeNotes(v) {
  * Render one cut with the engine's own script (it also checks for frozen stretches and makes the contact sheet).
  * Returns { ok, spec, name, mp4, sheet, seconds, sizeMb, deadAir, volume, notes, error? }.
  */
-export async function renderOne({ run, videoDir, spec, strict = false, quiet = true, env = {}, lowMemory = false }) {
+export async function renderOne({ run, videoDir, spec, strict = false, quiet = true, env = {}, lowMemory = false, loudnorm = null }) {
   parseSpec(spec);
   const r = await run('node', ['scripts/render.mjs', spec], {
     cwd: videoDir,
-    env: { ...env, ...(strict ? { STRICT_MOTION: '1' } : {}), ...(lowMemory ? LOW_MEMORY_ENV : {}) },
+    env: {
+      ...env, ...(strict ? { STRICT_MOTION: '1' } : {}), ...(lowMemory ? LOW_MEMORY_ENV : {}),
+      // the engine normalises the finished file's sound to this loudness (LUFS), picture copied
+      LOUDNORM: loudnorm === null ? undefined : String(loudnorm),
+    },
     quiet,
     timeoutMs: RENDER_TIMEOUT_MS,
   });

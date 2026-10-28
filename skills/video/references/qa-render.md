@@ -27,6 +27,8 @@ Real-app footage, also check:
 - the phone cut follows the part of the page the voice talks about
 - every moment that must match a sound: the word spoken and the word on screen land together
 
+To find a moment in a recording (a bar appearing, a price changing), `node scripts/scan.mjs <video.mp4> <x,y,w,h>` prints when that box changes colour. To measure how far the page lags a sound, make a tile of frames with their times (`ffmpeg -ss <s> -t 2 -i <video.mp4> -vf "fps=10,scale=480:-1,tile=5x4" tile.jpg`) and look.
+
 Fix, run the stills again for the changed scenes (`<scene>@<frame>` picks a frame, for example `add@60`), repeat. Only then render.
 
 ## Render
@@ -53,4 +55,4 @@ None ships. To add one: a royalty-free source whose licence you have read and th
 - Each render adds several MB to `video/out/`. Delete old renders when you are done (`out/` is not committed).
 - A render needs a few GB of free disk to work in; `video-render.mjs` will not start one with less than 3 GB free, and it removes Remotion's working folder (about 250 MB per render) from the temp folder afterwards.
 - "Could not extract frame from compositor ... disk space is low" means the computer ran out of memory or disk, not a bug in the scenes. Close other apps, free disk space, and render again with `--low-memory` (one frame at a time, a smaller frame cache: slower). Long real-app footage needs it most.
-- One render at a time, in the foreground. Two renders at once is the quickest way to run out of memory.
+- One render at a time, in the foreground, on the whole computer. `video-render.mjs` does not start while another video render runs (another project or chat), and never removes that render's working folder. Never check with `pgrep -l` or `-fl`: they print other programs' settings, keys included.

@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { main, inspectScript, explainVoiceFailure } from '../scripts/video-voice.mjs';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { run as realRun } from '../scripts/lib/run.mjs';
 import { tempDir, removeDir, makeFakeApp, put, fakeRun } from './video-helpers.mjs';
 
@@ -300,4 +301,80 @@ test('voice options and failures in plain words: Gemini free tier, a missing tak
   assert.match(explainVoiceFailure('Error: end: take 3 missing (/x/end-1a2b.t3.wav)'), /--takes/);
   assert.match(explainVoiceFailure('TTS 401: Incorrect API key'), /key may be wrong/);
   assert.equal(explainVoiceFailure('TTS 500: oops'), '');
+});
+
+// A stand-in for the engine's clips.mjs: reports what it got, writes the files the real one would.
+const CLIPS_CHILD = `
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+const spec = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+writeFileSync('clips-report.json', JSON.stringify({ argv: process.argv.slice(2), openai: process.env.OPENAI_API_KEY ?? null, eleven: process.env.ELEVENLABS_API_KEY ?? null }));
+mkdirSync(spec.out, { recursive: true });
+writeFileSync(spec.out + '/client.wav', 'RIFF');
+writeFileSync(spec.out + '/clips.json', '{}');
+console.log('client: 4.20 s, 2 line(s)');
+`;
+
+test('ElevenLabs: --provider eleven, --speed, and a word-timing key are checked; settings reach the child as environment', async () => {
+  const app = await fixture({ child: LANG_CHILD });
+  try {
+    const d = { run: fakeRun(), readSecrets: secrets({ ELEVENLABS_API_KEY: 'el-test-FAKE-0123456789' }) };
+    await assert.rejects(main(args({ _: [app.dir], tag: 'launch', provider: 'eleven' }), d), /OPENAI_API_KEY[\s\S]*missing/);
+    await assert.rejects(main(args({ _: [app.dir], tag: 'launch', speed: '0.9' }), d), /--speed goes with --provider eleven/);
+    await assert.rejects(main(args({ _: [app.dir], tag: 'launch', provider: 'eleven', speed: '2' }), d), /0\.7 to 1\.2/);
+    const run = fakeRun(async (cmd, a, opts) => {
+      await put(opts.cwd, 'src/timelines/launch.json', JSON.stringify({ tag: 'launch', script: 'launch', fps: 30, xf: 10, total: 300, scenes: [] }));
+      return {};
+    });
+    const r = await main(args({ _: [app.dir], tag: 'launch', provider: 'eleven', voice: 'EXAVITQu4vr4xnSDxMaL', speed: '0.9' }),
+      { run, readSecrets: secrets({ ELEVENLABS_API_KEY: 'el-test-FAKE-0123456789', DEEPGRAM_API_KEY: DEEPGRAM }) });
+    assert.equal(r.ok, true);
+    const env = run.calls[0].env;
+    assert.equal(env.VOICE_PROVIDER, 'eleven');
+    assert.equal(env.VOICE, 'EXAVITQu4vr4xnSDxMaL');
+    assert.equal(env.ELEVEN_SPEED, '0.9');
+    assert.equal(env.ELEVENLABS_API_KEY, 'el-test-FAKE-0123456789');
+    assert.ok(!run.calls[0].args.some((x) => x.includes('el-test')), 'the key is never an argument');
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
+test('--clips makes the voices of people in the video from a spec inside video/, keys through the environment', async () => {
+  const app = await fixture();
+  const v = path.join(app.dir, 'video');
+  try {
+    await put(v, 'scripts/clips.mjs', CLIPS_CHILD);
+    const spec = path.join(v, 'capture', 'specs', 'call.json');
+    await put(v, 'capture/specs/call.json', JSON.stringify({ out: 'public/call', lines: [
+      { clip: 'client', voice: 'coral', text: 'Can the launch move to Friday?' },
+      { clip: 'client', voice: 'ash', text: 'Friday works for us.', gap: 0.4 },
+    ] }));
+    const r = await main(args({ _: [app.dir], clips: spec }), { run: realRun, readSecrets: secrets({ OPENAI_API_KEY: OPENAI }) });
+    assert.equal(r.ok, true);
+    assert.deepEqual(r.clips, [{ clip: 'client', seconds: 4.2, lines: 2 }]);
+    assert.match(r.json, /video\/public\/call\/clips\.json$/);
+    const rep = JSON.parse(await readFile(path.join(v, 'clips-report.json'), 'utf8'));
+    assert.deepEqual(rep.argv, ['capture/specs/call.json']);
+    assert.equal(rep.openai, OPENAI);
+    assert.equal(rep.eleven, null);
+
+    const d = { run: fakeRun(), readSecrets: secrets({ OPENAI_API_KEY: OPENAI }) };
+    const bad = async (obj, re) => {
+      await put(v, 'capture/specs/bad.json', JSON.stringify(obj));
+      await assert.rejects(main(args({ _: [app.dir], clips: path.join(v, 'capture/specs/bad.json') }), d), re);
+    };
+    await bad({ out: '../elsewhere', lines: [{ clip: 'a', voice: 'coral', text: 'x' }] }, /inside video\/public/);
+    await bad({ out: 'public/x', lines: [] }, /at least one line/);
+    await bad({ out: 'public/x', lines: [{ clip: 'a b', voice: 'coral', text: 'x' }] }, /"clip"/);
+    await bad({ out: 'public/x', lines: [{ clip: 'a', voice: 'coral', text: ' ' }] }, /"text" is empty/);
+    const outside = path.join(app.parent, 'call.json');
+    await writeFile(outside, '{}');
+    await assert.rejects(main(args({ _: [app.dir], clips: outside }), d), /inside the video folder/);
+    await assert.rejects(main(args({ _: [app.dir], clips: spec }), { run: fakeRun(), readSecrets: secrets({}) }), /OPENAI_API_KEY[\s\S]*missing/);
+    await assert.rejects(main(args({ _: [app.dir], clips: spec, tag: 'launch' }), d), /works on its own/);
+    await rm(path.join(v, 'scripts', 'clips.mjs'));
+    await assert.rejects(main(args({ _: [app.dir], clips: spec }), d), /--update/);
+  } finally {
+    await removeDir(app.parent);
+  }
 });

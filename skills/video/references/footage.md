@@ -70,6 +70,31 @@ Record it:
 
 It starts the app on this computer with placeholder keys, waits for the page, runs the capture and always stops the app again. One capture at a time. The recordings (`video/public/capture/`) are too big for GitHub and are not saved there; the capture file is, so anyone can record them again. It prints each take's length and steps. A step that failed is named, and a screenshot of that moment is in `video/out/.capture/<take>/`: open it. An app not built with Next.js: ask the student to start it, then add `--url http://localhost:<port>`.
 
+### Show the real address
+
+Links and address bars in a practice page read `localhost`. To show the real address instead, load the page under it and let the local app answer every request: in `init(ctx)`, `await serveAs(ctx, {origin: 'https://app.example.com', app: BASE})` (import `serveAs` from `./record.mjs`), then record `https://app.example.com/design-preview/video/<page>`. Nothing reaches the real site. The app's dev connection is passed through too; that part needs Node 22 or newer.
+
+### Wide and phone from two takes
+
+Text is readable on a phone only from a tall take. Record the same steps twice (for example 1440 by 900 for the wide cut and 980 by 1150 for the phone cut), log the boxes the camera needs as marks (`h.log({type: 'mark', name: 'panel', box})`), and let the Demo pick the take by `format` and read the boxes from it, so one set of scenes serves both.
+
+### People talking
+
+A client on a call or a team in a meeting: write their lines in `video/capture/specs/<name>.json`:
+
+```json
+{"out": "public/call", "lang": "en", "lines": [
+  {"clip": "client", "voice": "coral", "text": "Can we see the new menu on Friday?"},
+  {"clip": "client", "voice": "ash", "text": "Friday works.", "gap": 0.4}
+]}
+```
+
+`video-voice.mjs <appDir> --clips video/capture/specs/<name>.json` makes `video/public/call/client.wav` and `clips.json` with the time of every word. Pick clearly different voices for different people. The practice page can type each line word by word at those times; measure how far the page lags the sound on stills for each take and shift the recording by it. Play the clips to the student before they go in.
+
+### The student's own work
+
+Their homepage, a slide, a document: draw it in the scenes rather than recording it. It is their material, not the app's, and it can animate when the app's result lands.
+
 ## 4. Build the scenes on the recording
 
 Each scene plays one step of a take with `<Footage>` from `video/src/footage.tsx`:
@@ -97,3 +122,6 @@ If the page reacts to a sound in the video (a voice clip, a call), the page show
 - **Captions in another alphabet.** The engine matches spoken words to the script in any alphabet. Custom word matching must keep every letter (`\p{L}` in a regular expression), or every Greek word matches nothing.
 - **No browser.** "Executable doesn't exist": run `npx playwright install chromium` in the app folder once. Or set `CHROME_PATH` to a Chromium build that is already on the computer.
 - **Out of memory or disk** while rendering a long take: see "Memory and disk" in `references/qa-render.md` (`--low-memory`).
+- **Browsers that vanish.** Playwright's downloaded browsers can disappear with a disk clean-up. `video-capture.mjs` then uses a headless shell that is still there. Never full Chrome: its recording covers only its window and comes out stretched.
+- **"2x4" turns into "2×4".** The Inter font changes an x between digits. Turn that off on names and addresses that have one: `fontFeatureSettings: '"calt" 0'`.
+- **Register before the voice.** A voiced script that no product lists is skipped and cannot be rendered: add it to `products.json` and `products.ts` first.

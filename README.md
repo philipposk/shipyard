@@ -148,6 +148,14 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.4
+
+- `video` can record a real run (Mac): a screen recording of something really happening, such as an agent fixing and deploying a demo site, edited with cuts and marked speed-ups. A new guide covers the demo site, the student's part, the take and honest editing.
+- Voices: ElevenLabs (`--provider eleven`, `--speed`), the voices of people inside the video with word times (`--clips`), and pacing tips (no mid-phrase commas, two short samples to pick from).
+- Real-app footage can show the real web address while the local app answers, and use a tall second take for the phone cut.
+- `--loudnorm` makes a master as loud as YouTube expects. Renders wait while another video render runs on the computer and never remove its files. Recording falls back to a headless browser shell only.
+- The engine moves to a newer pinned version with these tools and the same recorder fixes in its studio mode.
+
 ## What changed in 0.8.3
 
 - `video` can show the real app: practice pages with made-up data (no sign-in, no database) are recorded with the new `video-capture.mjs`, which starts the app, records it and always stops it again, and the recording plays inside the same scenes. The engine moves to a newer pinned version with the recorder fixes: sharp big recordings, the right frames in long ones, a picture that lines up with the clicks, captions in any alphabet.

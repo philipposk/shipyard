@@ -10,7 +10,7 @@ import { tempDir, removeDir, makeFakeApp, put, fakeRun, whichAll, whichNone } fr
 
 // The tests never look at this computer's real temp folder or its free disk.
 const NO_TMP = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'no-such-temp-folder');
-const SAFE = { tmpRoot: NO_TMP, freeBytes: async () => 50e9 };
+const SAFE = { tmpRoot: NO_TMP, freeBytes: async () => 50e9, otherRender: async () => false };
 
 const SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'video-render.mjs');
 
@@ -223,4 +223,43 @@ test('cleanBundles removes only the Remotion bundle folders made since the rende
   } finally {
     await removeDir(tmp);
   }
+});
+
+test('--loudnorm asks the engine for YouTube loudness; another render on the computer stops this one and its clean-up', async () => {
+  const app = await renderFixture();
+  const tmp = await tempDir('shipyard-bundles-');
+  try {
+    const run = engineRun();
+    await main({ _: [app.dir, 'launch:light'], json: true, loudnorm: true }, { run, which: whichAll, ...SAFE });
+    assert.equal(run.calls.find((c) => c.cmd === 'node').env.LOUDNORM, '-14');
+    const plain = engineRun();
+    await main({ _: [app.dir, 'launch:light'], json: true }, { run: plain, which: whichAll, ...SAFE });
+    assert.equal(plain.calls.find((c) => c.cmd === 'node').env.LOUDNORM, undefined);
+
+    const busy = engineRun();
+    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run: busy, which: whichAll, ...SAFE, otherRender: async () => true });
+    assert.equal(r.ok, false);
+    assert.match(r.renders[0].error, /Another video render is running/);
+    assert.equal(busy.calls.filter((c) => c.cmd === 'node').length, 0);
+
+    // our render ran, then another one started: its working folder must stay
+    await mkdir(path.join(tmp, 'remotion-webpack-bundle-theirs'));
+    let calls = 0;
+    await main({ _: [app.dir, 'launch:light'], json: true }, { run: engineRun(), which: whichAll, ...SAFE, tmpRoot: tmp, otherRender: async () => (calls++ > 0) });
+    assert.ok(await stat(path.join(tmp, 'remotion-webpack-bundle-theirs')).then(() => true, () => false), 'another render\'s folder is kept');
+  } finally {
+    await removeDir(app.parent);
+    await removeDir(tmp);
+  }
+});
+
+test('otherRenderRunning: pgrep with -f only (never -l, which prints environments), and "cannot say" without pgrep', async () => {
+  const { otherRenderRunning } = await import('../scripts/video/render-lib.mjs');
+  const seen = [];
+  const answer = (code) => fakeRun(async (cmd, a) => { seen.push([cmd, ...a]); return { code }; });
+  assert.equal(await otherRenderRunning(answer(0)), true);
+  assert.equal(await otherRenderRunning(answer(1)), false);
+  assert.equal(await otherRenderRunning(answer(127)), null);
+  assert.deepEqual(seen[0], ['pgrep', '-f', 'remotion rende[r] src/']);
+  assert.ok(seen.every((c) => !c.some((x) => /^-\w*l/.test(x))));
 });

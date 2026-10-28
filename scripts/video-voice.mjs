@@ -16,15 +16,17 @@ const HELP = `
 Make the narration voice and word timings for a video script.
 
 Usage:
-  node video-voice.mjs <app-folder> --tag <name> [--script <id>] [--provider openai|gemini|deepgram]
-                       [--voice <name>] [--pace normal|fast] [--lang <code>] [--wpm <n>] [--style <text>]
+  node video-voice.mjs <app-folder> --tag <name> [--script <id>] [--provider openai|gemini|deepgram|eleven]
+                       [--voice <name>] [--speed <n>] [--pace normal|fast] [--lang <code>] [--wpm <n>] [--style <text>]
                        [--retime] [--dry-run] [--json]
   node video-voice.mjs <app-folder> --script <id> --takes <n> --lines <id,id>   (listen and pick, see below)
+  node video-voice.mjs <app-folder> --clips <spec.json>                       (voices of people in the video)
 
   --tag        name of this cut (a short word like "launch"). Its voice files and timeline are named after it.
   --script     which script to voice: video/src/scripts/<id>.json. Default: the same as --tag.
-  --provider   who makes the voice. openai (default), gemini or deepgram.
-  --voice      a voice name for that provider (OpenAI default: marin).
+  --provider   who makes the voice. openai (default), gemini, deepgram or eleven (ElevenLabs).
+  --voice      a voice name for that provider (OpenAI default: marin; ElevenLabs: a voice id).
+  --speed      ElevenLabs only: speaking speed from 0.7 to 1.2 (default 1).
   --pace       "fast" gives tighter pauses and quicker speech.
   --lang       the language the script is in, for the word timings (for example el). Default: let the recogniser decide.
   --wpm        target speaking speed in words a minute. Lower it for other languages so nothing is sped up (Greek: 100).
@@ -34,6 +36,9 @@ Usage:
                in video/out/takes/<script>/. Then put "take": <number> on the line in the script and run the voice step
                again. No timeline is made. Each take costs like one line of voice.
   --lines      the line ids for --takes, separated by commas.
+  --clips      make the voices of people inside the video (a client on a call, a team) from a spec file inside
+               video/, for example video/capture/specs/call.json. Each line has its own voice; the result is one
+               sound file per clip and word times in clips.json. Uses the OpenAI key (and Deepgram for timings).
   --dry-run    only check the script and keys and show what would happen. Costs nothing.
 
 This costs a few cents for a minute of speech, so show the script to the student and get a yes first.
@@ -41,7 +46,7 @@ The keys come from your Shipyard keys file and are handed to the voice step priv
 Exit code: 0 ok, 1 something to fix, 2 wrong options.
 `;
 
-const PROVIDERS = ['openai', 'gemini', 'deepgram'];
+const PROVIDERS = ['openai', 'gemini', 'deepgram', 'eleven'];
 const LANG_RE = /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/;
 const num = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -55,7 +60,7 @@ export function explainVoiceFailure(detail) {
   if (/API key|401|403/i.test(detail)) return 'The key may be wrong or out of credit. ';
   return '';
 }
-const KEY_FOR = { openai: 'OPENAI_API_KEY', gemini: 'GEMINI_API_KEY', deepgram: 'DEEPGRAM_API_KEY' };
+const KEY_FOR = { openai: 'OPENAI_API_KEY', gemini: 'GEMINI_API_KEY', deepgram: 'DEEPGRAM_API_KEY', eleven: 'ELEVENLABS_API_KEY' };
 
 /** Check the script file and describe it. Throws a plain error for anything the voice step would choke on. */
 export function inspectScript(lines, label = 'The script') {
@@ -94,10 +99,95 @@ export function inspectScript(lines, label = 'The script') {
   return { lines: lines.length, words, seconds: Math.round(words / 3) };
 }
 
+/** The keys for the child, through its environment only (not argv, not a file), and their values for redaction. */
+function keysForChild(secrets) {
+  const env = {};
+  const values = [];
+  for (const n of VOICE_KEYS) {
+    const v = secrets.get(n);
+    if (v) {
+      env[n] = v;
+      values.push(v);
+    } else {
+      // run() merges over process.env, so a key exported in the shell would slip through
+      // even though it is not in the keys file. Undefined drops it from the child's environment.
+      env[n] = undefined;
+    }
+  }
+  return { env, values };
+}
+
+function missingKeysError(missing) {
+  return new ProvisionError(
+    `${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} missing from your Shipyard keys file (${SECRETS_PATH}). `
+    + 'Open it with secrets-init.mjs, put the key after the = sign, save, and run this again. Never paste a key in the chat.',
+    { missing },
+  );
+}
+
+/**
+ * Voices of people inside the video (the engine's scripts/clips.mjs): a spec file inside video/ lists lines, each with
+ * its own voice; the result is one sound file per clip plus word times in clips.json, inside video/public/.
+ */
+export async function clips(args, deps = {}) {
+  const { run = realRun, readSecrets = realReadSecrets, which } = deps;
+  const appDir = await resolveAppDir(args._[0]);
+  const videoDir = await requireVideoDir(appDir);
+  if (which) {
+    const media = await checkMediaTools(which);
+    if (!media.ok) throw mediaToolsError(media);
+  }
+  if (!(await pathExists(path.join(videoDir, 'scripts', 'clips.mjs')))) {
+    throw new ProvisionError('This video folder has no scripts/clips.mjs yet. Run video-setup.mjs with --update to refresh the engine files.');
+  }
+  const specFile = path.resolve(String(args.clips));
+  const rel = path.relative(videoDir, specFile);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) throw new ProvisionError('The clips spec must be a file inside the video folder, for example video/capture/specs/call.json.');
+  let spec;
+  try {
+    spec = await readJson(specFile);
+  } catch {
+    throw new ProvisionError(`${rel} is missing or not valid JSON. It looks like {"out": "public/call", "lines": [{"clip": "client", "voice": "coral", "text": "..."}]}.`);
+  }
+  const outRel = typeof spec?.out === 'string' ? path.normalize(spec.out) : '';
+  if (!outRel.startsWith(`public${path.sep}`) || outRel.includes('..')) throw new ProvisionError(`${rel}: "out" must be a folder inside video/public/, for example public/call.`);
+  if (!Array.isArray(spec.lines) || !spec.lines.length) throw new ProvisionError(`${rel}: "lines" must list at least one line.`);
+  spec.lines.forEach((l, i) => {
+    const where = `${rel}, line ${i + 1}`;
+    if (!l || typeof l.clip !== 'string' || !ID_RE.test(l.clip)) throw new ProvisionError(`${where}: "clip" must be a short name (letters, numbers, dashes), for example client.`);
+    if (typeof l.voice !== 'string' || !/^[A-Za-z0-9_.-]{1,60}$/.test(l.voice)) throw new ProvisionError(`${where}: "voice" must be a voice name, for example coral.`);
+    if (typeof l.text !== 'string' || !l.text.trim()) throw new ProvisionError(`${where}: "text" is empty.`);
+  });
+  const people = new Set(spec.lines.map((l) => l.voice)).size;
+  log.ok(`${rel}: ${new Set(spec.lines.map((l) => l.clip)).size} clip(s), ${spec.lines.length} line(s), ${people} voice(s).`);
+
+  const secrets = await readSecrets();
+  if (!secrets.get('OPENAI_API_KEY')) throw missingKeysError(['OPENAI_API_KEY']);
+  if (!secrets.get('DEEPGRAM_API_KEY')) log.info('No Deepgram key: word times come from OpenAI (works fine, slightly less tight).');
+  if (args['dry-run']) {
+    log.info('Dry run: nothing was sent and nothing was spent.');
+    return { ok: true, dryRun: true, spec: rel, lines: spec.lines.length };
+  }
+  const { env, values } = keysForChild(secrets);
+  log.info('Making the voices of the people in the video...');
+  const r = await run('node', ['scripts/clips.mjs', rel.split(path.sep).join('/')], { cwd: videoDir, env, timeoutMs: 20 * 60_000, quiet: true });
+  const text = redactSecrets(`${r.stdout}\n${r.stderr}`, values);
+  if (r.code !== 0) throw new ProvisionError(`Making the clips failed. ${explainVoiceFailure(text)}Last lines:\n${tailLines(text, 6)}`);
+  const made = [...text.matchAll(/^(\S+): ([\d.]+) s, (\d+) line/gm)].map((m) => ({ clip: m[1], seconds: Number(m[2]), lines: Number(m[3]) }));
+  for (const c of made) log.ok(`${c.clip}: ${c.seconds} s, ${c.lines} line(s)`);
+  const json = path.join(videoDir, outRel, 'clips.json');
+  log.info(`Word times: ${json}. Play the clips to the student before they go into the video.`);
+  return { ok: true, clips: made, json, folder: path.join(videoDir, outRel) };
+}
+
 export async function main(args, deps = {}) {
   const { run = realRun, readSecrets = realReadSecrets, which } = deps;
 
   if (args._.length !== 1) throw new log.UsageError('Give the app folder, for example: node video-voice.mjs ./recipe-box --tag launch');
+  if (args.clips !== undefined) {
+    if (args.tag || args.script || args.takes) throw new log.UsageError('--clips works on its own (no --tag, --script or --takes).');
+    return clips(args, deps);
+  }
   const takes = args.takes === undefined ? 0 : Number(args.takes);
   if (args.takes !== undefined && !(Number.isInteger(takes) && takes >= 1 && takes <= 8)) throw new log.UsageError('--takes must be a number from 1 to 8.');
   const takeLines = args.lines === undefined ? [] : String(args.lines).split(',').map((x) => x.trim()).filter(Boolean);
@@ -119,6 +209,9 @@ export async function main(args, deps = {}) {
   if (!PROVIDERS.includes(provider)) throw new log.UsageError(`--provider must be one of: ${PROVIDERS.join(', ')}.`);
   if (args.pace !== undefined && !['normal', 'fast'].includes(args.pace)) throw new log.UsageError('--pace must be normal or fast.');
   if (args.voice !== undefined && !/^[A-Za-z0-9_.-]{1,60}$/.test(args.voice)) throw new log.UsageError('--voice can only use letters, numbers, dots and dashes.');
+  const speed = args.speed === undefined ? null : Number(args.speed);
+  if (speed !== null && provider !== 'eleven') throw new log.UsageError('--speed goes with --provider eleven. For other voices use --pace or --wpm.');
+  if (speed !== null && !(speed >= 0.7 && speed <= 1.2)) throw new log.UsageError('--speed must be a number from 0.7 to 1.2.');
 
   const appDir = await resolveAppDir(args._[0]);
   const videoDir = await requireVideoDir(appDir);
@@ -146,16 +239,11 @@ export async function main(args, deps = {}) {
   // The keys (names only are ever shown)
   const secrets = await readSecrets();
   const need = [KEY_FOR[provider]];
-  if (provider === 'gemini' && !secrets.get('DEEPGRAM_API_KEY') && !secrets.get('OPENAI_API_KEY')) need.push('OPENAI_API_KEY');
+  // Word timings come from Deepgram, or else OpenAI: a voice from another provider still needs one of them.
+  if (['gemini', 'eleven'].includes(provider) && !secrets.get('DEEPGRAM_API_KEY') && !secrets.get('OPENAI_API_KEY')) need.push('OPENAI_API_KEY');
   const missing = need.filter((n) => !secrets.get(n));
   const have = Object.fromEntries(VOICE_KEYS.map((n) => [n, Boolean(secrets.get(n))]));
-  if (missing.length && !args['dry-run']) {
-    throw new ProvisionError(
-      `${missing.join(' and ')} ${missing.length === 1 ? 'is' : 'are'} missing from your Shipyard keys file (${SECRETS_PATH}). `
-      + 'Open it with secrets-init.mjs, put the key after the = sign, save, and run this again. Never paste a key in the chat.',
-      { missing },
-    );
-  }
+  if (missing.length && !args['dry-run']) throw missingKeysError(missing);
   for (const n of VOICE_KEYS) {
     if (have[n]) log.ok(`${n} is in your keys file.`);
     else if (need.includes(n)) log.fail(`${n} is missing.`);
@@ -163,7 +251,7 @@ export async function main(args, deps = {}) {
   if (!have.DEEPGRAM_API_KEY) log.info('No Deepgram key: word timings come from OpenAI (works fine, slightly less tight).');
 
   const plan = {
-    tag, script: scriptId, provider, voice: args.voice ?? null, pace: args.pace ?? 'normal', retime: !!args.retime,
+    tag, script: scriptId, provider, voice: args.voice ?? null, speed, pace: args.pace ?? 'normal', retime: !!args.retime,
     lang: args.lang ?? null, wpm, style: args.style ? 'custom' : 'default', takes: takes ? { count: takes, lines: takeLines } : null, ...about,
   };
   if (args['dry-run']) {
@@ -174,25 +262,15 @@ export async function main(args, deps = {}) {
   }
 
   // The child gets the keys through its environment only (not argv, not a file).
-  const env = { VOICE_PROVIDER: provider };
+  const { env: keyEnv, values } = keysForChild(secrets);
+  const env = { VOICE_PROVIDER: provider, ...keyEnv };
   if (args.voice) env.VOICE = args.voice;
   if (args.pace) env.PACE = args.pace;
   // Only what was asked for here: the same names set in the shell must not change the voice unseen.
   env.STT_LANG = args.lang ?? undefined;
   env.WPM = wpm === null ? undefined : String(wpm);
   env.VOICE_STYLE = args.style ? String(args.style) : undefined;
-  const values = [];
-  for (const n of VOICE_KEYS) {
-    const v = secrets.get(n);
-    if (v) {
-      env[n] = v;
-      values.push(v);
-    } else {
-      // run() merges over process.env, so a key exported in the shell would slip through
-      // even though it is not in the keys file. Undefined drops it from the child's environment.
-      env[n] = undefined;
-    }
-  }
+  env.ELEVEN_SPEED = speed === null ? undefined : String(speed);
   log.info(takes ? `Making ${takes} take(s) of ${takeLines.join(', ')}...` : 'Making the voice and word timings. This usually takes under a minute...');
   const argv = ['scripts/voice.mjs', `--script=${scriptId}`, `--tag=${tag}`];
   if (args.retime) argv.push('--retime');
@@ -250,7 +328,7 @@ if (isMain(import.meta.url)) {
   const { which } = await import('./lib/run.mjs');
   await runCli({
     argv: process.argv.slice(2),
-    spec: { string: ['tag', 'script', 'provider', 'voice', 'pace', 'lang', 'wpm', 'style', 'takes', 'lines'], boolean: ['retime', 'dry-run'] },
+    spec: { string: ['tag', 'script', 'provider', 'voice', 'pace', 'lang', 'wpm', 'style', 'takes', 'lines', 'speed', 'clips'], boolean: ['retime', 'dry-run'] },
     help: HELP,
     main: (args) => main(args, { which }),
   });

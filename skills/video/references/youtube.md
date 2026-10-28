@@ -4,7 +4,7 @@ The video goes on the student's own channel, so the student uploads it and decid
 
 ## Before the upload
 
-- Upload the master render from `video/out/` (full quality). The web copy in `public/video/` is squeezed under 10 MB for the website and looks worse on a big screen.
+- Upload the master render from `video/out/` (full quality), rendered with `video-render.mjs ... --loudnorm`: renders come out quieter than YouTube expects (about -26 against -14). The web copy in `public/video/` is squeezed under 10 MB for the website and looks worse on a big screen.
 - Write the details in `video/videos.json`, one entry per video: `file` (the master's name), `title`, `description`, `tags`, `language` and `captions` (the `.vtt` file, or none). The description ends with "Narrated with an AI voice." and the app's address. Show the file to the student and wait for a yes.
 - The script's rules apply to the title and description too: benefits only, nothing a stranger would not care about, no claim the app cannot back up.
 
