@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, stat, mkdir } from 'node:fs/promises';
+import { readFile, stat, mkdir, rm, writeFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -151,6 +151,30 @@ test('not a Shipyard app: plain error', async () => {
   } finally {
     await removeDir(dir);
   }
+});
+
+test('an app Shipyard did not make: refused until --general, then set up without a .shipyard-app.json', async () => {
+  await withFixture(async ({ app, fetchEngine }) => {
+    await rm(path.join(app.dir, '.shipyard-app.json'));
+    await assert.rejects(main(args({ _: [app.dir] }), deps(setupRun(), fetchEngine)), /upgrade guide[\s\S]*--general/);
+    assert.ok(!(await exists(path.join(app.dir, 'video'))), 'nothing copied before --general');
+
+    const r = await main(args({ _: [app.dir], general: true }), deps(setupRun(), fetchEngine));
+    assert.equal(r.ok, true);
+    assert.equal(r.app, 'general');
+    assert.ok(await exists(path.join(app.dir, 'video', 'package.json')));
+    assert.ok(!(await exists(path.join(app.dir, '.shipyard-app.json'))), 'no Shipyard marker is invented');
+    const pin = JSON.parse(await readFile(path.join(app.dir, 'video', '.shipyard-video.json'), 'utf8'));
+    assert.equal(pin.app, 'general');
+    assert.equal(pin.engineSha, ENGINE_SHA);
+  });
+});
+
+test('a broken .shipyard-app.json is refused even with --general', async () => {
+  await withFixture(async ({ app, fetchEngine }) => {
+    await writeFile(path.join(app.dir, '.shipyard-app.json'), '{ not json');
+    await assert.rejects(main(args({ _: [app.dir], general: true }), deps(setupRun(), fetchEngine)), /broken/);
+  });
 });
 
 test('npm install failing is reported plainly and says what to do', async () => {

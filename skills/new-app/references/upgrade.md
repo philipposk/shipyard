@@ -8,7 +8,7 @@ The result is the same standard as an app Shipyard made, fitted to this stack. D
 
 ## What stays theirs
 
-Their stack, their pages, their brand. Do not paste the Shipyard template over the app. Do not run `apply-design.mjs`, `ops-setup.mjs`, `ops-status.mjs`, `launch-check.mjs`, `video-setup.mjs`, `verify.mjs`, or the provision scripts. Those need a Shipyard app.
+Their stack, their pages, their brand. Do not paste the Shipyard template over the app. Do not run `apply-design.mjs`, `ops-setup.mjs`, `ops-status.mjs`, `launch-check.mjs`, `verify.mjs`, or the provision scripts. Those need a Shipyard app. The video scripts are the one exception, and only after this whole guide is done (section 6).
 
 ## What they still get
 
@@ -65,3 +65,5 @@ After the report, do every **Fix now** item, then **Should fix**, unless they na
 ## 6. Finish
 
 Run the app's own tests. Summarise what now matches the standard and what is left, with the reason. Offer to record any new lesson in `~/.shipyard/learnings.md`.
+
+When no **Fix now** item is left and the app is live, offer the video in one line, and start it only on a yes: "Want a short product video of your app with an AI voice (`/shipyard:video`)? It takes 2 to 4 hours of back-and-forth and a big share of your plan's usage, and the voice costs a few cents per minute." The video skill then runs its scripts with `--general` (see its "First: which app is this?"). Not before: a video brings visitors, so the app must be safe for them first.

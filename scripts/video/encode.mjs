@@ -80,15 +80,43 @@ export function moveCuesToTop(vtt) {
 }
 
 /**
+ * The captions track's language: a short code (en, el, pt-BR) and the name a viewer sees in the player's menu,
+ * written in that language ("Ελληνικά" for el). Unknown codes keep the code as the name.
+ */
+export const LANG_RE = /^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/;
+export function captionsLanguage(lang = 'en') {
+  let name = lang;
+  try {
+    name = new Intl.DisplayNames([lang], { type: 'language' }).of(lang) ?? lang;
+  } catch {
+    // no locale data for this code: keep the code
+  }
+  return { lang, label: name === lang ? lang : name.charAt(0).toLocaleUpperCase(lang) + name.slice(1) };
+}
+
+/**
  * The page snippet to paste. preload="none" so visitors do not download the video until they press play.
  * `captionsDefault` is false on purpose: captions that start switched on would cover text already in the picture.
  */
-export function jsxSnippet({ base, captions = true, label = 'Product video' }) {
+export function jsxSnippet({ base, captions = true, label = 'Product video', lang = 'en' }) {
+  const track = captionsLanguage(lang);
   const lines = [
     `<video controls playsInline preload="none" poster="/video/${base}.jpg" aria-label="${label}" style={{ width: "100%", height: "auto" }}>`,
     `  <source src="/video/${base}.mp4" type="video/mp4" />`,
   ];
-  if (captions) lines.push('  <track kind="captions" src="/video/demo.vtt" srcLang="en" label="English" />');
+  if (captions) lines.push(`  <track kind="captions" src="/video/demo.vtt" srcLang="${track.lang}" label="${track.label}" />`);
+  lines.push('</video>', '<p>Narrated with an AI voice.</p>');
+  return lines.join('\n');
+}
+
+/** The same in plain HTML, for an app that is not built with React. */
+export function htmlSnippet({ base, captions = true, label = 'Product video', lang = 'en' }) {
+  const track = captionsLanguage(lang);
+  const lines = [
+    `<video controls playsinline preload="none" poster="/video/${base}.jpg" aria-label="${label}" style="width: 100%; height: auto">`,
+    `  <source src="/video/${base}.mp4" type="video/mp4">`,
+  ];
+  if (captions) lines.push(`  <track kind="captions" src="/video/demo.vtt" srclang="${track.lang}" label="${track.label}">`);
   lines.push('</video>', '<p>Narrated with an AI voice.</p>');
   return lines.join('\n');
 }

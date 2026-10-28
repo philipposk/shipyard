@@ -33,16 +33,29 @@ The tag is a short word for this cut (for example `launch`). The file is a list 
 - `holdSec`: extra hold at the end, usually on the end card (about 0.6).
 - `speed`: a minimum speaking speed for a line that sounds slow (for example 1.08).
 
+Fields for fixing one line by ear (after the voice step, see SKILL.md step 3):
+
+- `say`: what the voice reads when it must differ from `text`, for example a name spelled the way it should sound. Captions keep `text`.
+- `style`: how to speak this one line (a firmer start, a calmer close), written in the script's language. A new `style` makes a new take.
+- `pauseCap`: the longest pause inside this line, in seconds (default 0.2).
+- `leadIn`: seconds of quiet kept before the first word (default 0.03), so a soft first sound is not cut off.
+- `take`: the take number the student picked from `--takes`. Put it on this line in every script that has the line.
+
 ### Rules
 
 - About 110 words for about 55 seconds. One idea per line, short sentences, concrete nouns, words a stranger understands.
 - Structure that works: hook, name reveal, input, core result, organisation, one or two special features, sharing, end card with the name and a call to action. A repeated phrase gives rhythm.
 - Every claim maps to a shipped feature. No speed claims ("in seconds") unless you measured it. No "best", "revolutionary" or other hype words.
+- Benefits only, from a new viewer's side: what they can do, see or keep. Nothing that reads like a changelog ("now", "no longer", "we fixed", a recent change) and nothing obvious ("you can sign in"). Test each line: would a stranger who never saw the app before care?
 - Say the product's name in the reveal and on the end card.
 - No hard pause after a single word ("One: ..."). Write "First, ...". The voice step caps pauses and can clip it.
 - No dead air: scene length minus (lead + voice) should be about 1 second or less, unless an animated end card fills it. Extra `minSec` needs matching motion.
 - Never mention a real company, person or customer.
 - Spell the product name the way the app does. Captions use the script's spelling, so a brand word the speech recogniser mangles still reads right.
+
+### Another language
+
+Write the script in the language the video speaks, with that language's own punctuation. Other languages are voiced slower than English so no word gets warped (Greek: about 100 words a minute instead of 182), so 55 seconds holds about 60 words instead of 110. Ask someone who speaks it natively to read the script before any voice is made, and to listen to the key lines afterwards (see "Pick key lines by ear" in SKILL.md step 3).
 
 ## 3. Get the student's yes
 

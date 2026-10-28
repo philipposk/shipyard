@@ -1,18 +1,21 @@
 #!/usr/bin/env node
 // Renders one or more cuts of a video (light, dark, phone, silent), checks each for frozen stretches and loudness,
 // and makes a contact sheet picture (one frame per scene) to look at.
+import os from 'node:os';
 import path from 'node:path';
 import { run as realRun, which as realWhich } from './lib/run.mjs';
 import * as log from './lib/log.mjs';
 import { runCli, isMain, resolveAppDir, ProvisionError } from './provision/common.mjs';
 import { requireVideoDir, pathExists, checkMediaTools, mediaToolsError } from './video/common.mjs';
-import { parseSpec, renderOne, parseVolume, volumeNotes } from './video/render-lib.mjs';
+import {
+  parseSpec, renderOne, parseVolume, volumeNotes, freeBytes as realFreeBytes, cleanBundles, MIN_FREE_BYTES,
+} from './video/render-lib.mjs';
 
 const HELP = `
 Render your video.
 
 Usage:
-  node video-render.mjs <app-folder> <cut> [<cut> ...] [--strict] [--json]
+  node video-render.mjs <app-folder> <cut> [<cut> ...] [--strict] [--low-memory] [--json]
 
 A cut is <tag>:<light|dark>[:<music>][:silent][:vertical]. Examples:
   acme:light             wide video, light theme, with the voice
@@ -25,14 +28,18 @@ Cuts are rendered one after the other (never at the same time). Each one is chec
 stretch over half a second) and for loudness, and gets a contact sheet: a picture with one frame per scene.
 Look at that picture before you call the video done.
 
-  --strict   treat dead air as a failure
-  --json     print the result as JSON
+  --strict       treat dead air as a failure
+  --low-memory   render one frame at a time with a smaller frame cache: slower, for long real-app footage or a
+                 computer short of memory
+  --json         print the result as JSON
+A render does not start with less than 3 GB of free disk. Remotion's working folder for each render (about 250 MB)
+is removed from the temp folder afterwards.
 Output goes to <app>/video/out/. Delete old renders when you are done: each is several MB.
 Exit code: 0 ok, 1 a render failed, 2 wrong options.
 `;
 
 export async function main(args, deps = {}) {
-  const { run = realRun, which = realWhich } = deps;
+  const { run = realRun, which = realWhich, freeBytes = realFreeBytes, tmpRoot = os.tmpdir(), now = () => Date.now() } = deps;
   if (args._.length < 2) throw new log.UsageError('Give the app folder and at least one cut, for example: node video-render.mjs ./recipe-box launch:light');
   const [dir, ...specs] = args._;
   const parsed = specs.map((s) => ({ spec: s, ...parseSpec(s) })); // bad names stop here, before anything runs
@@ -50,7 +57,16 @@ export async function main(args, deps = {}) {
   const results = [];
   for (const [i, p] of parsed.entries()) {
     log.step(i + 1, parsed.length, `Rendering ${p.spec} (one at a time; a short video takes about a minute)...`);
-    const r = await renderOne({ run, videoDir, spec: p.spec, strict: !!args.strict, quiet: !!args.json });
+    const free = await freeBytes(videoDir);
+    if (free !== null && free < MIN_FREE_BYTES) {
+      const r = { ok: false, spec: p.spec, name: null, error: `Only ${(free / 1e9).toFixed(1)} GB of disk space is free, and a render needs at least 3 GB to work in. Delete old renders in video/out/ and empty the bin, then try again.` };
+      results.push(r);
+      log.fail(`${p.spec}: ${r.error}`);
+      continue;
+    }
+    const started = now();
+    const r = await renderOne({ run, videoDir, spec: p.spec, strict: !!args.strict, quiet: !!args.json, lowMemory: !!args['low-memory'] });
+    await cleanBundles({ tmpRoot, since: started - 1000 });
     if (r.ok && !p.silent) {
       // Loudness. A cut with no audio track at all just gives no reading.
       const v = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', r.mp4, '-vn', '-af', 'volumedetect', '-f', 'null', '-'], { timeoutMs: 5 * 60_000 });
@@ -77,5 +93,5 @@ export async function main(args, deps = {}) {
 }
 
 if (isMain(import.meta.url)) {
-  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['strict'] }, help: HELP, main });
+  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['strict', 'low-memory'] }, help: HELP, main });
 }

@@ -20,6 +20,13 @@ Stills land in `out/stills/`. Open each sheet with the Read tool and look. Check
 - phone cut: content cut off at the edges, captions covering the UI
 - the same fake scenario everywhere
 
+Real-app footage, also check:
+
+- each scene shows the right moment of its recording, not an earlier frame (a long recording in a short scene is where this goes wrong)
+- the text in the recording is sharp at the zoom the camera uses
+- the phone cut follows the part of the page the voice talks about
+- every moment that must match a sound: the word spoken and the word on screen land together
+
 Fix, run the stills again for the changed scenes (`<scene>@<frame>` picks a frame, for example `add@60`), repeat. Only then render.
 
 ## Render
@@ -41,6 +48,9 @@ After every render: nothing cropped wrongly, late animations not cut off, voice 
 
 None ships. To add one: a royalty-free source whose licence you have read and that allows this use; normalise it (`ffmpeg -i in.mp3 -af "loudnorm=I=-16:TP=-1.5:LRA=11" -ar 48000 -b:a 192k public/music/<name>.mp3`); render with `<tag>:light:<name>`; record the source and licence in `public/music/SOURCES.txt`. Avoid sources that only allow YouTube use or non-commercial use. The music is ducked under the voice automatically.
 
-## Disk
+## Memory and disk
 
-Each render adds several MB to `video/out/`. Delete old renders when you are done (`out/` is not committed).
+- Each render adds several MB to `video/out/`. Delete old renders when you are done (`out/` is not committed).
+- A render needs a few GB of free disk to work in; `video-render.mjs` will not start one with less than 3 GB free, and it removes Remotion's working folder (about 250 MB per render) from the temp folder afterwards.
+- "Could not extract frame from compositor ... disk space is low" means the computer ran out of memory or disk, not a bug in the scenes. Close other apps, free disk space, and render again with `--low-memory` (one frame at a time, a smaller frame cache: slower). Long real-app footage needs it most.
+- One render at a time, in the foreground. Two renders at once is the quickest way to run out of memory.

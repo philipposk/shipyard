@@ -173,7 +173,7 @@ export async function stopTree(child, port, { graceMs = 4000, closeMs = 10_000 }
 }
 
 /** If this program is stopped (Ctrl+C) or crashes, the dev server must not stay behind. */
-function installExitGuard(child) {
+export function installExitGuard(child) {
   const kill = () => killGroup(child.pid, 'SIGKILL');
   const onSignal = (signal) => {
     kill();
@@ -211,7 +211,7 @@ async function checkApp(appDir) {
 }
 
 /** Placeholder keys: the preview page never talks to Supabase, and this makes sure nothing real could be reached. */
-function previewEnv() {
+export function previewEnv() {
   const env = { ...process.env };
   delete env.NODE_ENV;
   return {
@@ -225,7 +225,7 @@ function previewEnv() {
   };
 }
 
-function startDevServer({ appDir, nextBin, port }) {
+export function startDevServer({ appDir, nextBin, port }) {
   const state = { log: '', exited: false, code: null };
   const child = spawn(process.execPath, [nextBin, 'dev', '-p', String(port), '-H', '127.0.0.1'], {
     cwd: appDir,
