@@ -34,6 +34,10 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Free Supabase projects pause after a week of no use; wake it in the dashboard before testing.
 - Vercel Hobby forbids commercial use, including taking payments.
 - Changing a domain: payment webhooks do not follow redirects. Register the new endpoint first and use 308 redirects.
+- When the app lives in a subfolder of its repo, set the Vercel project's Root Directory to that folder. Without it the build can pass and every page is a 404.
+- Create SDK clients (Stripe, OpenAI, Resend, the server Supabase client) inside a function on first use, never at the top of a file. `next build` loads every route, so a top-level client breaks every preview and CI build that lacks the key. `verify` warns.
+- Apps with a root `api/` folder (Vite, plain Node): every file in it is a separate Vercel function and Hobby allows 12. Put helpers in `api/_lib/`. In a `"type": "module"` package, relative imports need the `.js` extension (also in `.ts` files) or the function fails at runtime. `verify` warns on both.
+- Every serverless function has a hard time limit (300 s on Vercel). A request that runs into it is killed before its `catch` runs, so the row stays "processing" forever. Give each outside call an abort timeout that leaves time to save the result or the error.
 
 ## Building
 - ★ Supabase returns at most 1000 rows per request and says nothing. Lists, totals and leaderboards need paging (`fetchAll` in the template) and an `ORDER BY`, or they show a random 1000.
@@ -58,6 +62,12 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Analytics (PostHog, GA) starts only after the visitor accepts it; withdrawing is one click in Settings and the footer and stops capture at once.
 - A paid plan whose payments are not set up yet shows a disabled "Coming soon" button, never a checkout that cannot finish.
 - Spend limits at every AI provider, plus a daily cap in the app.
+- Fallback across AI providers: when a provider answers "out of credits" or 401/402/403, skip it for about 15 minutes so the next requests go straight to the next one instead of uploading to a provider that will refuse. Tell the user it is the service's limit, not their own minutes.
+- Long sessions (live transcripts, chats, editors): never rewrite the whole record on every save. Store new lines append-only in a child table and keep the parent row small. A realtime subscription sends the whole row on every change, so poll one small column, or check `updated_at` before reading the full row.
+- The last save of a long session retries network errors and 401/408/429/5xx with backoff. If it still fails, the data stays in the tab with a Retry button and a warning before closing. Plan limits are enforced during the session too, not only at the start.
+- Ship a costly or risky AI feature dark: a server-side list of user ids in an environment variable (unset means off for everyone), checked before any model call.
+- A file dropped anywhere on the page should start the upload. A drop zone that only exists inside a closed dialog lets the browser open the file and leave the app.
+- Formats browsers and speech-to-text services can't read (WMA, AMR, AIFF, CAF): convert to MP3 on the server (ffmpeg) before sending, and keep the MP3 so the player works.
 - Optimistic send plus polling can show a message twice; dedupe by id.
 - A share button that only copies, with a short message at the bottom of the screen, feels broken. Change the button itself to "Copied!", use the share sheet on phones, and fall back to a copy-by-hand box when the browser blocks copying.
 - Pop-up messages (toasts) go straight under `<body>` (a React portal) with their own animation; inside a moving or transformed parent, "fixed" stops meaning the screen, and an animation that ends in `transform: none` breaks the centring.

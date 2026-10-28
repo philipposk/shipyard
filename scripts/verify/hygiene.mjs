@@ -9,6 +9,8 @@
 //      and an accent colour used as text that is unreadable on the dark background.
 //   6. Search and launch (warnings): no robots or sitemap, no canonical/metadataBase, a hard-coded noindex on the root layout or
 //      home page outside the private switch, a shared Supabase app whose auth cookie has no domain, images in public/ without a source log.
+//   7. Builds that need secrets or break on Vercel (warnings): SDK clients (Stripe, OpenAI, Resend...) built at module top level,
+//      more than 12 functions in a root api/ folder (Vercel Hobby limit), and extensionless relative imports there in an ESM package.
 import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { stripComments, pass, failed } from './util.mjs';
@@ -104,6 +106,34 @@ export function darkAccentText(css) {
     if (ratio < 4.5) out.push({ token, ratio: Math.round(ratio * 100) / 100, fg, bg: dark[bgName] });
   }
   return out;
+}
+
+const SDK_CTOR = /\bnew\s+(Stripe|OpenAI|Anthropic|Groq|Resend|Replicate)\s*\(|\b(createClient)\s*\(\s*process\.env\.(?!NEXT_PUBLIC_)/g;
+
+/** SDK clients built at module top level. `next build` loads every route, so a preview or CI build without that key fails.
+ *  Returns [{ line, what }]. Pure: exported for tests. */
+export function eagerClients(source) {
+  const code = stripComments(source);
+  const out = [];
+  for (const m of code.matchAll(SDK_CTOR)) {
+    const before = code.slice(0, m.index);
+    const depth = (before.match(/\{/g) ?? []).length - (before.match(/\}/g) ?? []).length;
+    if (depth <= 0) out.push({ line: before.split('\n').length, what: m[1] ?? m[2] });
+  }
+  return out;
+}
+
+/** Paths (relative to api/, forward slashes) that Vercel deploys as separate functions. Files or folders starting with _ are not. Pure. */
+export function vercelApiFunctions(relPaths) {
+  return relPaths.filter((p) => /\.(m?js|cjs|ts|mts)$/.test(p) && !/\.(test|spec|d)\.[^.]+$/.test(p) && !p.split('/').some((seg) => seg.startsWith('_')));
+}
+
+/** Relative imports with no file extension. Node's ESM loader (Vercel functions in a "type": "module" package) cannot resolve them. Pure. */
+export function extensionlessImports(source) {
+  // Type-only imports are erased by the compiler, so they never reach Node.
+  const code = stripComments(source).replace(/^\s*(?:import|export)\s+type\b[^;]*?from\s*['"][^'"]+['"];?/gm, '');
+  const re = /\bfrom\s*['"](\.{1,2}\/[^'"]+)['"]|\bimport\s*\(?\s*['"](\.{1,2}\/[^'"]+)['"]/g;
+  return [...code.matchAll(re)].map((m) => m[1] ?? m[2]).filter((spec) => !/\.(m?js|cjs|json|node)$/.test(spec));
 }
 
 async function readJson(p) {
@@ -262,6 +292,29 @@ export async function check(ctx) {
   const IMG = /\.(jpe?g|png|webp|gif|avif)$/i;
   const images = (await walk(path.join(dir, 'public'), (n) => IMG.test(n))).filter((f) => !/(^|[\\/])(icon|apple-touch|favicon|og-image|logo)[^\\/]*$/i.test(f));
   if (images.length && !(await anyOf(['IMAGE-SOURCES.md', 'docs/image-sources.md', 'image-sources.md'].map((n) => path.join(dir, n))))) warnings.push(`${images.length} image(s) in public/ but no IMAGE-SOURCES.md licence log. List each image's source and licence; replace unknown ones, especially real people's faces (see launch references/image-rights.md)`);
+
+  // 7. Builds that need secrets, and Vercel's root api/ folder.
+  const serverFiles = [
+    ...(await walk(path.join(srcDir, 'app'), (n) => /^route\.(ts|js|mjs)$/.test(n))),
+    ...(await walk(path.join(srcDir, 'lib'), (n) => /\.(ts|js|mjs)$/.test(n) && !/\.test\./.test(n))),
+  ];
+  for (const f of serverFiles) {
+    for (const e of eagerClients(await readFile(f, 'utf8'))) warnings.push(`${path.relative(dir, f)}:${e.line} builds a ${e.what} client at the top of the file, so \`next build\` fails wherever that key is missing (previews, CI). Create it inside a function on first use`);
+  }
+  const apiDir = path.join(dir, 'api');
+  if (await exists(apiDir)) {
+    const apiFiles = await walk(apiDir, () => true);
+    const fns = vercelApiFunctions(apiFiles.map((f) => path.relative(apiDir, f).split(path.sep).join('/')));
+    if (fns.length > 12) warnings.push(`api/ has ${fns.length} files Vercel deploys as functions; the Hobby plan allows 12, so the deploy fails. Move helpers into api/_lib/ (folders and files starting with _ are not functions)`);
+    if (pkg?.type === 'module') {
+      const hits = [];
+      for (const f of apiFiles.filter((p) => /\.(m?js|ts|mts)$/.test(p))) {
+        const bare = extensionlessImports(await readFile(f, 'utf8'));
+        if (bare.length) hits.push(`${path.relative(dir, f)} (${bare.slice(0, 2).join(', ')})`);
+      }
+      if (hits.length) warnings.push(`${hits.length} file(s) in api/ import relative paths with no extension: ${hits.slice(0, 3).join('; ')}${hits.length > 3 ? '; ...' : ''}. In an ESM package the deployed function fails with ERR_MODULE_NOT_FOUND; write the .js extension (also for .ts sources)`);
+    }
+  }
 
   const extra = warnings.length ? { warnings } : {};
   if (problems.length) return failed(name, `${problems.length} problem(s) that break accessibility, search or CI`, [...problems, ...warnings.map((w) => `warning: ${w}`)], extra);
