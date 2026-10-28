@@ -150,7 +150,7 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 
 ## What changed in 0.8.3
 
-- `video` can show the real app: practice pages with made-up data (no sign-in, no database) are recorded with the new `video-capture.mjs`, which starts the app, records it and always stops it again, and the recording plays inside the same scenes. The engine moves to a newer pinned version with the recorder fixes: sharp big recordings, the right frames in long ones, captions in any alphabet.
+- `video` can show the real app: practice pages with made-up data (no sign-in, no database) are recorded with the new `video-capture.mjs`, which starts the app, records it and always stops it again, and the recording plays inside the same scenes. The engine moves to a newer pinned version with the recorder fixes: sharp big recordings, the right frames in long ones, a picture that lines up with the clicks, captions in any alphabet.
 - Voice: pick key lines by ear (`--takes`), fix one line without the rest (`say`, `style`, `pauseCap`, `leadIn`, `take`), other languages (`--lang`, `--wpm`, `--style`), and Gemini's free-tier limit explained.
 - Renders stop early on a nearly full disk, clean up Remotion's working folders, and `--low-memory` handles long footage. Publishing sets the captions language (`--lang`). A new YouTube guide: Private first, subtitles, never delete a video for the student. Scripts are benefits-only.
 - The video works on apps Shipyard did not make once the upgrade guide is done (`--general`). new-app, launch and the upgrade guide offer the video at the end, with its time and cost.

@@ -15,7 +15,7 @@ import { classifyApp } from '../which-app.mjs';
  * (SHIPYARD_TEST_VIDEO=1).
  */
 export const ENGINE_REPO = 'https://github.com/philipposk/demo-pipeline';
-export const ENGINE_SHA = '88ebbc234cc4ecd550bac078dc59884350cef4fd';
+export const ENGINE_SHA = 'c60045f0053bab58a89248f82c4cabc170463d62';
 export const ENGINE_SUBDIR = 'motion';
 
 /** Folder inside the app that holds the engine and the student's scenes. */

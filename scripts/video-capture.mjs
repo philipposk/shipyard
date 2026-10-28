@@ -101,7 +101,8 @@ export async function main(args, deps = {}) {
     // The capture needs no keys: none of the voice keys reach it, even when they are set in the shell.
     const env = { APP_URL: base, ...Object.fromEntries(VOICE_KEYS.map((k) => [k, undefined])) };
     const capture = (extra = {}) => run('node', [path.posix.join('capture', `${name}.mjs`)], {
-      cwd: videoDir, env: { ...env, ...extra }, timeoutMs: CAPTURE_TIMEOUT_MS, quiet: !!args.json,
+      // quiet: a failed first try (a missing browser) would print a long stack trace; failures are summarised below
+      cwd: videoDir, env: { ...env, ...extra }, timeoutMs: CAPTURE_TIMEOUT_MS, quiet: true,
     });
     let r = await capture();
     // The exact browser this Playwright wants may not be downloaded, while an older or newer one is: try those.
