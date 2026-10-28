@@ -46,6 +46,8 @@ Fields for fixing one line by ear (after the voice step, see SKILL.md step 3):
 - About 110 words for about 55 seconds. One idea per line, short sentences, concrete nouns, words a stranger understands.
 - Structure that works: hook, name reveal, input, core result, organisation, one or two special features, sharing, end card with the name and a call to action. A repeated phrase gives rhythm.
 - Every claim maps to a shipped feature. No speed claims ("in seconds") unless you measured it. No "best", "revolutionary" or other hype words.
+- Only what the app really does, and in a real run only what the take showed. Name only tools and plans that exist (the free plan if that is the offer), and end a real run with "A real run, sped up where marked".
+- No comma in the middle of a short phrase: the voice pauses on it ("ten free projects every month", not "ten free projects, every month").
 - Benefits only, from a new viewer's side: what they can do, see or keep. Nothing that reads like a changelog ("now", "no longer", "we fixed", a recent change) and nothing obvious ("you can sign in"). Test each line: would a stranger who never saw the app before care?
 - Say the product's name in the reveal and on the end card.
 - No hard pause after a single word ("One: ..."). Write "First, ...". The voice step caps pauses and can clip it.

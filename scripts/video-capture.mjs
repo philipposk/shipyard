@@ -33,10 +33,13 @@ Exit code: 0 ok, 1 something to fix, 2 wrong options.
 const CAPTURE_TIMEOUT_MS = 20 * 60_000;
 const MISSING_BROWSER_RE = /Executable doesn't exist|playwright install|looks like Playwright was just installed/i;
 
-/** Chromium builds already in Playwright's download folder, newest first (used when the exact one is missing). */
+/**
+ * Chromium builds already in Playwright's download folder (used when the exact one is missing): headless shells first,
+ * newest first. A full browser's screencast can cover only its window, which comes out stretched.
+ */
 async function realFindBrowsers() {
   const lists = await Promise.all(browserCacheRoots().map((root) => cachedChromiums(root)));
-  return lists.flat().map((c) => c.path);
+  return lists.flat().sort((a, b) => Number(b.shell) - Number(a.shell) || b.revision - a.revision).map((c) => c.path);
 }
 
 /** Captures (src/captures/*.json) written since `since` (ms): what this run made. */

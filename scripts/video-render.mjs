@@ -8,14 +8,17 @@ import * as log from './lib/log.mjs';
 import { runCli, isMain, resolveAppDir, ProvisionError } from './provision/common.mjs';
 import { requireVideoDir, pathExists, checkMediaTools, mediaToolsError } from './video/common.mjs';
 import {
-  parseSpec, renderOne, parseVolume, volumeNotes, freeBytes as realFreeBytes, cleanBundles, MIN_FREE_BYTES,
+  parseSpec, renderOne, parseVolume, volumeNotes, freeBytes as realFreeBytes, cleanBundles, MIN_FREE_BYTES, otherRenderRunning,
 } from './video/render-lib.mjs';
+
+/** YouTube's loudness: a master for upload is normalised to this (renders come out at about -26 dB). */
+export const YOUTUBE_LUFS = -14;
 
 const HELP = `
 Render your video.
 
 Usage:
-  node video-render.mjs <app-folder> <cut> [<cut> ...] [--strict] [--low-memory] [--json]
+  node video-render.mjs <app-folder> <cut> [<cut> ...] [--strict] [--low-memory] [--loudnorm] [--json]
 
 A cut is <tag>:<light|dark>[:<music>][:silent][:vertical]. Examples:
   acme:light             wide video, light theme, with the voice
@@ -31,15 +34,20 @@ Look at that picture before you call the video done.
   --strict       treat dead air as a failure
   --low-memory   render one frame at a time with a smaller frame cache: slower, for long real-app footage or a
                  computer short of memory
+  --loudnorm     make the sound as loud as YouTube expects (-14 LUFS); use it for a master you will upload
   --json         print the result as JSON
-A render does not start with less than 3 GB of free disk. Remotion's working folder for each render (about 250 MB)
+A render does not start with less than 3 GB of free disk, or while another video render runs on this computer
+(another project or chat): two at once run out of memory. Remotion's working folder for each render (about 250 MB)
 is removed from the temp folder afterwards.
 Output goes to <app>/video/out/. Delete old renders when you are done: each is several MB.
 Exit code: 0 ok, 1 a render failed, 2 wrong options.
 `;
 
 export async function main(args, deps = {}) {
-  const { run = realRun, which = realWhich, freeBytes = realFreeBytes, tmpRoot = os.tmpdir(), now = () => Date.now() } = deps;
+  const {
+    run = realRun, which = realWhich, freeBytes = realFreeBytes, tmpRoot = os.tmpdir(), now = () => Date.now(),
+    otherRender = () => otherRenderRunning(run),
+  } = deps;
   if (args._.length < 2) throw new log.UsageError('Give the app folder and at least one cut, for example: node video-render.mjs ./recipe-box launch:light');
   const [dir, ...specs] = args._;
   const parsed = specs.map((s) => ({ spec: s, ...parseSpec(s) })); // bad names stop here, before anything runs
@@ -64,9 +72,19 @@ export async function main(args, deps = {}) {
       log.fail(`${p.spec}: ${r.error}`);
       continue;
     }
+    if ((await otherRender()) === true) {
+      const r = { ok: false, spec: p.spec, name: null, error: 'Another video render is running on this computer (another project or chat). Wait until it finishes, then run this again: two at once run out of memory.' };
+      results.push(r);
+      log.fail(`${p.spec}: ${r.error}`);
+      continue;
+    }
     const started = now();
-    const r = await renderOne({ run, videoDir, spec: p.spec, strict: !!args.strict, quiet: !!args.json, lowMemory: !!args['low-memory'] });
-    await cleanBundles({ tmpRoot, since: started - 1000 });
+    const r = await renderOne({
+      run, videoDir, spec: p.spec, strict: !!args.strict, quiet: !!args.json, lowMemory: !!args['low-memory'],
+      loudnorm: args.loudnorm ? YOUTUBE_LUFS : null,
+    });
+    // Remotion's working folders go, but never while another render may still be using its own.
+    if ((await otherRender()) !== true) await cleanBundles({ tmpRoot, since: started - 1000 });
     if (r.ok && !p.silent) {
       // Loudness. A cut with no audio track at all just gives no reading.
       const v = await run('ffmpeg', ['-hide_banner', '-nostats', '-i', r.mp4, '-vn', '-af', 'volumedetect', '-f', 'null', '-'], { timeoutMs: 5 * 60_000 });
@@ -93,5 +111,5 @@ export async function main(args, deps = {}) {
 }
 
 if (isMain(import.meta.url)) {
-  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['strict', 'low-memory'] }, help: HELP, main });
+  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['strict', 'low-memory', 'loudnorm'] }, help: HELP, main });
 }
