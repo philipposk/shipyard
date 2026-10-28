@@ -5,7 +5,7 @@ export const meta = {
 }
 // args: {
 //   repo: absolute worktree path,
-//   reviewJson: absolute path of the saved review.js result ({ confirmed: [...] }; ids = positions in confirmed),
+//   reviewJson: absolute path of the saved review.js result ({ confirmed: [{ id, ... }] }),
 //   batches: [{ k, strong, ids: [..], files: [..] }]   (scripts/review/plan-waves.mjs builds these; `model` also works),
 //   waves: [[batchKey, ...], ...]                        (batches in one wave share no file),
 //   decisions?: { [id]: "owner decision text" },
@@ -27,7 +27,7 @@ const RESULT = { type: 'object', properties: {
 function prompt(b, forbidden) {
   const dec = b.ids.filter(id => A.decisions && A.decisions[id]).map(id => `- #${id}: ${A.decisions[id]}`).join('\n')
   return `Fix verified code-review findings. WORK ONLY IN ${A.repo} (cd there; absolute paths; never touch any other checkout). No commits, no git state changes (no stash/checkout/reset), no builds or dev servers.
-Batch "${b.k}", ids ${JSON.stringify(b.ids)}: positions in the "confirmed" array of ${A.reviewJson} (read it with node). FIRST re-check each finding against the CURRENT code; skip with a reason if it is not real or already fixed.
+Batch "${b.k}", ids ${JSON.stringify(b.ids)}: the findings with those "id" values in the "confirmed" array of ${A.reviewJson} (read it with node). FIRST re-check each finding against the CURRENT code; skip with a reason if it is not real or already fixed.
 ${dec ? `Owner decisions (follow them):\n${dec}\n` : ''}Other fixers are editing these files RIGHT NOW, do not edit them: ${forbidden.length ? forbidden.join(', ') : '(none)'}. If a fix truly needs one, do the rest and report partial with an open_item.
 How: ${SP ? `read ${SP}/systematic-debugging/SKILL.md and ${SP}/test-driven-development/SKILL.md; ` : ''}unit-test pure logic first (watch it fail, then fix). Minimal changes in the surrounding style; no drive-by refactors; delete dead code rather than comment it out. Keep backward compatibility (old clients, sent links, existing rows, existing auth methods: deprecate with a log line, don't break). No DB migration unless a decision says so; if one is needed, make the code work without it and report it as an open_item. Never change the deploy build pipeline (build script, deploy workflow, hosting config).${A.rules ? `\nProject rules: ${A.rules}` : ''}
 Finally run \`npx tsc --noEmit\` (ignore errors in files outside your batch) and the relevant tests. Report per finding.`

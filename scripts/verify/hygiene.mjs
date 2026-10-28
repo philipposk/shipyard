@@ -84,13 +84,41 @@ export function nextLintScripts(pkg) {
  * Returns { tests, typed }. Pure: exported for tests.
  */
 export function ciTypeCheck(texts, pkg = null) {
-  const all = texts.map((t) => stripYamlComments(t)).join('\n');
+  // Only the commands CI runs count: a step named "Typecheck (tsc)" that runs `npm test` type-checks nothing.
+  const all = texts.flatMap((t) => runCommands(t)).join('\n');
   const typeCheck = /\btsc\b|\bnpm run (?:typecheck|type-check|check-types|types)\b|\bnpm run build\b|\bnext build\b/;
-  const viaNpmTest = /\bnpm (?:run )?test\b/.test(all) && [pkg?.scripts?.test, pkg?.scripts?.pretest].some((cmd) => typeCheck.test(String(cmd ?? '')));
+  // Exactly `npm test` / `npm run test`: npm runs `pretest` for that script only, not for `test:unit`.
+  const npmTest = /(?:^|[\s;&|(])npm (?:run )?test(?=$|[\s;&|)])/m.test(all);
+  const viaNpmTest = npmTest && [pkg?.scripts?.test, pkg?.scripts?.pretest].some((cmd) => typeCheck.test(String(cmd ?? '')));
   return {
     tests: /\bnpm (?:run )?test\b|\bnode\s+--test\b|\bnpx\s+(?:vitest|jest)\b|\bnpm run test:/.test(all),
     typed: typeCheck.test(all) || viaNpmTest,
   };
+}
+
+/** The shell commands of a workflow's `run:` steps (one line, or a `|` / `>` block), comments removed. Pure. */
+export function runCommands(yaml) {
+  const lines = String(yaml).split(/\r?\n/);
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^(\s*)(-\s+)?run:\s*(.*)$/.exec(lines[i]);
+    if (!m) continue;
+    const value = m[3].trim();
+    if (/^[|>][+-]?\d*\s*(#.*)?$/.test(value)) {
+      const keyIndent = m[1].length + (m[2] ? m[2].length : 0);
+      const block = [];
+      for (let j = i + 1; j < lines.length; j++) {
+        const l = lines[j];
+        if (l.trim() && l.length - l.trimStart().length <= keyIndent) break;
+        block.push(l);
+        i = j;
+      }
+      out.push(stripYamlComments(block.join('\n')));
+    } else {
+      out.push(stripYamlComments(value.replace(/^(['"])(.*)\1$/, '$2')));
+    }
+  }
+  return out;
 }
 const stripYamlComments = (text) => String(text).split('\n').map((l) => l.replace(/(^|\s)#.*$/, '')).join('\n');
 

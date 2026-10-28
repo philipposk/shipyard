@@ -37,11 +37,21 @@ test('routes: a signed-out API call that answers 200, or 401 with a page, fails'
   assert.match(html.problems.join('\n'), /401 with a page instead of JSON/);
 });
 
+test('routes: a 401 that says JSON but sends a page fails; a 404 for unknown API paths falls back to /api/profile', async (t) => {
+  const fake = await routes(ctx(await withServer(t, { apiGate: 'fakejson' })));
+  assert.match(fake.problems.join('\n'), /401 with a page instead of JSON/);
+  const missing = await routes(ctx(await withServer(t, { apiGate: 'missing' })));
+  assert.equal(missing.ok, true, JSON.stringify(missing));
+  assert.match(missing.details.join('\n'), /signed-out API calls get 401 JSON/);
+});
+
 test('signedOutApi: 401 JSON passes; 404, the Vercel wall and errors are worded plainly', () => {
   const res = (status, text = '', type = 'text/html', location = null) => ({ status, text, headers: new Headers({ 'content-type': type }), location });
   assert.match(signedOutApi(res(401, '{"error":"Unauthorized"}', 'application/json'), 'https://x.app').detail, /401 JSON/);
   assert.match(signedOutApi(res(403, '{"error":"onboarding_required"}', 'text/plain'), 'https://x.app').detail, /403 JSON/);
-  assert.match(signedOutApi(res(404), 'https://x.app').detail, /every API route must check the login itself/);
+  assert.match(signedOutApi(res(401, '<html>oops</html>', 'application/json'), 'https://x.app').problem, /with a page instead of JSON/);
+  assert.match(signedOutApi(res(401, '', 'application/json'), 'https://x.app').problem, /with a page instead of JSON/);
+  assert.match(signedOutApi(res(404), 'https://x.app').detail, /login gate was not tested/);
   assert.match(signedOutApi(res(401, '<title>Authentication Required</title>'), 'https://x.app').detail, /Deployment Protection/);
   assert.match(signedOutApi(res(308, '', 'text/html', 'https://x.app/sign-in?next=%2Fapi'), 'https://x.app').problem, /sent to \/sign-in/);
   assert.match(signedOutApi(res(500), 'https://x.app').problem, /answered 500, expected 401 JSON/);

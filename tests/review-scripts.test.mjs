@@ -72,6 +72,9 @@ test('planWaves: --skip leaves findings out, --strong marks areas, bad input is 
   assert.throws(() => planWaves({}), /no "confirmed" list/);
   assert.throws(() => planWaves(null), /no "confirmed" list/);
   assert.deepEqual(planWaves({ confirmed: [] }), { batches: [], waves: [] });
+  // An explicit id wins over the position, so a re-ordered list still skips the right finding.
+  const byId = planWaves({ confirmed: [{ id: 7, area: 'a', where: 'x.ts:1' }, { id: 3, area: 'a', where: 'y.ts:1' }] }, { skip: [3] });
+  assert.deepEqual(byId.batches[0].ids, [7]);
 });
 
 test('plan-waves CLI: saves plan.json next to the review and reports the waves', (t) => {

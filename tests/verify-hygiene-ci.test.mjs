@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { check, ciTypeCheck, nextLintScripts } from '../scripts/verify/hygiene.mjs';
+import { check, ciTypeCheck, nextLintScripts, runCommands } from '../scripts/verify/hygiene.mjs';
 import { tempDir, removeDir, makeAppFromTemplate, TEMPLATE } from './verify-helpers.mjs';
 
 async function app(t) {
@@ -40,6 +40,31 @@ test('ciTypeCheck: a type check or a build anywhere counts; comments do not', ()
   assert.deepEqual(ciTypeCheck(['run: npm test'], { scripts: { pretest: 'tsc --noEmit', test: 'node --test' } }), { tests: true, typed: true });
   assert.deepEqual(ciTypeCheck(['run: npm test'], { scripts: { test: 'npm run typecheck && node --test' } }), { tests: true, typed: true });
   assert.deepEqual(ciTypeCheck(['run: node --test'], { scripts: { pretest: 'tsc --noEmit' } }), { tests: true, typed: false });
+  // A step name is not a command, and npm runs pretest only for the exact test script.
+  assert.deepEqual(ciTypeCheck(['      - name: Typecheck (tsc)\n        run: npm test']), { tests: true, typed: false });
+  assert.deepEqual(ciTypeCheck(['run: npm run test:unit'], { scripts: { pretest: 'tsc --noEmit' } }), { tests: true, typed: false });
+  assert.deepEqual(ciTypeCheck(['run: npm test -- --reporter dot'], { scripts: { pretest: 'tsc --noEmit' } }), { tests: true, typed: true });
+  assert.deepEqual(ciTypeCheck(['      - run: |\n          npm ci\n          npx tsc --noEmit\n        name: x\n      - run: npm test']), { tests: true, typed: true });
+});
+
+test('runCommands reads one-line and block run steps, and nothing else', () => {
+  const yml = `name: Tests # tsc
+jobs:
+  test:
+    steps:
+      - name: Typecheck with tsc
+        run: npm run lint
+      - run: "npm test"
+      - name: Many
+        run: |
+          npm ci # install
+          npm run build
+        env:
+          X: tsc
+      - run: >-
+          node --test
+`;
+  assert.deepEqual(runCommands(yml).map((c) => c.trim().replace(/\s+/g, ' ')), ['npm run lint', 'npm test', 'npm ci npm run build', 'node --test']);
 });
 
 test('the template CI and scripts pass the new checks', async (t) => {

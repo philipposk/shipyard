@@ -14,7 +14,7 @@ Plan the fix waves for a saved review result.
 Usage:
   node plan-waves.mjs <review.json> [--skip 3,12] [--strong auth,data] [--repo <dir>] [--out <plan.json>] [--json]
 
-  --skip     finding numbers to leave out (positions in "confirmed", from 0): deferred, or waiting for a decision
+  --skip     finding ids to leave out (the "id" of each confirmed finding): deferred, or waiting for a decision
   --strong   areas whose fixer should get your strongest model (sign-in, data rules, live audio, AI costs)
   --repo     the app folder, so absolute file paths in the findings become relative ones
   --out      where to save the plan (default: plan.json next to the review file)
@@ -38,7 +38,8 @@ export function normFile(file, repo = '') {
 }
 
 /**
- * review: { repo?, confirmed: [{ area, where: "file:line", files?: [...] }] }. Finding ids are positions in `confirmed`.
+ * review: { repo?, confirmed: [{ id?, area, where: "file:line", files?: [...] }] }. A finding's number is its `id`
+ * (the review workflow sets it), or else its position in `confirmed`.
  * Returns { batches: [{ k, strong, ids, files }], waves: [[k, ...]] }: the busiest batches first, each placed in
  * the first wave it shares no file with. Pure.
  */
@@ -47,7 +48,8 @@ export function planWaves(review, { skip = [], strong = [], repo = review?.repo 
   const skipped = new Set(skip.map(Number));
   const strongAreas = new Set(strong);
   const byArea = new Map();
-  review.confirmed.forEach((x, id) => {
+  review.confirmed.forEach((x, at) => {
+    const id = Number.isInteger(x?.id) ? x.id : at;
     if (skipped.has(id)) return;
     const k = String(x?.area || 'other');
     if (!byArea.has(k)) byArea.set(k, { k, strong: strongAreas.has(k), ids: [], files: new Set() });

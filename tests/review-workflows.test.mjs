@@ -90,6 +90,7 @@ test('review.js: strong areas get the strong model, duplicates merge, skeptics d
   assert.deepEqual(result.counts, { raw: 4, unique: 3, confirmed: 1, uncertain: 0, unverified: 1 });
   assert.deepEqual(result.unverified.map((u) => u.where), ['src/lib/b.ts:7'], 'a finding whose verifier failed is kept');
   assert.equal(result.confirmed[0].where, 'src/proxy.ts:10');
+  assert.equal(result.confirmed[0].id, 0, 'every confirmed finding carries the number --skip and decisions use');
   assert.equal(result.confirmed[0].also.length, 1);
   assert.deepEqual(result.confirmed[0].files, ['src/x.ts']);
   assert.equal(result.refuted.length, 1);

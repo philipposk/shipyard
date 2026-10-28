@@ -29,7 +29,7 @@ Do the same steps yourself, in order. Open the workflow file and use its prompts
 
 - `review.js`: `repo` (the worktree's absolute path), `app` (one paragraph: what it does, the stack), `areas` (the list from `references/areas.md`), and when you have them `skip` (switched-off features), `openItems` (the known-issues doc), `focusAuthor` (the email from step 2).
 - `content-gaps.js`: `repo`, `app`, `since` (the date of the last release check), `languages`, `rules` (for example "only the free plan may be advertised"), `docs` (style and glossary files).
-- `fix-waves.js`: `repo`, `reviewJson` (absolute path), `batches` and `waves` from `plan-waves.mjs`, `decisions` (`{ "<finding number>": "what the owner chose" }`), `rules` (the app's own rules, such as "every string in both languages").
+- `fix-waves.js`: `repo`, `reviewJson` (absolute path), `batches` and `waves` from `plan-waves.mjs`, `decisions` (`{ "<finding id>": "what the owner chose" }`), `rules` (the app's own rules, such as "every string in both languages").
 - `diff-review.js`: `repo`, `groups` (`{ "area": ["changed/file.ts", ...] }`, from `git diff --name-only origin/main` plus the new files that are not committed yet, `git ls-files --others --exclude-standard`, sorted by area), `context` (paths of the saved results), `notes` (deploy facts, such as "new migrations are not applied yet"), `checks` (the commands that must pass).
 
 `superpowers` (optional, every workflow): the absolute path of the superpowers skills folder, if it is installed. The prompts then point helpers at its review and debugging guides.

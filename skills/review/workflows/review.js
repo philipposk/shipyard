@@ -77,7 +77,8 @@ const verified = await parallel(unique.map(f => () => {
 }))
 const vs = verified.filter(Boolean)
 const slim = x => ({ area: x.area, cat: x.category, focus: x.focus_author, title: x.title, where: `${x.file}:${x.line}`, sev: x.v.severity, desc: x.description, scenario: x.failure_scenario, fix: x.v.fix_plan, files: x.v.files_to_touch, risk: x.v.fix_risk, decide: x.v.needs_user_decision, why: x.v.reasoning, also: x.also })
-const confirmed = vs.filter(x => x.v.verdict === 'confirmed').map(slim)
+// `id` is the finding's number everywhere after this: plan-waves --skip, fix-waves decisions, the list shown to the owner.
+const confirmed = vs.filter(x => x.v.verdict === 'confirmed').map((x, id) => ({ id, ...slim(x) }))
 const uncertain = vs.filter(x => x.v.verdict === 'uncertain').map(slim)
 // A finding whose verifier failed is kept, not dropped: verify it again by hand or in a rerun.
 const unverified = unique.filter((f, i) => !verified[i]).map(f => ({ area: f.area, cat: f.category, title: f.title, where: `${f.file}:${f.line}`, sev: f.severity, desc: f.description, scenario: f.failure_scenario, fix: f.suggested_fix }))

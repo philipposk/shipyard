@@ -45,12 +45,13 @@ export function signedOutApi(res, base) {
   }
   if (res.status >= 200 && res.status < 300) return { problem: `${where} answered ${res.status}. API routes need a login (401 JSON) unless they are listed as public` };
   if (res.status === 401 || res.status === 403) {
-    const json = /json/i.test(res.headers?.get?.('content-type') ?? '') || (() => { try { JSON.parse(res.text); return true; } catch { return false; } })();
+    // The body must parse: a JSON content type on an HTML error page still breaks the app's own error handling.
+    const json = (() => { try { JSON.parse(res.text); return true; } catch { return false; } })();
     if (json) return { detail: `signed-out API calls get ${res.status} JSON` };
     if (/vercel\.com\/sso-api|Authentication Required/i.test(res.text)) return { detail: 'signed-out API calls are stopped by Vercel Deployment Protection (see the protection check)' };
     return { problem: `${where} answered ${res.status} with a page instead of JSON, so the app's own code cannot read the error. Answer with JSON` };
   }
-  if (res.status === 404) return { detail: 'unknown API paths answer 404 before any login check, so every API route must check the login itself' };
+  if (res.status === 404) return { detail: 'unknown API paths and /api/profile answer 404, so the login gate was not tested: every API route must check the login itself' };
   return { problem: `${where} answered ${res.status}, expected 401 JSON` };
 }
 
@@ -100,8 +101,11 @@ export async function check(ctx) {
   else if (options.status === 405 || options.status === 404) problems.push(`/api/auth/signup: OPTIONS answered ${options.status}, so the route is missing or blocked`);
   else details.push('sign-up route answers');
 
-  // A made-up API path: the login gate answers before any route exists, so this tests the gate itself.
-  const api = signedOutApi(await request(joinUrl(ctx.url, `/api/shipyard-signed-out-${randomBytes(4).toString('hex')}`)), ctx.url);
+  // A made-up API path: the login gate answers before any route exists, so this tests the gate itself. A 404
+  // there proves nothing about the login, so then ask the template's private /api/profile route instead.
+  let apiRes = await request(joinUrl(ctx.url, `/api/shipyard-signed-out-${randomBytes(4).toString('hex')}`));
+  if (apiRes.status === 404) apiRes = await request(joinUrl(ctx.url, '/api/profile'));
+  const api = signedOutApi(apiRes, ctx.url);
   if (api.problem) problems.push(api.problem);
   else details.push(api.detail);
 
