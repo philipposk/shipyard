@@ -1,10 +1,57 @@
 // Running one engine render and reading its result. Used by video-render.mjs and by the smoke render in video-setup.mjs.
+import os from 'node:os';
 import path from 'node:path';
 import { pathExists, tailLines, mb } from './common.mjs';
 import { ProvisionError } from '../provision/common.mjs';
-import { stat } from 'node:fs/promises';
+import { readdir, rm, stat, statfs } from 'node:fs/promises';
 
 const RENDER_TIMEOUT_MS = 40 * 60_000;
+
+/** Below this much free disk a render does not start: Remotion needs a few GB to work in (more for real-app footage). */
+export const MIN_FREE_BYTES = 3e9;
+
+/** One frame at a time and a smaller frame cache, for a computer short of memory (long real-app captures). */
+export const LOW_MEMORY_ENV = { CONCURRENCY: '1', OTV_CACHE: '400000000' };
+
+/** Free bytes on the disk that holds `dir`, or null when the system cannot say. */
+export async function freeBytes(dir) {
+  try {
+    const s = await statfs(dir);
+    return s.bavail * s.bsize;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remotion leaves a bundle folder (about 250 MB) in the temp folder for every render. Remove the ones made since
+ * `since` (ms), so only this render's leftovers go, never another program's. Returns how many were removed.
+ */
+export async function cleanBundles({ tmpRoot = os.tmpdir(), since }) {
+  let names;
+  try {
+    names = await readdir(tmpRoot);
+  } catch {
+    return 0;
+  }
+  let removed = 0;
+  for (const n of names) {
+    if (!n.startsWith('remotion-webpack-bundle-')) continue;
+    const dir = path.join(tmpRoot, n);
+    try {
+      const s = await stat(dir);
+      if (!s.isDirectory() || s.mtimeMs < since) continue;
+      await rm(dir, { recursive: true, force: true });
+      removed += 1;
+    } catch {
+      // gone already, or not ours to remove
+    }
+  }
+  return removed;
+}
+
+/** Remotion says "disk space is low" when the computer runs out of memory too. */
+const OUT_OF_ROOM_RE = /disk space is low|Could not extract frame from compositor|ENOSPC|heap out of memory|Cannot allocate memory/i;
 
 /**
  * "<tag>:<theme>:<music>[:silent][:vertical]", for example acme:light  acme:dark::vertical  acme:light::silent.
@@ -62,11 +109,11 @@ export function volumeNotes(v) {
  * Render one cut with the engine's own script (it also checks for frozen stretches and makes the contact sheet).
  * Returns { ok, spec, name, mp4, sheet, seconds, sizeMb, deadAir, volume, notes, error? }.
  */
-export async function renderOne({ run, videoDir, spec, strict = false, quiet = true, env = {} }) {
+export async function renderOne({ run, videoDir, spec, strict = false, quiet = true, env = {}, lowMemory = false }) {
   parseSpec(spec);
   const r = await run('node', ['scripts/render.mjs', spec], {
     cwd: videoDir,
-    env: { ...env, ...(strict ? { STRICT_MOTION: '1' } : {}) },
+    env: { ...env, ...(strict ? { STRICT_MOTION: '1' } : {}), ...(lowMemory ? LOW_MEMORY_ENV : {}) },
     quiet,
     timeoutMs: RENDER_TIMEOUT_MS,
   });
@@ -74,14 +121,13 @@ export async function renderOne({ run, videoDir, spec, strict = false, quiet = t
   const parsed = parseRenderOutput(text);
   if (r.code !== 0) {
     const dead = /dead air/.test(text);
-    return {
-      ok: false,
-      spec,
-      name: parsed.name,
-      error: dead
-        ? `The render has dead air (a frozen stretch over half a second) and strict mode is on. ${tailLines(text, 3)}`
-        : `The render failed. Last lines from the engine:\n${tailLines(text, 8)}`,
-    };
+    let error = `The render failed. Last lines from the engine:\n${tailLines(text, 8)}`;
+    if (dead) error = `The render has dead air (a frozen stretch over half a second) and strict mode is on. ${tailLines(text, 3)}`;
+    else if (OUT_OF_ROOM_RE.test(text)) {
+      error = 'The computer ran out of memory or disk space during the render (Remotion says "disk space is low" for both). '
+        + `Close other apps, free some disk space, then render again with --low-memory${lowMemory ? ' (it was already on: make the capture or the video shorter)' : ''}.\n${tailLines(text, 3)}`;
+    }
+    return { ok: false, spec, name: parsed.name, error };
   }
   const name = parsed.name;
   if (!name) {

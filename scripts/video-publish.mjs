@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // Makes the web copy of a finished render: a small mp4 (under 10 MB), a poster picture and captions,
 // into <app>/public/video/. Prints the snippet to paste into a page.
+// Works on an app Shipyard did not make too, with --general, once the new-app upgrade guide is done.
 import path from 'node:path';
 import { mkdir, stat, readFile, writeFile, readdir } from 'node:fs/promises';
 import { run as realRun, which as realWhich } from './lib/run.mjs';
 import * as log from './lib/log.mjs';
 import { runCli, isMain, resolveAppDir, readAppConfig, updateAppConfig, ProvisionError } from './provision/common.mjs';
-import { videoDirOf, PUBLISH_DIR, pathExists, checkMediaTools, mediaToolsError, tailLines, mb } from './video/common.mjs';
+import { videoDirOf, pathExists, checkMediaTools, mediaToolsError, tailLines, mb, requireVideoApp } from './video/common.mjs';
 import {
   MAX_BYTES, encodeAttempts, buildEncodeArgs, buildPosterArgs, probeSizeArgs, probeDurationArgs, parseSize, parseDuration,
-  defaultPosterAt, defaultWebName, WEB_NAME_RE, moveCuesToTop, jsxSnippet,
+  defaultPosterAt, defaultWebName, WEB_NAME_RE, moveCuesToTop, jsxSnippet, htmlSnippet, LANG_RE,
 } from './video/encode.mjs';
 import { patchProxyForVideo } from './video/app-patches.mjs';
 
@@ -18,7 +19,8 @@ Make the web copy of a finished video and put it in your app.
 
 Usage:
   node video-publish.mjs <app-folder> <render> [--name <file-name>] [--poster-at <seconds>] [--vtt <tag>]
-                         [--captions-top] [--no-captions] [--max-mb <n>] [--no-patch] [--json]
+                         [--captions-top] [--no-captions] [--lang <code>] [--max-mb <n>] [--no-patch]
+                         [--general] [--public-dir <folder>] [--json]
 
   <render>        the render's name (like acme-light-nomusic) or its path inside video/out/
   --name          file name for the web copy, without extension. Default: demo-light, demo-dark, demo-light-phone...
@@ -27,8 +29,12 @@ Usage:
   --vtt           tag whose captions file (video/out/<tag>.vtt) to copy. Default: found from the render's name.
   --captions-top  put the captions at the top of the picture (use when the video already shows text at the bottom)
   --no-captions   do not copy captions
+  --lang          the language the video speaks, for the captions track (en, el, pt-BR...). Default: en.
   --max-mb        biggest allowed size in MB (default 10)
   --no-patch      do not change src/proxy.ts (see below)
+  --general       the app was not made by Shipyard and has been brought up to the Shipyard standard (new-app
+                  upgrade guide). src/proxy.ts and .shipyard-app.json are left alone; it prints what to check instead.
+  --public-dir    the app's folder for files served as they are. Default: public. The files go in <folder>/video/.
   --json          print the result as JSON
 
 Writes public/video/<name>.mp4, <name>.jpg and demo.vtt. It also lets signed-out visitors open mp4, webm and vtt files
@@ -88,14 +94,24 @@ export async function main(args, deps = {}) {
     throw new log.UsageError('--name can use lower-case letters, numbers and dashes only (for example demo-light).');
   }
   if (args.vtt !== undefined && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/.test(args.vtt)) throw new log.UsageError('--vtt must be the tag you gave the voice step.');
+  const lang = args.lang ?? 'en';
+  if (!LANG_RE.test(lang)) throw new log.UsageError('--lang must be a language code like en, el or pt-BR.');
+  const publicRel = path.normalize(args['public-dir'] ?? 'public');
+  if (path.isAbsolute(publicRel) || publicRel.startsWith('..') || !/^[A-Za-z0-9._/\\-]+$/.test(publicRel)) {
+    throw new log.UsageError('--public-dir must be a folder inside the app, for example public or static.');
+  }
 
   const appDir = await resolveAppDir(args._[0]);
-  await readAppConfig(appDir);
+  const app = await requireVideoApp(appDir, { general: !!args.general });
   const media = await checkMediaTools(which);
   if (!media.ok) throw mediaToolsError(media);
   const render = await resolveRender(appDir, args._[1]);
   const base = args.name ?? defaultWebName(render.name);
-  const publishDir = path.join(appDir, PUBLISH_DIR);
+  const publishRel = path.join(publicRel, 'video');
+  if (app === 'general' && !(await pathExists(path.join(appDir, publicRel)))) {
+    throw new ProvisionError(`This app has no ${publicRel}/ folder. Pass --public-dir with the folder it serves files from as they are (for example static or web).`);
+  }
+  const publishDir = path.join(appDir, publishRel);
   await mkdir(publishDir, { recursive: true });
 
   // Size and length of the render
@@ -122,7 +138,7 @@ export async function main(args, deps = {}) {
     if (bytes <= maxBytes) break;
   }
   const fits = final.bytes <= maxBytes;
-  if (fits) log.ok(`${path.join(PUBLISH_DIR, `${base}.mp4`)}: ${mb(final.bytes)} MB.`);
+  if (fits) log.ok(`${path.join(publishRel, `${base}.mp4`)}: ${mb(final.bytes)} MB.`);
   else log.fail(`${base}.mp4 is still ${mb(final.bytes)} MB, over the ${maxMb} MB limit. Make the video shorter, or raise --max-mb if you are sure.`);
 
   // Poster
@@ -130,7 +146,7 @@ export async function main(args, deps = {}) {
   const outJpg = path.join(publishDir, `${base}.jpg`);
   const p = await run('ffmpeg', buildPosterArgs({ src: render.file, out: outJpg, at: posterAt, vertical }), { timeoutMs: 120_000 });
   if (p.code !== 0) throw new ProvisionError(`ffmpeg could not make the poster picture. Try another --poster-at second.\n${tailLines(p.stderr, 4)}`);
-  log.ok(`${path.join(PUBLISH_DIR, `${base}.jpg`)} (frame at ${posterAt} s). Open it: a poster should show the app, not a blank frame.`);
+  log.ok(`${path.join(publishRel, `${base}.jpg`)} (frame at ${posterAt} s). Open it: a poster should show the app, not a blank frame.`);
 
   // Captions
   log.step(3, 3, 'Captions and page settings...');
@@ -143,7 +159,7 @@ export async function main(args, deps = {}) {
       if (args['captions-top']) text = moveCuesToTop(text);
       vttOut = path.join(publishDir, 'demo.vtt');
       await writeFile(vttOut, text);
-      log.ok(`${path.join(PUBLISH_DIR, 'demo.vtt')} (captions${args['captions-top'] ? ' at the top' : ''}).`);
+      log.ok(`${path.join(publishRel, 'demo.vtt')} (captions${args['captions-top'] ? ' at the top' : ''}).`);
     } else {
       log.warn('No captions file found for this render (video/out/<tag>.vtt). Pass --vtt <tag> if you want captions.');
     }
@@ -152,24 +168,38 @@ export async function main(args, deps = {}) {
   }
 
   let proxy = null;
-  if (!args['no-patch']) {
+  const checks = [];
+  if (app === 'general') {
+    // Not the template's proxy: Shipyard does not guess at another app's sign-in rules.
+    checks.push(`Open /video/${base}.mp4 in a private window while signed out. If it goes to a sign-in page, let .mp4, .webm and .vtt files through the app's sign-in check.`);
+    for (const c of checks) log.warn(c);
+  } else if (!args['no-patch']) {
     proxy = await patchProxyForVideo(appDir);
     if (proxy.status === 'patched') log.ok(`${proxy.file}: ${proxy.note}`);
     else if (proxy.status === 'manual') log.warn(`${proxy.file}: ${proxy.note}`);
   }
 
   // Remember what was published (no secrets; the settings page and later runs read this)
-  const config = await readAppConfig(appDir);
-  const published = (config.video?.published ?? []).filter((x) => x.name !== base);
-  published.push({ name: base, file: `public/video/${base}.mp4`, poster: `public/video/${base}.jpg`, sizeMb: mb(final.bytes), render: render.name, at: new Date().toISOString() });
-  await updateAppConfig(appDir, { video: { ...(config.video ?? {}), published } });
+  const rel = (f) => path.join(publishRel, f).split(path.sep).join('/');
+  if (app === 'shipyard') {
+    const config = await readAppConfig(appDir);
+    const published = (config.video?.published ?? []).filter((x) => x.name !== base);
+    published.push({ name: base, file: rel(`${base}.mp4`), poster: rel(`${base}.jpg`), sizeMb: mb(final.bytes), render: render.name, at: new Date().toISOString() });
+    await updateAppConfig(appDir, { video: { ...(config.video ?? {}), published } });
+  }
 
-  const snippet = jsxSnippet({ base, captions: Boolean(vttOut), label: 'Product video' });
+  const opts = { base, captions: Boolean(vttOut), label: 'Product video', lang };
+  const snippet = jsxSnippet(opts);
+  const html = htmlSnippet(opts);
   log.info('');
   log.info('Paste this where the video should appear (change the label to describe your video):');
   for (const l of snippet.split('\n')) log.info(`  ${l}`);
+  if (app === 'general') {
+    log.info('Or, in a page that is plain HTML:');
+    for (const l of html.split('\n')) log.info(`  ${l}`);
+  }
   log.info('');
-  log.info('Keep the "Narrated with an AI voice" note. The files in public/video/ are part of your app: save them to GitHub when you are happy (that is your call).');
+  log.info(`Keep the "Narrated with an AI voice" note. The files in ${rel('')} are part of your app: save them to GitHub when you are happy (that is your call).`);
 
   return {
     ok: fits,
@@ -181,8 +211,11 @@ export async function main(args, deps = {}) {
     attempts: tried,
     posterAt,
     vertical,
+    app,
     proxy,
+    checks,
     snippet,
+    htmlSnippet: html,
     ...(fits ? {} : { error: `The web copy is ${mb(final.bytes)} MB, over the ${maxMb} MB limit.` }),
   };
 }
@@ -190,7 +223,7 @@ export async function main(args, deps = {}) {
 if (isMain(import.meta.url)) {
   await runCli({
     argv: process.argv.slice(2),
-    spec: { string: ['name', 'poster-at', 'vtt', 'max-mb'], boolean: ['captions-top', 'no-captions', 'no-patch'] },
+    spec: { string: ['name', 'poster-at', 'vtt', 'max-mb', 'lang', 'public-dir'], boolean: ['captions-top', 'no-captions', 'no-patch', 'general'] },
     help: HELP,
     main,
   });

@@ -40,7 +40,11 @@ Then `cd "<appDir>/video" && npx tsc --noEmit` and fix every error before lookin
 
 ## Phone (9:16) cut
 
-Branch on `format === 'vertical'` in the Demo like `src/acme/Demo.tsx` does, and write camera keys per scene in `src/<tag>/vertical.ts` (see `src/acme/vertical.ts`). Keep UI at zoom 0.85 to 1.15 so it is readable on a phone. List scenes whose spoken words are already the on-screen headline in `NO_CAPTIONS`. Real-app footage (`capture/record.mjs`) is a last resort: sign-in and waiting cost days. Prefer rebuilt UI.
+Branch on `format === 'vertical'` in the Demo like `src/acme/Demo.tsx` does, and write camera keys per scene in `src/<tag>/vertical.ts` (see `src/acme/vertical.ts`). Keep UI at zoom 0.85 to 1.15 so it is readable on a phone. List scenes whose spoken words are already the on-screen headline in `NO_CAPTIONS`.
+
+## Showing the real app instead
+
+When the video must look exactly like the app, read `references/footage.md`: practice pages on made-up data, recorded and played inside these same scenes. Never record a signed-in live app: sign-in and waiting on real servers cost days.
 
 ## Safety
 

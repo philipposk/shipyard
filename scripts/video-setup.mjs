@@ -8,6 +8,7 @@ import * as log from './lib/log.mjs';
 import { runCli, isMain, resolveAppDir, readAppConfig, updateAppConfig, ProvisionError } from './provision/common.mjs';
 import {
   ENGINE_REPO, ENGINE_SHA, MIN_NODE_MAJOR, SMOKE_SPEC, videoDirOf, pathExists, checkMediaTools, mediaToolsError, tailLines,
+  requireVideoApp,
 } from './video/common.mjs';
 import { fetchEngine as realFetchEngine, copyEngine, cleanup } from './video/engine.mjs';
 import { patchAppForVideo } from './video/app-patches.mjs';
@@ -18,12 +19,14 @@ const HELP = `
 Set up the video tools in your app (a folder called video/).
 
 Usage:
-  node video-setup.mjs <app-folder> [--update] [--no-install] [--no-smoke] [--json]
+  node video-setup.mjs <app-folder> [--update] [--no-install] [--no-smoke] [--general] [--json]
 
   --update      refresh the video engine files to the version Shipyard expects. Your own scenes, scripts,
                 voices and product list are never touched.
   --no-install  copy the files but do not run npm install
   --no-smoke    skip the test render of the built-in example (about 35 seconds)
+  --general     the app was not made by Shipyard and has been brought up to the Shipyard standard
+                (new-app upgrade guide). Nothing is written to .shipyard-app.json then.
   --json        print the result as JSON
 
 What it does: checks Node and ffmpeg, copies the video engine (one fixed, tested version) into <app>/video/,
@@ -48,7 +51,7 @@ export async function main(args, deps = {}) {
 
   if (args._.length !== 1) throw new log.UsageError('Give the app folder, for example: node video-setup.mjs ./recipe-box');
   const appDir = await resolveAppDir(args._[0]);
-  await readAppConfig(appDir); // plain error if this is not a Shipyard app
+  const app = await requireVideoApp(appDir, { general: !!args.general }); // plain error otherwise
   const videoDir = videoDirOf(appDir);
   const total = 5;
 
@@ -68,6 +71,7 @@ export async function main(args, deps = {}) {
     ok: true,
     appDir,
     videoDir,
+    app,
     engine: { repo: ENGINE_REPO, sha: ENGINE_SHA },
     state,
     copied: 0,
@@ -98,9 +102,11 @@ export async function main(args, deps = {}) {
           // no earlier record: use now
         }
       }
-      await writeFile(path.join(videoDir, SETUP_FILE), `${JSON.stringify({ engineRepo: ENGINE_REPO, engineSha: ENGINE_SHA, setupAt, updatedAt: stamp }, null, 2)}\n`);
-      const config = await readAppConfig(appDir);
-      await updateAppConfig(appDir, { video: { ...(config.video ?? {}), engineSha: ENGINE_SHA, setupAt } });
+      await writeFile(path.join(videoDir, SETUP_FILE), `${JSON.stringify({ engineRepo: ENGINE_REPO, engineSha: ENGINE_SHA, app, setupAt, updatedAt: stamp }, null, 2)}\n`);
+      if (app === 'shipyard') {
+        const config = await readAppConfig(appDir);
+        await updateAppConfig(appDir, { video: { ...(config.video ?? {}), engineSha: ENGINE_SHA, setupAt } });
+      }
     } finally {
       await cleanup(work);
     }
@@ -163,5 +169,5 @@ export async function main(args, deps = {}) {
 }
 
 if (isMain(import.meta.url)) {
-  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['update', 'no-install', 'no-smoke'] }, help: HELP, main });
+  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['update', 'no-install', 'no-smoke', 'general'] }, help: HELP, main });
 }

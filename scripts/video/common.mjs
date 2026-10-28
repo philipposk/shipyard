@@ -3,22 +3,23 @@ import { stat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ProvisionError } from '../provision/common.mjs';
 import { INSTALL, osName } from '../check-tools.mjs';
+import { classifyApp } from '../which-app.mjs';
 
 /**
  * The video engine is a public, MIT-licensed folder (`motion/`, built on Remotion) in this repository.
  * We always copy it from ONE pinned commit, never "latest", so a change upstream cannot break a student's video.
- * ENGINE_SHA was looked up (read-only, `git ls-remote` + GitHub API, both agreed) on 2026-10-16.
+ * ENGINE_SHA was looked up (read-only, `git ls-remote` + GitHub API, both agreed) on 2026-10-28: the head of
+ * demo-pipeline pull request 2 (real-app footage fixes, voice takes, other languages). It must stay reachable, so that
+ * pull request is merged with a merge commit, not squashed.
  * To move to a newer engine: look up the new commit, change ENGINE_SHA, run the tests and the opt-in real test
  * (SHIPYARD_TEST_VIDEO=1).
  */
 export const ENGINE_REPO = 'https://github.com/philipposk/demo-pipeline';
-export const ENGINE_SHA = 'fe1fd05f3e3c4f40f67f3c567af7ea932ccc95ed';
+export const ENGINE_SHA = 'c60045f0053bab58a89248f82c4cabc170463d62';
 export const ENGINE_SUBDIR = 'motion';
 
 /** Folder inside the app that holds the engine and the student's scenes. */
 export const VIDEO_DIR_NAME = 'video';
-/** Folder inside the app that serves the finished web copies. */
-export const PUBLISH_DIR = path.join('public', 'video');
 /** The one example the engine keeps: a made-up to-do app, with its voice committed, so it renders without keys. */
 export const NEUTRAL_EXAMPLE = 'acme';
 export const SMOKE_SPEC = 'acme:light';
@@ -42,6 +43,26 @@ export async function pathExists(p) {
 
 export async function readJson(file) {
   return JSON.parse((await readFile(file, 'utf8')).replace(/^﻿/, ''));
+}
+
+/**
+ * Which kind of app the video scripts work on. A Shipyard app always works. An app Shipyard did not make works only
+ * with `general: true`: the skill passes --general once the new-app upgrade guide is done, so the app is safe for
+ * the visitors a video brings. Returns 'shipyard' or 'general', or throws a plain error.
+ */
+export async function requireVideoApp(appDir, { general = false } = {}) {
+  const { kind } = await classifyApp(appDir);
+  if (kind === 'shipyard') return 'shipyard';
+  if (kind === 'damaged') {
+    throw new ProvisionError('.shipyard-app.json is in this folder but broken, so the video tools left the app alone. Fix or restore that file first.');
+  }
+  if (!general) {
+    throw new ProvisionError(
+      'This app was not made by Shipyard (it has no .shipyard-app.json). Bring it up to the Shipyard standard first with the '
+      + "new-app upgrade guide (references/upgrade.md). When that is done, run this again with --general.",
+    );
+  }
+  return 'general';
 }
 
 /** The app's video folder, or a plain error that says to run video-setup. */

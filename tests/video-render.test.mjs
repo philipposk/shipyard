@@ -1,11 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { mkdir, stat, utimes } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { main } from '../scripts/video-render.mjs';
-import { parseSpec, parseRenderOutput, parseVolume, volumeNotes, renderOne } from '../scripts/video/render-lib.mjs';
+import { parseSpec, parseRenderOutput, parseVolume, volumeNotes, renderOne, cleanBundles } from '../scripts/video/render-lib.mjs';
 import { tempDir, removeDir, makeFakeApp, put, fakeRun, whichAll, whichNone } from './video-helpers.mjs';
+
+// The tests never look at this computer's real temp folder or its free disk.
+const NO_TMP = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'no-such-temp-folder');
+const SAFE = { tmpRoot: NO_TMP, freeBytes: async () => 50e9 };
 
 const SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'video-render.mjs');
 
@@ -60,7 +65,7 @@ test('renders one cut: runs the engine\'s render script in video/, reports files
   const app = await renderFixture();
   try {
     const run = engineRun();
-    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run, which: whichAll });
+    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run, which: whichAll, ...SAFE });
     assert.equal(r.ok, true);
     const [x] = r.renders;
     assert.equal(x.name, 'launch-light-nomusic');
@@ -92,7 +97,7 @@ test('several cuts run one after another, never together', async () => {
       running--;
       return { stdout: `${name}.mp4 rendered in 1 s\n` };
     });
-    const r = await main({ _: [app.dir, 'launch:light', 'launch:dark'], json: true }, { run, which: whichAll });
+    const r = await main({ _: [app.dir, 'launch:light', 'launch:dark'], json: true }, { run, which: whichAll, ...SAFE });
     assert.equal(maxRunning, 1);
     assert.deepEqual(r.renders.map((x) => x.name), ['launch-light-nomusic', 'launch-dark-nomusic']);
     assert.equal(r.renders[0].sheet, null, 'a missing contact sheet is reported as null, not invented');
@@ -106,12 +111,12 @@ test('dead air is a warning by default and a failure with --strict (STRICT_MOTIO
   try {
     const warnLine = 'WARNING: launch-light-nomusic.mp4 has dead air (frozen > 0.5 s): 3.00-4.20 s (1.2 s). Cut it.';
     const run = engineRun({ stdout: `launch-light-nomusic.mp4 rendered in 9 s\n${warnLine}\n` });
-    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run, which: whichAll });
+    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run, which: whichAll, ...SAFE });
     assert.equal(r.ok, true);
     assert.match(r.renders[0].deadAir, /dead air/);
 
     const strictRun = fakeRun(async () => ({ code: 1, stderr: 'Error: launch-light-nomusic.mp4 has dead air (frozen > 0.5 s)' }));
-    const s = await main({ _: [app.dir, 'launch:light'], json: true, strict: true }, { run: strictRun, which: whichAll });
+    const s = await main({ _: [app.dir, 'launch:light'], json: true, strict: true }, { run: strictRun, which: whichAll, ...SAFE });
     assert.equal(s.ok, false);
     assert.match(s.renders[0].error, /dead air/);
     assert.equal(strictRun.calls[0].env.STRICT_MOTION, '1');
@@ -123,7 +128,7 @@ test('dead air is a warning by default and a failure with --strict (STRICT_MOTIO
 test('a failed render says so with the engine\'s last lines', async () => {
   const app = await renderFixture();
   try {
-    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run: engineRun({ fail: true }), which: whichAll });
+    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run: engineRun({ fail: true }), which: whichAll, ...SAFE });
     assert.equal(r.ok, false);
     assert.match(r.renders[0].error, /render failed[\s\S]*composition not found/);
   } finally {
@@ -135,7 +140,7 @@ test('the silent cut is not loudness-checked', async () => {
   const app = await renderFixture();
   try {
     const run = engineRun({ files: ['launch-light-nomusic-silent'] });
-    const r = await main({ _: [app.dir, 'launch:light::silent'], json: true }, { run, which: whichAll });
+    const r = await main({ _: [app.dir, 'launch:light::silent'], json: true }, { run, which: whichAll, ...SAFE });
     assert.equal(r.ok, true);
     assert.equal(r.renders[0].volume, undefined);
     assert.ok(!run.calls.some((c) => c.cmd === 'ffmpeg'));
@@ -149,11 +154,11 @@ test('stops early, with plain words: no ffmpeg, no timeline, bad cut name, no vi
   const bare = await makeFakeApp();
   try {
     const run = fakeRun();
-    await assert.rejects(main({ _: [app.dir, 'launch:light'] }, { run, which: whichNone }), /ffmpeg and ffprobe are not installed/);
-    await assert.rejects(main({ _: [app.dir, 'other:light'] }, { run, which: whichAll }), /no voice and timing for "other"[\s\S]*video-voice\.mjs --tag other/);
-    await assert.rejects(main({ _: [app.dir, 'launch:blue'] }, { run, which: whichAll }), /light or dark/);
-    await assert.rejects(main({ _: [bare.dir, 'launch:light'] }, { run, which: whichAll }), /Run video-setup\.mjs/);
-    await assert.rejects(main({ _: [app.dir] }, { run, which: whichAll }), /at least one cut/);
+    await assert.rejects(main({ _: [app.dir, 'launch:light'] }, { run, which: whichNone, ...SAFE }), /ffmpeg and ffprobe are not installed/);
+    await assert.rejects(main({ _: [app.dir, 'other:light'] }, { run, which: whichAll, ...SAFE }), /no voice and timing for "other"[\s\S]*video-voice\.mjs --tag other/);
+    await assert.rejects(main({ _: [app.dir, 'launch:blue'] }, { run, which: whichAll, ...SAFE }), /light or dark/);
+    await assert.rejects(main({ _: [bare.dir, 'launch:light'] }, { run, which: whichAll, ...SAFE }), /Run video-setup\.mjs/);
+    await assert.rejects(main({ _: [app.dir] }, { run, which: whichAll, ...SAFE }), /at least one cut/);
     assert.equal(run.calls.length, 0, 'nothing runs when the input is wrong');
   } finally {
     await removeDir(app.parent);
@@ -170,4 +175,52 @@ test('renderOne refuses a bad cut name before running anything', async () => {
 test('CLI: --help is 0, too few arguments is 2', () => {
   assert.equal(spawnSync(process.execPath, [SCRIPT, '--help'], { encoding: 'utf8' }).status, 0);
   assert.equal(spawnSync(process.execPath, [SCRIPT, '/tmp'], { encoding: 'utf8' }).status, 2);
+});
+
+test('low disk: the render does not start and says what to delete', async () => {
+  const app = await renderFixture();
+  try {
+    const run = engineRun();
+    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run, which: whichAll, ...SAFE, freeBytes: async () => 1.2e9 });
+    assert.equal(r.ok, false);
+    assert.match(r.renders[0].error, /1\.2 GB[\s\S]*at least 3 GB[\s\S]*video\/out/);
+    assert.equal(run.calls.filter((c) => c.cmd === 'node').length, 0, 'nothing was rendered');
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
+test('--low-memory renders one frame at a time with a smaller cache; out of room is explained plainly', async () => {
+  const app = await renderFixture();
+  try {
+    const run = engineRun();
+    await main({ _: [app.dir, 'launch:light'], json: true, 'low-memory': true }, { run, which: whichAll, ...SAFE });
+    const render = run.calls.find((c) => c.cmd === 'node');
+    assert.equal(render.env.CONCURRENCY, '1');
+    assert.equal(render.env.OTV_CACHE, '400000000');
+
+    const full = fakeRun(async (cmd) => (cmd === 'node' ? { code: 1, stderr: 'Error: Could not extract frame from compositor. disk space is low' } : {}));
+    const r = await main({ _: [app.dir, 'launch:light'], json: true }, { run: full, which: whichAll, ...SAFE });
+    assert.match(r.renders[0].error, /ran out of memory or disk space[\s\S]*--low-memory/);
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
+test('cleanBundles removes only the Remotion bundle folders made since the render started', async () => {
+  const tmp = await tempDir('shipyard-bundles-');
+  try {
+    for (const n of ['remotion-webpack-bundle-old', 'remotion-webpack-bundle-new', 'other-folder']) await mkdir(path.join(tmp, n));
+    const old = new Date(Date.now() - 3_600_000);
+    await utimes(path.join(tmp, 'remotion-webpack-bundle-old'), old, old);
+    const since = Date.now() - 60_000;
+    assert.equal(await cleanBundles({ tmpRoot: tmp, since }), 1);
+    const left = async (n) => stat(path.join(tmp, n)).then(() => true, () => false);
+    assert.equal(await left('remotion-webpack-bundle-new'), false);
+    assert.equal(await left('remotion-webpack-bundle-old'), true, 'an older render\'s folder is not ours');
+    assert.equal(await left('other-folder'), true);
+    assert.equal(await cleanBundles({ tmpRoot: path.join(tmp, 'missing'), since }), 0);
+  } finally {
+    await removeDir(tmp);
+  }
 });

@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, stat, writeFile } from 'node:fs/promises';
+import { readFile, stat, writeFile, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { main, resolveRender, findCaptions } from '../scripts/video-publish.mjs';
 import {
   MAX_BYTES, encodeAttempts, buildEncodeArgs, buildPosterArgs, parseSize, parseDuration, defaultPosterAt, defaultWebName, WEB_NAME_RE,
-  moveCuesToTop, jsxSnippet,
+  moveCuesToTop, jsxSnippet, htmlSnippet, captionsLanguage,
 } from '../scripts/video/encode.mjs';
 import { makeFakeApp, removeDir, put, fakeRun, whichAll, whichNone } from './video-helpers.mjs';
 
@@ -80,6 +80,17 @@ test('page snippet: lazy video, poster, captions off by default, AI voice note',
   assert.doesNotMatch(s, /\bdefault\b/);
   assert.match(s, /Narrated with an AI voice/);
   assert.doesNotMatch(jsxSnippet({ base: 'x', captions: false }), /<track/);
+});
+
+test('captions language: the code and its own name; plain HTML snippet for apps without React', () => {
+  assert.deepEqual(captionsLanguage('el'), { lang: 'el', label: 'Ελληνικά' });
+  assert.deepEqual(captionsLanguage('en'), { lang: 'en', label: 'English' });
+  assert.match(jsxSnippet({ base: 'demo-light', lang: 'el' }), /srcLang="el" label="Ελληνικά"/);
+  const h = htmlSnippet({ base: 'demo-light' });
+  assert.match(h, /<video controls playsinline preload="none" poster="\/video\/demo-light\.jpg"/);
+  assert.match(h, /<track kind="captions" src="\/video\/demo\.vtt" srclang="en" label="English">/);
+  assert.doesNotMatch(h, /\{\{|\bdefault\b/);
+  assert.match(h, /Narrated with an AI voice/);
 });
 
 // ---- the command itself, with a stand-in ffmpeg/ffprobe ----
@@ -199,6 +210,42 @@ test('publish: options --poster-at, --captions-top, --no-captions, --no-patch, -
     const none = await main(args({ _: [app.dir, 'launch-light-nomusic'], 'no-captions': true, name: 'plain', 'no-patch': true }), { run, which: whichAll });
     assert.equal(none.captions, null);
     assert.doesNotMatch(none.snippet, /<track/);
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
+test('publish: an app Shipyard did not make needs --general; then no proxy edit, no config, a check to do', async () => {
+  const app = await fixture();
+  try {
+    await rm(path.join(app.dir, '.shipyard-app.json'));
+    const proxyBefore = await readFile(path.join(app.dir, 'src/proxy.ts'), 'utf8');
+    const run = mediaRun();
+    await assert.rejects(main(args({ _: [app.dir, 'launch-light-nomusic'] }), { run, which: whichAll }), /--general/);
+    await assert.rejects(main(args({ _: [app.dir, 'launch-light-nomusic'], general: true }), { run, which: whichAll }), /no public\/ folder/);
+    await put(app.dir, 'static/robots.txt', '');
+    const r = await main(args({ _: [app.dir, 'launch-light-nomusic'], general: true, 'public-dir': 'static', lang: 'el' }), { run, which: whichAll });
+    assert.equal(r.ok, true);
+    assert.equal(r.app, 'general');
+    assert.ok((await stat(path.join(app.dir, 'static/video/demo-light.mp4'))).size > 0);
+    assert.equal(await readFile(path.join(app.dir, 'src/proxy.ts'), 'utf8'), proxyBefore, 'another app\'s sign-in rules are not guessed at');
+    assert.equal(r.proxy, null);
+    assert.match(r.checks[0], /private window/);
+    assert.match(r.snippet, /srcLang="el"/);
+    assert.match(r.htmlSnippet, /srclang="el"/);
+    await assert.rejects(stat(path.join(app.dir, '.shipyard-app.json')), 'no Shipyard marker is invented');
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
+test('publish: --lang and --public-dir are checked', async () => {
+  const app = await fixture();
+  try {
+    const run = mediaRun();
+    await assert.rejects(main(args({ _: [app.dir, 'launch-light-nomusic'], lang: 'Greek!' }), { run, which: whichAll }), /--lang/);
+    await assert.rejects(main(args({ _: [app.dir, 'launch-light-nomusic'], 'public-dir': '../elsewhere' }), { run, which: whichAll }), /--public-dir/);
+    await assert.rejects(main(args({ _: [app.dir, 'launch-light-nomusic'], 'public-dir': '/tmp' }), { run, which: whichAll }), /--public-dir/);
   } finally {
     await removeDir(app.parent);
   }

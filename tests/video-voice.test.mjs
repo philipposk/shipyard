@@ -4,7 +4,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { main, inspectScript } from '../scripts/video-voice.mjs';
+import { main, inspectScript, explainVoiceFailure } from '../scripts/video-voice.mjs';
 import { run as realRun } from '../scripts/lib/run.mjs';
 import { tempDir, removeDir, makeFakeApp, put, fakeRun } from './video-helpers.mjs';
 
@@ -214,4 +214,90 @@ test('bad options are usage errors', async () => {
 test('CLI: --help is 0, a missing tag is 2', () => {
   assert.equal(spawnSync(process.execPath, [SCRIPT, '--help'], { encoding: 'utf8' }).status, 0);
   assert.equal(spawnSync(process.execPath, [SCRIPT, '/tmp'], { encoding: 'utf8' }).status, 2);
+});
+
+// A stand-in for the engine's voice.mjs that also reports the language, speed and style settings, and answers --takes.
+const LANG_CHILD = `
+import { writeFileSync, mkdirSync } from 'node:fs';
+const arg = (n) => process.argv.find((a) => a.startsWith('--' + n + '='))?.split('=')[1];
+writeFileSync('child-report.json', JSON.stringify({
+  argv: process.argv.slice(2),
+  sttLang: process.env.STT_LANG ?? null, wpm: process.env.WPM ?? null, style: process.env.VOICE_STYLE ?? null,
+}));
+const tag = arg('tag');
+const takes = Number(arg('takes') || 0);
+if (takes) {
+  for (const id of arg('lines').split(',')) for (let k = 1; k <= takes; k++) console.log(id + ' take ' + k + ': ' + process.cwd() + '/out/takes/' + arg('script') + '/' + id + '-t' + k + '.mp3');
+  process.exit(0);
+}
+mkdirSync('src/timelines', { recursive: true });
+writeFileSync('src/timelines/' + tag + '.json', JSON.stringify({ tag, script: arg('script'), fps: 30, xf: 10, total: 300, scenes: [{ id: 'hook' }, { id: 'end' }] }));
+`;
+
+test('another language: --lang, --wpm and --style reach the voice step as settings, not as arguments', async () => {
+  const app = await fixture({ child: LANG_CHILD });
+  try {
+    const style = 'Ζεστή, ήρεμη φωνή, χωρίς βιασύνη.';
+    const r = await main(args({ _: [app.dir], tag: 'launch', lang: 'el', wpm: '100', style }), { run: realRun, readSecrets: secrets({ OPENAI_API_KEY: OPENAI }) });
+    assert.equal(r.ok, true);
+    const rep = await report(app);
+    assert.equal(rep.sttLang, 'el');
+    assert.equal(rep.wpm, '100');
+    assert.equal(rep.style, style);
+    assert.deepEqual(rep.argv, ['--script=launch', '--tag=launch']);
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
+test('--takes makes fresh takes of the named lines to listen to, and no timeline', async () => {
+  const app = await fixture({ child: LANG_CHILD });
+  try {
+    const r = await main(args({ _: [app.dir], script: 'launch', takes: '2', lines: 'hook,end' }), { run: realRun, readSecrets: secrets({ OPENAI_API_KEY: OPENAI }) });
+    assert.equal(r.ok, true);
+    assert.deepEqual(r.takes.map((t) => `${t.line}-${t.take}`), ['hook-1', 'hook-2', 'end-1', 'end-2']);
+    assert.match(r.takes[0].file, /out\/takes\/launch\/hook-t1\.mp3$/);
+    assert.match(r.next[0], /"take"/);
+    const rep = await report(app);
+    assert.deepEqual(rep.argv, ['--script=launch', '--tag=launch', '--takes=2', '--lines=hook,end']);
+    await assert.rejects(stat(path.join(app.dir, 'video', 'src', 'timelines', 'launch.json')), 'no timeline in audition mode');
+
+    const d = { run: fakeRun(), readSecrets: secrets({ OPENAI_API_KEY: OPENAI }) };
+    await assert.rejects(main(args({ _: [app.dir], script: 'launch', takes: '2', lines: 'nope' }), d), /no line called nope/);
+    await assert.rejects(main(args({ _: [app.dir], script: 'launch', takes: '2' }), d), /--lines/);
+    await assert.rejects(main(args({ _: [app.dir], script: 'launch', takes: '20', lines: 'hook' }), d), /1 to 8/);
+    await assert.rejects(main(args({ _: [app.dir], tag: 'launch', lines: 'hook' }), d), /goes with --takes/);
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
+test('per-line fixes are checked: say, style, pauseCap, leadIn, take', async () => {
+  const ok = inspectScript([{ id: 'a', text: 'Meet Shipyard.', say: 'Meet Ship yard.', style: 'Calm.', pauseCap: 0.12, leadIn: 0.05, take: 2, minSec: 3, caption: '' }]);
+  assert.equal(ok.lines, 1);
+  const bad = (line, re) => assert.throws(() => inspectScript([{ id: 'a', text: 'x', ...line }]), re);
+  bad({ say: '  ' }, /"say" is empty/);
+  bad({ say: 3 }, /"say" must be text/);
+  bad({ style: '' }, /"style"/);
+  bad({ pauseCap: 5 }, /"pauseCap"/);
+  bad({ leadIn: -1 }, /"leadIn"/);
+  bad({ take: 0 }, /"take"/);
+  bad({ take: 1.5 }, /"take"/);
+  bad({ minSec: 'long' }, /"minSec" must be a number/);
+});
+
+test('voice options and failures in plain words: Gemini free tier, a missing take', async () => {
+  const app = await fixture();
+  try {
+    const d = { run: fakeRun(), readSecrets: secrets({}) };
+    await assert.rejects(main(args({ _: [app.dir], tag: 'launch', lang: 'Greek' }), d), /--lang/);
+    await assert.rejects(main(args({ _: [app.dir], tag: 'launch', wpm: '500' }), d), /--wpm/);
+    await assert.rejects(main(args({ _: [app.dir], tag: 'launch', style: 'a\nb' }), d), /--style/);
+  } finally {
+    await removeDir(app.parent);
+  }
+  assert.match(explainVoiceFailure('TTS 429: {"error":{"status":"RESOURCE_EXHAUSTED","details":[{"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]}}'), /10 voice requests a day[\s\S]*billing/);
+  assert.match(explainVoiceFailure('Error: end: take 3 missing (/x/end-1a2b.t3.wav)'), /--takes/);
+  assert.match(explainVoiceFailure('TTS 401: Incorrect API key'), /key may be wrong/);
+  assert.equal(explainVoiceFailure('TTS 500: oops'), '');
 });
