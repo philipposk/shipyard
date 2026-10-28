@@ -68,3 +68,16 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - A helper agent's "passed" is not evidence. Re-run the flow that was reported broken before saying done.
 - Keys pasted into the chat are saved in transcripts. Rotate any key that was pasted.
 - Say what was not verified.
+
+## From a full review of a big app (Oct 2026)
+- ★ `next build` type-checks test files that `node --test` does not. CI must run `tsc --noEmit` before the tests, or a typo in a test breaks the production deploy. Next 16 removed `next lint`.
+- ★ A signed-out `/api/*` call must answer 401 JSON. A redirect to sign-in looks like success to `fetch` (it follows it and gets a 200 page).
+- Never "simplify" the deploy build script during a cleanup. Verify on a local production build with placeholder keys when previews lack the database settings.
+- A server-key delete steered by a path the person can write must check the prefix first, or one crafted row deletes someone else's files.
+- AI proxies: allowlist the model, rate-limit per person, cap the body. An MCP batch of 1000 calls in one request must not cost one rate-limit unit.
+- `map[userKey]` finds `__proto__` and `constructor`; use `Object.hasOwn`.
+- Deleting data must not reset monthly quotas, or delete and re-upload is unlimited use.
+- Debounced saves lose the last edit when the tab closes unless they flush on `pagehide`. Seeking a video before `loadedmetadata` is ignored. Chunked upload parts need a size cap.
+- `:root:is(...) button:not([class])` in a theme outranks menu and toggle buttons.
+- A big review found 117 real problems, and a second review of the fixes found 14 new ones. Review the fixes, not only the code.
+- Pull requests over 150 files are skipped by CodeRabbit's free plan: stack them, and smoke-test between merges.

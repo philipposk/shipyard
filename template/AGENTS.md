@@ -6,6 +6,8 @@ Claude Code reads `CLAUDE.md`, which points here. Codex and Cursor read this fil
 ## Always
 - Brand (name, short name, tagline, address) only through `BRAND` in `src/lib/constants.ts`. Never type it into a component.
 - Work on a branch and open a pull request. Once the app is live, never push straight to `main`. Merge only when CI is green.
+- Keep each pull request at 150 changed files or fewer: CodeRabbit's free plan skips bigger ones. Ship a bigger change as a stack of pull requests, each building on the one before, merged one at a time with a smoke test after each deploy. The checks are in `docs/RELEASE-CHECKS.md`.
+- Never change the build script, the deploy workflow or the hosting settings as part of a cleanup or review.
 - Before saying a task is done, run Shipyard `verify` (`scripts/verify.mjs` in the Shipyard plugin; the `new-app` skill has the exact command) and say what was not verified.
 - Add or update a test for every piece of logic. `npm run typecheck`, `npm run lint`, `npm test` and `npm run build` must pass.
 - Plain English in everything a visitor sees. No fake numbers, fake reviews or fake testimonials.
@@ -26,6 +28,15 @@ Claude Code reads `CLAUDE.md`, which points here. Codex and Cursor read this fil
 - Never use the server key (`createSupabaseAdmin`) to read user data in a route or server action. It skips RLS, so one forgotten filter hands out every user's rows. Use the signed-in person's own client (`createSupabaseServer`). `verify` fails if `@/lib/admin` is imported outside the few files that need it.
 - Never set or change a password from an email address alone. Passwords change only through the person's own session (recovery link, then `/reset-password`).
 - All `/api/auth/*` routes must be listed in `PUBLIC_PREFIXES` in `src/proxy.ts`. Every other `/api/*` route needs a signed-in user: the proxy answers 401 without a login cookie. Only routes listed in `BEARER_API_PREFIXES` also accept a bearer token, and they must check it themselves.
+
+## API routes, AI and saving (lessons from a full review)
+- A signed-out call to `/api/*` gets 401 JSON from the proxy, never a redirect to `/sign-in` (fetch would follow it and see a 200 page). Keep that branch in `src/proxy.ts`.
+- A delete or write with the server key that is driven by a value the person can change (a storage path, a file name, an id) checks it first: the expected prefix (`<user id>/...`) and the owner.
+- Never let the browser choose the AI model on the app's key: allowlist the model ids on the server. Every route that calls an AI, speech-to-text or text-to-speech provider has a per-person rate limit and a request body size cap.
+- Look up a value the person typed in an object with `Object.hasOwn(map, key)`, never `map[key]` alone (`__proto__` and `constructor` exist on every object).
+- Deleting data never resets usage or quota counters, or delete and re-upload becomes unlimited use.
+- A debounced save also runs on `pagehide` and `visibilitychange` (with `keepalive: true`), or the last edit is lost when the tab closes.
+- When a feature ships, update the home page, help, privacy page, `public/llms.txt` and the manifest in the same pull request.
 
 ## Pages, data and scores (lessons from real launches)
 - Nothing changes on a GET. A visitor, a mail scanner, a link preview or an image tag can all fire a GET, so sign-out, deleting, joining, confirming and every other change is a POST from a button, with `isSameOrigin` checked.

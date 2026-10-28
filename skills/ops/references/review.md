@@ -11,6 +11,7 @@ A reviewer reads each pull request and leaves comments before the student merges
   3. Open any pull request. A review comment should appear within a few minutes.
 - The config file is `.coderabbit.yaml` in the repo root; `reviews.profile` can be `chill` (balanced), `assertive` (more nitpicks) or `quiet`. These fields were checked against CodeRabbit's docs.
 - Unverified: the exact text of the install buttons may change, and whether the free plan for public repos covers every feature. Say so if the student sees something different.
+- Limits seen on the free plan (Oct 2026): a pull request with more than 150 changed files is skipped, there is at most one summary an hour, and only pull requests aimed at the default branch are reviewed on their own. Keep pull requests at 150 files or fewer; ship a bigger change as a stack (the review skill shows how).
 
 ## Option B: free, inside Claude Code
 

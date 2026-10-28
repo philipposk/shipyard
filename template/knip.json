@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["scripts/*.mjs", "tests/*.test.mjs"],
+  "project": ["src/**/*.{ts,tsx,mjs,js}", "scripts/**/*.mjs", "tests/**/*.mjs"],
+  "ignore": ["src/lib/auth/ensure-profile.mjs"],
+  "ignoreDependencies": ["tailwindcss", "postcss", "playwright"],
+  "rules": { "exports": "warn", "types": "warn" }
+}

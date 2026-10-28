@@ -74,3 +74,17 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - A single-page app whose `vercel.json` rewrites every path to `index.html` ships a real `public/robots.txt`; otherwise `/robots.txt` returns the app page. (hygiene fails on it.)
 - The accent colour is rarely readable as small text on the dark background. Use a separate `--accent-text` (in dark, mixed toward the text colour) for accent-coloured words and links. (hygiene fails when `color: var(--accent)` is under 4.5:1 in dark.)
 - Small controls (checkboxes, calendar/habit cells) still get a 24px hit area: draw the small visual with a pseudo-element.
+
+### From a full review of a big app (Oct 2026; the review skill's `references/lessons.md` has the rest)
+- CI runs `npm run typecheck` before the tests. `next build` type-checks every `.ts` file, tests included, but `node --test` only strips the types, so a typo in a test passes the tests and breaks the production build. Next 16 has no `next lint`: run ESLint directly. (hygiene fails on both.)
+- A signed-out call to `/api/*` gets 401 JSON, never a redirect to sign-in: fetch follows the redirect, gets the sign-in page with status 200, and the app thinks it worked. (verify's routes check calls the live app.)
+- A delete or write with the server key that a person-controlled value steers (a storage path, a file name) checks the value first: the expected prefix and the owner. Tables like that are written only from the server.
+- The browser never picks the AI model on the app's key: allowlist model ids on the server. Every AI, speech-to-text and text-to-speech route has a per-person rate limit and a body size cap, and ids that go into a provider's URL are checked first.
+- An MCP endpoint caps how many calls one batch may hold and charges the rate limit for each tool call, not for each HTTP request.
+- Lookups with a key the person typed use `Object.hasOwn` (`?error=__proto__` otherwise finds a built-in).
+- Deleting data never resets usage or quota counters.
+- Debounced saves flush on `pagehide` and `visibilitychange` with `keepalive`. After a signed media URL is renewed, the playback position is restored once `loadedmetadata` fires. Chunked uploads cap the size of each part, and the page warns before leaving while parts failed.
+- Theme CSS like `:root:is(...) button:not([class])` outranks a component's own rules: exclude menus, toggles and other containers from it.
+- A sign-in method being retired (`?token=` links) keeps working with a log line until clients move, instead of breaking them.
+- When a feature ships, the home page, help, privacy page, `llms.txt`, structured data and manifest change with it, in every language the app has.
+- Keep each pull request at 150 changed files or fewer (CodeRabbit's free plan skips bigger ones); ship a bigger release as a stack and smoke-test the live app between merges. Never change the build script or deploy workflow in a cleanup.

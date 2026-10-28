@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { check as routes, PAGES } from '../scripts/verify/routes.mjs';
+import { check as routes, PAGES, signedOutApi } from '../scripts/verify/routes.mjs';
 import { check as protection } from '../scripts/verify/protection.mjs';
 import { startFake, APP_NAME } from './verify-helpers.mjs';
 
@@ -19,6 +19,43 @@ test('routes: a healthy app passes', async (t) => {
   assert.match(r.details.join('\n'), /404 page shows the app name/);
   // The app name has an ampersand, which is written as &amp; in the HTML.
   assert.ok(APP_NAME.includes('&'));
+});
+
+test('routes: a signed-out API call that is redirected to sign-in fails, with the fix', async (t) => {
+  const r = await routes(ctx(await withServer(t, { apiGate: 'redirect' })));
+  assert.equal(r.ok, false);
+  const p = r.problems.join('\n');
+  assert.match(p, /signed-out API call is sent to \/sign-in instead of getting 401 JSON/);
+  assert.match(p, /src\/proxy\.ts/);
+  assert.doesNotMatch(p, /next=/, 'the query string stays out of the message');
+});
+
+test('routes: a signed-out API call that answers 200, or 401 with a page, fails', async (t) => {
+  const open = await routes(ctx(await withServer(t, { apiGate: 'open' })));
+  assert.match(open.problems.join('\n'), /answered 200\. API routes need a login/);
+  const html = await routes(ctx(await withServer(t, { apiGate: 'html' })));
+  assert.match(html.problems.join('\n'), /401 with a page instead of JSON/);
+});
+
+test('routes: a 401 that says JSON but sends a page fails; a 404 for unknown API paths falls back to /api/profile', async (t) => {
+  const fake = await routes(ctx(await withServer(t, { apiGate: 'fakejson' })));
+  assert.match(fake.problems.join('\n'), /401 with a page instead of JSON/);
+  const missing = await routes(ctx(await withServer(t, { apiGate: 'missing' })));
+  assert.equal(missing.ok, true, JSON.stringify(missing));
+  assert.match(missing.details.join('\n'), /signed-out API calls get 401 JSON/);
+});
+
+test('signedOutApi: 401 JSON passes; 404, the Vercel wall and errors are worded plainly', () => {
+  const res = (status, text = '', type = 'text/html', location = null) => ({ status, text, headers: new Headers({ 'content-type': type }), location });
+  assert.match(signedOutApi(res(401, '{"error":"Unauthorized"}', 'application/json'), 'https://x.app').detail, /401 JSON/);
+  assert.match(signedOutApi(res(403, '{"error":"onboarding_required"}', 'text/plain'), 'https://x.app').detail, /403 JSON/);
+  assert.match(signedOutApi(res(401, '<html>oops</html>', 'application/json'), 'https://x.app').problem, /with a page instead of JSON/);
+  assert.match(signedOutApi(res(401, '', 'application/json'), 'https://x.app').problem, /with a page instead of JSON/);
+  assert.match(signedOutApi(res(404), 'https://x.app').detail, /login gate was not tested/);
+  assert.match(signedOutApi(res(401, '<title>Authentication Required</title>'), 'https://x.app').detail, /Deployment Protection/);
+  assert.match(signedOutApi(res(308, '', 'text/html', 'https://x.app/sign-in?next=%2Fapi'), 'https://x.app').problem, /sent to \/sign-in/);
+  assert.match(signedOutApi(res(500), 'https://x.app').problem, /answered 500, expected 401 JSON/);
+  assert.match(signedOutApi({ status: 0, error: 'could not connect' }, 'https://x.app').problem, /could not connect/);
 });
 
 test('routes: skipped without a web address', async () => {
