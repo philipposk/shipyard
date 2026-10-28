@@ -1,6 +1,6 @@
 ---
 name: video
-description: Make a motion-designed product video of the student's app (promo, feature walkthrough, how-to) with an AI voice in any language, light and dark, wide and phone cuts. The screens are rebuilt as code, or the real app is recorded from practice pages with made-up data. Publishes a web copy and helps put it on YouTube. Use for "video", "product video", "demo video", "promo", "explainer", "how-to video", "trailer for my app", "YouTube video of my app", or "/shipyard:video". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide first; after it, the video works on that app too.
+description: "Make a motion-designed product video of the student's app (promo, feature walkthrough, how-to) with an AI voice in any language, light and dark, wide and phone cuts. The screens are rebuilt as code, or the real app is recorded from practice pages with made-up data. Publishes a web copy and helps put it on YouTube. Use for \"video\", \"product video\", \"demo video\", \"promo\", \"explainer\", \"how-to video\", \"trailer for my app\", \"YouTube video of my app\", or \"/shipyard:video\". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide first; after it, the video works on that app too."
 ---
 
 # Shipyard video

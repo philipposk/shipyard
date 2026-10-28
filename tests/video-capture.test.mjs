@@ -98,6 +98,25 @@ test('a take that stopped early is a failure that points at its screenshot', asy
   }
 });
 
+test('the exact browser is missing: retries with one already downloaded, inside the same app run', async () => {
+  const { app } = await fixture();
+  try {
+    const ok = captureRun();
+    const run = fakeRun(async (cmd, a, opts, i) => {
+      if (!opts.env.CHROME_PATH) return { code: 1, stderr: "browserType.launch: Executable doesn't exist at /cache/chromium_headless_shell-1194/x" };
+      return ok(cmd, a, opts);
+    });
+    const withAppFake = fakeWithApp();
+    const r = await main(args({ _: [app.dir, 'board'] }), { run, withApp: withAppFake, findBrowsers: async () => ['/cache/chromium_headless_shell-1243/chrome-headless-shell'] });
+    assert.equal(r.ok, true);
+    assert.equal(run.calls.length, 2);
+    assert.equal(run.calls[1].env.CHROME_PATH, '/cache/chromium_headless_shell-1243/chrome-headless-shell');
+    assert.equal(withAppFake.calls.length, 1, 'the app was started once');
+  } finally {
+    await removeDir(app.parent);
+  }
+});
+
 test('plain errors: bad names, no capture file, no recorder, no Playwright, no browser, a failing capture', async () => {
   const { app, v } = await fixture();
   const bare = await fixture({ playwright: false });
@@ -108,7 +127,7 @@ test('plain errors: bad names, no capture file, no recorder, no Playwright, no b
     await assert.rejects(main(args({ _: [app.dir, 'board'], page: 'design-preview' }), deps), /--page/);
     await assert.rejects(main(args({ _: [app.dir, 'other'] }), deps), /no capture file at video\/capture\/other\.mjs/);
     await assert.rejects(main(args({ _: [bare.app.dir, 'board'] }), deps), /npm install in the app folder/);
-    await assert.rejects(main(args({ _: [app.dir, 'board'] }), { ...deps, run: captureRun({ code: 1, stderr: "browserType.launch: Executable doesn't exist at /x" }) }), /npx playwright install chromium/);
+    await assert.rejects(main(args({ _: [app.dir, 'board'] }), { ...deps, findBrowsers: async () => [], run: captureRun({ code: 1, stderr: "browserType.launch: Executable doesn't exist at /x" }) }), /npx playwright install chromium/);
     await assert.rejects(main(args({ _: [app.dir, 'board'] }), { ...deps, run: captureRun({ code: 1, stderr: 'TypeError: h.clik is not a function' }) }), /capture failed[\s\S]*h\.clik/);
     await assert.rejects(main(args({ _: [app.dir, 'board'] }), { ...deps, run: fakeRun() }), /wrote nothing/);
     const { rm } = await import('node:fs/promises');

@@ -10,6 +10,7 @@ import * as log from './lib/log.mjs';
 import { runCli, isMain, resolveAppDir, ProvisionError } from './provision/common.mjs';
 import { ID_RE, VOICE_KEYS, requireVideoDir, pathExists, tailLines } from './video/common.mjs';
 import { withApp as realWithApp, LOCAL_URL_RE, PAGE_RE } from './video/app-server.mjs';
+import { browserCacheRoots, cachedChromiums } from './design/capture/browser.mjs';
 
 const HELP = `
 Record the real app for a video (real-app footage mode).
@@ -31,6 +32,12 @@ Exit code: 0 ok, 1 something to fix, 2 wrong options.
 
 const CAPTURE_TIMEOUT_MS = 20 * 60_000;
 const MISSING_BROWSER_RE = /Executable doesn't exist|playwright install|looks like Playwright was just installed/i;
+
+/** Chromium builds already in Playwright's download folder, newest first (used when the exact one is missing). */
+async function realFindBrowsers() {
+  const lists = await Promise.all(browserCacheRoots().map((root) => cachedChromiums(root)));
+  return lists.flat().map((c) => c.path);
+}
 
 /** Captures (src/captures/*.json) written since `since` (ms): what this run made. */
 export async function newCaptures(videoDir, since) {
@@ -63,7 +70,7 @@ export async function newCaptures(videoDir, since) {
 }
 
 export async function main(args, deps = {}) {
-  const { run = realRun, withApp = realWithApp, now = () => Date.now() } = deps;
+  const { run = realRun, withApp = realWithApp, findBrowsers = realFindBrowsers, now = () => Date.now() } = deps;
   if (args._.length !== 2) throw new log.UsageError('Give the app folder and the capture, for example: node video-capture.mjs ./recipe-box board');
   const name = String(args._[1]).replace(/\.mjs$/, '');
   if (!ID_RE.test(name) || name === 'record') throw new log.UsageError('The capture name can use letters, numbers, dashes and underscores only (the file is video/capture/<name>.mjs).');
@@ -93,7 +100,19 @@ export async function main(args, deps = {}) {
     log.info(`Recording "${name}" from ${base}${page}. This takes as long as the takes themselves, plus encoding...`);
     // The capture needs no keys: none of the voice keys reach it, even when they are set in the shell.
     const env = { APP_URL: base, ...Object.fromEntries(VOICE_KEYS.map((k) => [k, undefined])) };
-    return run('node', [path.posix.join('capture', `${name}.mjs`)], { cwd: videoDir, env, timeoutMs: CAPTURE_TIMEOUT_MS, quiet: !!args.json });
+    const capture = (extra = {}) => run('node', [path.posix.join('capture', `${name}.mjs`)], {
+      cwd: videoDir, env: { ...env, ...extra }, timeoutMs: CAPTURE_TIMEOUT_MS, quiet: !!args.json,
+    });
+    let r = await capture();
+    // The exact browser this Playwright wants may not be downloaded, while an older or newer one is: try those.
+    if (r.code !== 0 && MISSING_BROWSER_RE.test(`${r.stdout}\n${r.stderr}`)) {
+      for (const chrome of (await findBrowsers()).slice(0, 3)) {
+        log.info('The browser this Playwright expects is not downloaded. Trying one that is already on this computer...');
+        r = await capture({ CHROME_PATH: chrome });
+        if (!MISSING_BROWSER_RE.test(`${r.stdout}\n${r.stderr}`)) break;
+      }
+    }
+    return r;
   };
   const r = args.url ? await record(args.url.replace(/\/$/, '')) : await withApp({ appDir, page, fn: record });
 

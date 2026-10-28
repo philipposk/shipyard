@@ -68,7 +68,7 @@ Record it:
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/video-capture.mjs" <appDir> <name> --page /design-preview/video/<page>`
 
-It starts the app on this computer with placeholder keys, waits for the page, runs the capture and always stops the app again. One capture at a time. It prints each take's length and steps. A step that failed is named, and a screenshot of that moment is in `video/out/.capture/<take>/`: open it. An app not built with Next.js: ask the student to start it, then add `--url http://localhost:<port>`.
+It starts the app on this computer with placeholder keys, waits for the page, runs the capture and always stops the app again. One capture at a time. The recordings (`video/public/capture/`) are too big for GitHub and are not saved there; the capture file is, so anyone can record them again. It prints each take's length and steps. A step that failed is named, and a screenshot of that moment is in `video/out/.capture/<take>/`: open it. An app not built with Next.js: ask the student to start it, then add `--url http://localhost:<port>`.
 
 ## 4. Build the scenes on the recording
 
