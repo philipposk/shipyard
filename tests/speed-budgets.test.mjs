@@ -23,3 +23,10 @@ test('the review skill measures every main screen with the speed reference', () 
 test('tap-timing.mjs parses', () => {
   execFileSync(process.execPath, ['--check', path.join(ROOT, 'skills/review/references/tap-timing.mjs')]);
 });
+
+test('the speed guide covers per-row privacy rules and new-app runs the check', () => {
+  const speed = read('skills/review/references/speed.md');
+  for (const s of ['(select auth.uid())', 'allowed_ids()', 'rls-speed.mjs', 'explain analyze']) assert.ok(speed.includes(s), s);
+  assert.match(read('skills/new-app/SKILL.md'), /rls-speed\.mjs/);
+  execFileSync(process.execPath, ['--check', path.join(ROOT, 'skills/review/references/rls-speed.mjs')]);
+});

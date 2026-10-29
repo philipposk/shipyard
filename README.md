@@ -150,6 +150,10 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.6
+
+- Privacy rules (RLS) that run once per row are caught: the template's `schema-rules` test flags a bare `auth.uid()` or a function given a column in a policy, the template's own policies use `(select auth.uid())`, and `skills/review/references/rls-speed.mjs` lists per-row policies and the Supabase performance advisor's findings for a live project. new-app runs it after verify, and the speed guide shows the `col in (select allowed_ids())` pattern and how to prove access did not change.
+
 ## What changed in 0.8.5
 
 - New `review` skill: the full review, fix and ship process from a real 282-file release (148 findings, 117 confirmed and fixed, 14 regressions caught by the second review, shipped as 5 stacked pull requests). Four helper workflows (`review.js`, `content-gaps.js`, `fix-waves.js`, `diff-review.js`) for Claude Code's Workflow tool, with the same steps written out for Codex and Cursor; 17 example review areas for a Next.js and Supabase app; and three scripts: `scripts/review/plan-waves.mjs` (fix batches that never share a file), `scripts/review/split-stack.mjs` (one big branch into stacked branches that each pass the type check and tests, under the 150-file limit) and `scripts/review/voice-test.mjs` (two voices through the speakers for a live microphone test).

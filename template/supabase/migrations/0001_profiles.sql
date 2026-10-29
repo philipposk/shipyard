@@ -16,15 +16,15 @@ alter table public.profiles enable row level security;
 
 drop policy if exists "profiles select own" on public.profiles;
 create policy "profiles select own" on public.profiles
-  for select to authenticated using (auth.uid() = id);
+  for select to authenticated using ((select auth.uid()) = id);
 
 drop policy if exists "profiles insert own" on public.profiles;
 create policy "profiles insert own" on public.profiles
-  for insert to authenticated with check (auth.uid() = id);
+  for insert to authenticated with check ((select auth.uid()) = id);
 
 drop policy if exists "profiles update own" on public.profiles;
 create policy "profiles update own" on public.profiles
-  for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
+  for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 
 -- Column-level permissions: a row policy alone cannot stop someone changing `is_admin` on their own row.
 -- Signed-in users may write only the columns below; `is_admin` can only be changed from the Supabase dashboard

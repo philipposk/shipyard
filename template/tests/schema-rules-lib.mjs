@@ -207,5 +207,29 @@ export function findProblems(sql, isolation = []) {
     }
   }
 
+  // 5. Policies run their condition once per row. A bare auth.uid() / auth.jwt() or a function called with a column
+  //    (has_access(library_id)) runs again for every row: thousands of rows means seconds per query. Wrap auth calls
+  //    in a subselect, and check membership as  col in (select private.allowed_ids())  so Postgres runs it once.
+  for (const st of sts) {
+    const policy = new RegExp(`^(?:create|alter)\\s+policy\\s+${NAME}\\s+on\\s+`, "i").exec(st);
+    if (!policy) continue;
+    const name = policy[1] ?? policy[2];
+    const cond = st.replace(/"(?:[^"]|"")*"/g, '"x"').split(/\s+(?:using|with\s+check)\b/i).slice(1).join(" ");
+    for (const m of cond.matchAll(/\bauth\s*\.\s*(uid|jwt|role|email)\s*\(\s*\)/gi)) {
+      const before = cond.slice(0, m.index).replace(/\s+/g, " ").trimEnd().toLowerCase();
+      if (!/\(\s?select$/.test(before)) {
+        problems.push(`policy "${name}" calls auth.${m[1].toLowerCase()}() once per row. Write (select auth.${m[1].toLowerCase()}()) so it runs once per query.`);
+        break;
+      }
+    }
+    for (const m of cond.matchAll(/\b([a-z_][a-z0-9_]*\s*\.\s*)?([a-z_][a-z0-9_]*)\s*\(\s*([a-z_][a-z0-9_]*)\s*(?:,[^)]*)?\)/gi)) {
+      const fn = m[2].toLowerCase();
+      if (["coalesce", "lower", "upper", "exists", "any", "all", "in", "select", "and", "or", "not", "using", "check"].includes(fn)) continue;
+      if (m[1] && /^auth\s*\.$/i.test(m[1].trim())) continue;
+      problems.push(`policy "${name}" calls ${fn}(${m[3]}) once per row. Check it as  ${m[3]} in (select <schema>.allowed_ids())  with a stable security definer function that returns the allowed ids.`);
+      break;
+    }
+  }
+
   return problems;
 }
