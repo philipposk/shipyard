@@ -82,3 +82,4 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - `:root:is(...) button:not([class])` in a theme outranks menu and toggle buttons.
 - A big review found 117 real problems, and a second review of the fixes found 14 new ones. Review the fixes, not only the code.
 - Pull requests over 150 files are skipped by CodeRabbit's free plan: stack them, and smoke-test between merges.
+- Tabs as plain `<a>` reload the whole page on every tap: `next/link`, an optimistic active tab and `loading.tsx` skeletons cut Catchy's switches from ~360 to ~145 ms (see review/references/speed.md).
