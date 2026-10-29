@@ -13,12 +13,14 @@ import {
 
 /** YouTube's loudness: a master for upload is normalised to this (renders come out at about -26 dB). */
 export const YOUTUBE_LUFS = -14;
+/** A 1440p master (2560x1440): YouTube serves 1440p uploads with a better codec, so the app's text stays sharp. */
+export const YOUTUBE_SCALE = 1.3333;
 
 const HELP = `
 Render your video.
 
 Usage:
-  node video-render.mjs <app-folder> <cut> [<cut> ...] [--strict] [--low-memory] [--loudnorm] [--json]
+  node video-render.mjs <app-folder> <cut> [<cut> ...] [--strict] [--low-memory] [--loudnorm] [--youtube] [--json]
 
 A cut is <tag>:<light|dark>[:<music>][:silent][:vertical]. Examples:
   acme:light             wide video, light theme, with the voice
@@ -34,7 +36,8 @@ Look at that picture before you call the video done.
   --strict       treat dead air as a failure
   --low-memory   render one frame at a time with a smaller frame cache: slower, for long real-app footage or a
                  computer short of memory
-  --loudnorm     make the sound as loud as YouTube expects (-14 LUFS); use it for a master you will upload
+  --loudnorm     make the sound as loud as YouTube expects (-14 LUFS)
+  --youtube      a master for YouTube: --loudnorm, and 1440p instead of 1080p so text stays sharp there
   --json         print the result as JSON
 A render does not start with less than 3 GB of free disk, or while another video render runs on this computer
 (another project or chat): two at once run out of memory. Remotion's working folder for each render (about 250 MB)
@@ -81,7 +84,8 @@ export async function main(args, deps = {}) {
     const started = now();
     const r = await renderOne({
       run, videoDir, spec: p.spec, strict: !!args.strict, quiet: !!args.json, lowMemory: !!args['low-memory'],
-      loudnorm: args.loudnorm ? YOUTUBE_LUFS : null,
+      loudnorm: args.loudnorm || args.youtube ? YOUTUBE_LUFS : null,
+      scale: args.youtube ? YOUTUBE_SCALE : null,
     });
     // Remotion's working folders go, but never while another render may still be using its own.
     if ((await otherRender()) !== true) await cleanBundles({ tmpRoot, since: started - 1000 });
@@ -111,5 +115,5 @@ export async function main(args, deps = {}) {
 }
 
 if (isMain(import.meta.url)) {
-  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['strict', 'low-memory', 'loudnorm'] }, help: HELP, main });
+  await runCli({ argv: process.argv.slice(2), spec: { boolean: ['strict', 'low-memory', 'loudnorm', 'youtube'] }, help: HELP, main });
 }
