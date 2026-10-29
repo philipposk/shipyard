@@ -30,6 +30,23 @@ Measure every main screen before and after. Any screen over budget is a finding 
 | 300 ms delay or a double-tap zoom on taps | Missing `touch-action: manipulation` on tap targets | `touch-manipulation` (Tailwind) on nav links and buttons. |
 | Big first load of one screen | A heavy client component (charts, editors, audio) in the main bundle | `next/dynamic` for that component, with a skeleton. |
 
+## Fast tab switching (checklist)
+
+Catchy PR #127 took Home↔Actions switches from ~360 ms to ~145 ms (390x844, 4x CPU, production build). Detect each item, then fix it:
+
+| Detect | Fix |
+|---|---|
+| A plain `<a href="/...">` to an app page in tabs, sidebar or drawer (`rg '<a href="/' components app`) | `next/link` for every in-app link: client navigation, viewport prefetch, no full reload |
+| Tab active state read only from `usePathname()` | Optimistic `pending` state set on tap, dropped once the path changes; keep `aria-current` for the real page |
+| A route with server fetches and no `loading.tsx` | `app/<route>/loading.tsx` rendering a shared `PageSkeleton` |
+| Nav or shell rendered inside each page, so it remounts and refetches | Keep layout and nav persistent in `layout.tsx`, outside the page |
+| `fetch` without caching, or a per-request DB query, in a layout | Cache it, or move it into the page behind the skeleton |
+| `getSession()`/`getUser()` called in layout, page and components separately | Load the session once per request with React `cache()` |
+| Charts, editors or audio in the main bundle of a tab | `next/dynamic` with a skeleton |
+| Timings taken in `next dev` | Measure only on `next build && next start`, 4x CPU, 390 px wide, before and after |
+
+Reference (Catchy): `MobileShell`, `SidebarTree`, `MobileDrawer`, `app/*/loading.tsx`, `components/PageSkeleton.tsx`, and `lib/instant-tabs.test.ts`, a test that fails on a plain `<a>` to an app page, a missing optimistic tab, or a missing skeleton. Copy that test into the app under review.
+
 ## Privacy rules that run once per row
 
 A slow screen with fast pages and few requests is often the database's privacy rules (RLS). A policy condition runs once **per row** unless Postgres can run it once per query. `has_access(library_id)` with a lookup inside cost one real app 0.6 to 0.9 s per query on 600 to 900 rows (ChatFix, fixed to 8 to 10 ms).
