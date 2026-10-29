@@ -152,7 +152,8 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 ## What changed in 0.8.6
 
 - `video-render.mjs --youtube` renders a YouTube master: the loudness YouTube expects and 1440p, which YouTube plays back with a better codec, so the app's text stays sharp. A render that runs out of memory is tried once more by itself, one frame at a time.
-- The YouTube guide covers drafts, the AI-use question (an AI voice counts) and the low quality YouTube shows until its HD processing finishes. Voice and music tips from real videos: which ElevenLabs voices were picked over a slow-sounding OpenAI style, and where Mixkit keeps its tracks.
+- The YouTube guide covers drafts, the AI-use question (an AI voice counts), the low quality YouTube shows until its HD processing finishes, and automatic subtitles that appear only later.
+- Voice by ear: cut one long pause out of a liked take instead of re-voicing it (dropping a comma made Greek sound foreign), never paste a word in from another take, and judge a line's start with the sound before it. The music stays down between voices less than 0.7 s apart. Voice and music tips from real videos: which ElevenLabs voices were picked over a slow-sounding OpenAI style, and where Mixkit keeps its tracks.
 
 ## What changed in 0.8.5
 
