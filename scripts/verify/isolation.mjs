@@ -137,7 +137,7 @@ async function testTable(sb, entry, A, B) {
   // 5. User B must not be able to create a row that belongs to A.
   if (created) {
     const spoof = await sb.rest(table, { method: 'POST', body: entry._body, as: { token: B.token }, prefer: 'return=representation' });
-    if (spoof.ok && spoof.rows.length > 0) problems.push(`${table}: a signed-in user can create rows in someone else's name. The insert policy needs "with check (${ownerColumn} = auth.uid())"`);
+    if (spoof.ok && spoof.rows.length > 0) problems.push(`${table}: a signed-in user can create rows in someone else's name. The insert policy needs "with check (${ownerColumn} = (select auth.uid()))"`);
     else notes.push('nobody can create rows in another user\'s name');
   }
 

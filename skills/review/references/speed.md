@@ -29,3 +29,15 @@ Measure every main screen before and after. Any screen over budget is a finding 
 | Sticky bars or floating buttons swallow taps | A fixed element over the bottom bar (higher `z-index`, no `pointer-events: none` when hidden) | Check the element under the tap point; hidden floating buttons get `pointer-events: none`. |
 | 300 ms delay or a double-tap zoom on taps | Missing `touch-action: manipulation` on tap targets | `touch-manipulation` (Tailwind) on nav links and buttons. |
 | Big first load of one screen | A heavy client component (charts, editors, audio) in the main bundle | `next/dynamic` for that component, with a skeleton. |
+
+## Privacy rules that run once per row
+
+A slow screen with fast pages and few requests is often the database's privacy rules (RLS). A policy condition runs once **per row** unless Postgres can run it once per query. `has_access(library_id)` with a lookup inside cost one real app 0.6 to 0.9 s per query on 600 to 900 rows (ChatFix, fixed to 8 to 10 ms).
+
+| Write | Never |
+|---|---|
+| `user_id = (select auth.uid())` | `user_id = auth.uid()` |
+| `(select private.is_admin())` | `is_admin()` |
+| `library_id in (select private.allowed_ids())`, where `allowed_ids()` is a `stable security definer` function with `set search_path = ''` that returns the ids the person may see | `has_access(library_id)` or any function given a column |
+
+Index every column a policy compares (`user_id`, `library_id`, `org_id`). The template's `schema-rules` test flags per-row policies in new migrations. For a live project, `node rls-speed.mjs <project-ref>` (next to this file, needs `SUPABASE_ACCESS_TOKEN`) lists per-row policies and the Supabase performance advisor's `auth_rls_initplan` and unindexed foreign key findings, and exits 1 if there are any. To time one, run as a real member inside a rolled-back transaction: `begin; set local role authenticated; select set_config('request.jwt.claims', '{"sub":"<user id>","role":"authenticated"}', true); explain analyze select * from <table>; rollback;`. When rewriting a policy, hash every visible row (`md5(string_agg(t::text, ','))`) for several users and for anon before and after, and ship only when they match.

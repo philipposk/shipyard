@@ -3,7 +3,7 @@
 Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. The app's `AGENTS.md` repeats them for the coding agent.
 
 ## Data and keys
-- Every table has row level security (RLS) switched on: the database itself only lets a person see and change their own rows. Add the table to `supabase/isolation.json`; the app's tests and the verify script fail without it.
+- Every table has row level security (RLS) switched on: the database itself only lets a person see and change their own rows. Add the table to `supabase/isolation.json`; the app's tests and the verify script fail without it. Policies use `(select auth.uid())` and `col in (select private.allowed_ids())`, never a function given a column, so they run once per query, not once per row; index the columns they compare.
 - Database changes are new numbered files in `supabase/migrations/`. They can be run twice safely. Never edit one that already ran.
 - If people may edit their own row but not every column (like an admin flag), limit the columns with grants. A row rule alone cannot do that.
 - The server key lives only in server files. Never put a secret in a name starting with `NEXT_PUBLIC_`: that publishes it to every visitor.

@@ -15,19 +15,19 @@ alter table public.items enable row level security;
 
 drop policy if exists "items select own" on public.items;
 create policy "items select own" on public.items
-  for select to authenticated using (user_id = auth.uid());
+  for select to authenticated using (user_id = (select auth.uid()));
 
 drop policy if exists "items insert own" on public.items;
 create policy "items insert own" on public.items
-  for insert to authenticated with check (user_id = auth.uid());
+  for insert to authenticated with check (user_id = (select auth.uid()));
 
 drop policy if exists "items update own" on public.items;
 create policy "items update own" on public.items
-  for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+  for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 drop policy if exists "items delete own" on public.items;
 create policy "items delete own" on public.items
-  for delete to authenticated using (user_id = auth.uid());
+  for delete to authenticated using (user_id = (select auth.uid()));
 
 revoke all on public.items from anon;
 grant select, insert, update, delete on public.items to authenticated;
