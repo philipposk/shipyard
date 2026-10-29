@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const fwd = (p) => p.replace(/\\/g, '/');
-const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops', 'new-skill', 'email', 'apis', 'review'];
+const SKILLS = ['setup', 'new-app', 'design', 'launch', 'video', 'ops', 'new-skill', 'email', 'apis', 'review', 'ux-redesign'];
 const OUTPUTS = [];
 const unix = process.platform !== 'win32';
 
