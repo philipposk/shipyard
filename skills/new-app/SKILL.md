@@ -60,7 +60,9 @@ It creates the Supabase project, applies the migrations and writes `.env.local`.
 
 ## 6. Save to GitHub
 
-Ask: "OK to save this first version to GitHub?" If yes: `git add -A`, check nothing secret is staged (`node scripts/secret-scan.mjs --staged` inside the app), `git commit`, then `gh repo create <slug> --private --source . --push`. The branch must be called `main`. `package-lock.json` must be included.
+Ask: "OK to save this first version to GitHub?" If yes: `git add -A`, then inspect the staged diff for accidental secrets before committing (`git diff --staged`). Do not open, print, or search `.env*` files or `~/.shipyard/secrets.env`; Shipyard's key guard also runs automatically. If anything looks like a credential, remove it from the staged changes and fix its source before continuing. Then `git commit`, and `gh repo create <slug> --private --source . --push`. The branch must be called `main`. `package-lock.json` must be included.
+
+> Follow-up: add a dedicated `scripts/secret-scan.mjs --staged` command (or an equivalent supported staged-secret scanner) and update this step to use it. Until then, do not reference a nonexistent script.
 
 ## 7. Publish
 
@@ -70,7 +72,9 @@ Ask: "OK to save this first version to GitHub?" If yes: `git add -A`, check noth
 ## 8. Verify
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs" <appDir>`
-Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Then run `SUPABASE_ACCESS_TOKEN=... node "${CLAUDE_PLUGIN_ROOT}/skills/review/references/rls-speed.mjs" <project-ref>` and fix every per-row policy it lists (see `skills/review/references/speed.md`). Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not say the app is live until the checks pass on the real address. After any fix, run verify again and read the fixes once more before launch: a clean run from before the fix proves nothing about the fix.
+Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Then run the RLS speed check in `skills/review/references/rls-speed.mjs` using Shipyard's supported secret-handling flow for the Supabase access token; do not put the token inline in the command line. Fix every per-row policy it lists (see `skills/review/references/speed.md`). Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not say the app is live until the checks pass on the real address. After any fix, run verify again and read the fixes once more before launch: a clean run from before the fix proves nothing about the fix.
+
+> Follow-up: add a supported wrapper or flag for `rls-speed.mjs` that reads `SUPABASE_ACCESS_TOKEN` from Shipyard's secrets store, then restore a concrete command here without an inline environment assignment.
 
 ## 9. Owner account
 
