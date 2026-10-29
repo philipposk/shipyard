@@ -120,7 +120,7 @@ export function volumeNotes(v) {
  * Render one cut with the engine's own script (it also checks for frozen stretches and makes the contact sheet).
  * Returns { ok, spec, name, mp4, sheet, seconds, sizeMb, deadAir, volume, notes, error? }.
  */
-export async function renderOne({ run, videoDir, spec, strict = false, quiet = true, env = {}, lowMemory = false, loudnorm = null }) {
+export async function renderOne({ run, videoDir, spec, strict = false, quiet = true, env = {}, lowMemory = false, loudnorm = null, scale = null }) {
   parseSpec(spec);
   const r = await run('node', ['scripts/render.mjs', spec], {
     cwd: videoDir,
@@ -128,6 +128,8 @@ export async function renderOne({ run, videoDir, spec, strict = false, quiet = t
       ...env, ...(strict ? { STRICT_MOTION: '1' } : {}), ...(lowMemory ? LOW_MEMORY_ENV : {}),
       // the engine normalises the finished file's sound to this loudness (LUFS), picture copied
       LOUDNORM: loudnorm === null ? undefined : String(loudnorm),
+      // render larger than 1080p (1.3333 = 1440p)
+      SCALE: scale === null ? undefined : String(scale),
     },
     quiet,
     timeoutMs: RENDER_TIMEOUT_MS,

@@ -48,11 +48,11 @@ After every render: nothing cropped wrongly, late animations not cut off, voice 
 
 ## Music (optional)
 
-None ships. To add one: a royalty-free source whose licence you have read and that allows this use; normalise it (`ffmpeg -i in.mp3 -af "loudnorm=I=-16:TP=-1.5:LRA=11" -ar 48000 -b:a 192k public/music/<name>.mp3`); render with `<tag>:light:<name>`; record the source and licence in `public/music/SOURCES.txt`. Avoid sources that only allow YouTube use or non-commercial use. The music is ducked under the voice automatically.
+None ships. To add one: a royalty-free source whose licence you have read and that allows this use (for example Mixkit's free stock music, which allows commercial use; on its tag pages each track's mp3 address follows its title, and the file's length must match the listing). Ask the student before downloading anything, and tell them the file, the source and its size; normalise it (`ffmpeg -i in.mp3 -af "loudnorm=I=-16:TP=-1.5:LRA=11" -ar 48000 -b:a 192k public/music/<name>.mp3`); render with `<tag>:light:<name>`; record the source and licence in `public/music/SOURCES.txt`. Avoid sources that only allow YouTube use or non-commercial use. The music is ducked under the voice automatically.
 
 ## Memory and disk
 
 - Each render adds several MB to `video/out/`. Delete old renders when you are done (`out/` is not committed).
 - A render needs a few GB of free disk to work in; `video-render.mjs` will not start one with less than 3 GB free, and it removes Remotion's working folder (about 250 MB per render) from the temp folder afterwards.
-- "Could not extract frame from compositor ... disk space is low" means the computer ran out of memory or disk, not a bug in the scenes. Close other apps, free disk space, and render again with `--low-memory` (one frame at a time, a smaller frame cache: slower). Long real-app footage needs it most.
+- "Could not extract frame from compositor ... disk space is low" or "TypeError: Failed to fetch" means the computer ran out of memory or disk, not a bug in the scenes. The engine tries such a render once more by itself, one frame at a time. If that fails too, close other apps, free disk space, and render again with `--low-memory` (one frame at a time, a smaller frame cache: slower). Long real-app footage needs it most.
 - One render at a time, in the foreground, on the whole computer. `video-render.mjs` does not start while another video render runs (another project or chat), and never removes that render's working folder. Never check with `pgrep -l` or `-fl`: they print other programs' settings, keys included.

@@ -149,6 +149,11 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.6
+
+- `video-render.mjs --youtube` renders a YouTube master: the loudness YouTube expects and 1440p, which YouTube plays back with a better codec, so the app's text stays sharp. A render that runs out of memory is tried once more by itself, one frame at a time.
+- The YouTube guide covers drafts, the AI-use question (an AI voice counts) and the low quality YouTube shows until its HD processing finishes. Voice and music tips from real videos: which ElevenLabs voices were picked over a slow-sounding OpenAI style, and where Mixkit keeps its tracks.
+
 ## What changed in 0.8.5
 
 - New `review` skill: the full review, fix and ship process from a real 282-file release (148 findings, 117 confirmed and fixed, 14 regressions caught by the second review, shipped as 5 stacked pull requests). Four helper workflows (`review.js`, `content-gaps.js`, `fix-waves.js`, `diff-review.js`) for Claude Code's Workflow tool, with the same steps written out for Codex and Cursor; 17 example review areas for a Next.js and Supabase app; and three scripts: `scripts/review/plan-waves.mjs` (fix batches that never share a file), `scripts/review/split-stack.mjs` (one big branch into stacked branches that each pass the type check and tests, under the 150-file limit) and `scripts/review/voice-test.mjs` (two voices through the speakers for a live microphone test).

@@ -71,7 +71,7 @@ Options: `--provider openai|gemini|deepgram`, `--voice <name>`, `--pace fast`, `
 - **Fix one line without touching the rest**, in the script: `say` (what the voice reads, for example a name spelled the way it should sound), `style` (a different delivery for that line), `pauseCap` (a shorter pause), `leadIn` (keeps a soft first sound). `references/script.md` has the details. To remove one long pause from a take the student likes, cut it out of that take by hand and save it as a new take: re-voicing usually loses the delivery that made it good.
 - **Another language:** `--lang <code>` (word timings in that language, for example `el`), a `--style "<how to speak>"` written in that language, and `--wpm` low enough that nothing is sped up (Greek: `--wpm 100`). A 1.2x speed-up audibly warped Greek words. Give `--lang` to `video-publish.mjs` too.
 - **Gemini:** its free tier allows 10 voice requests a day per model, and every take is one. An error 429 that names `FreeTier` means the key's Google project has no billing set up: tell the student before planning re-takes.
-- **ElevenLabs:** `--provider eleven --voice <voice id> [--speed 0.9]` with `ELEVENLABS_API_KEY` in the keys file. Its free plan is not for commercial videos (the paid Starter plan is). There is no style prompt; voices that worked: Sarah `EXAVITQu4vr4xnSDxMaL` (warm, confident) and Brian `nPczCjzI2devNBz1zQrb` (deep, dry). Some stock voices read very fast.
+- **ElevenLabs:** `--provider eleven --voice <voice id> [--speed 0.9]` with `ELEVENLABS_API_KEY` in the keys file. Its free plan is not for commercial videos (the paid Starter plan is). There is no style prompt; voices that worked: Sarah `EXAVITQu4vr4xnSDxMaL` (warm, confident) and Brian `nPczCjzI2devNBz1zQrb` at `--speed 0.9` (deep, dry). Some stock voices read too fast. A real user chose these over an OpenAI voice with a "calm, confident" style, which sounded slow.
 - **Pacing:** people hear "slow and odd" at once. "Calm" or "confident" styles made lines drag; a comma in the middle of a sentence adds a pause ("ten free projects every month" reads better without one). If a line sounds off, try a natural-pace style or another voice, and send the student two short samples to pick from.
 - **People talking inside the video** (a client on a call, a team): write their lines in a spec file and run `video-voice.mjs <appDir> --clips video/capture/specs/<name>.json`. Each line gets its own voice (pick clearly different ones), and the word times let a practice page type the words as they are spoken. `references/footage.md` has the format.
 
@@ -89,7 +89,7 @@ Read `references/qa-render.md` now. Stills (single frames) are cheap and fast: f
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/video-render.mjs" <appDir> <tag>:light [<tag>:dark] [<tag>:light::vertical] [<tag>:light::silent]`
 
-It renders one cut at a time, checks for dead air (a frozen stretch over half a second) and loudness, and prints a contact sheet path per cut. Read each sheet. Fix, re-render only what changed. It stops early when the disk is nearly full or another video render is running on the computer; long real-app footage may need `--low-memory`. Add `--loudnorm` for a master that goes to YouTube: renders come out quieter than YouTube expects.
+It renders one cut at a time, checks for dead air (a frozen stretch over half a second) and loudness, and prints a contact sheet path per cut. Read each sheet. Fix, re-render only what changed. It stops early when the disk is nearly full or another video render is running on the computer; long real-app footage may need `--low-memory`. Add `--youtube` for a master that goes to YouTube: it makes the sound as loud as YouTube expects and renders at 1440p, so the app's text stays sharp there. A render that runs out of memory is tried once more by itself, one frame at a time.
 
 ## 6. Publish the web copy
 
@@ -97,7 +97,7 @@ Read `references/publish.md` now. `node "${CLAUDE_PLUGIN_ROOT}/scripts/video-pub
 
 ## 7. YouTube and other sites
 
-If the student wants it on YouTube, read `references/youtube.md`. They upload the full-quality render from `video/out/` (rendered with `--loudnorm`) themselves, Private first; you prepare the title, description and subtitles. Turn off YouTube's automatic subtitles when the video shows its own captions.
+If the student wants it on YouTube, read `references/youtube.md`. They upload the full-quality render from `video/out/` (rendered with `--youtube`) themselves, Private first; you prepare the title, description and subtitles. Turn off YouTube's automatic subtitles when the video shows its own captions.
 
 ## 8. Finish
 
