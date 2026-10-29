@@ -22,6 +22,10 @@ From one full review of a big Next.js, Supabase and AI app (October 2026): 148 r
 - Keep a deprecated way of signing in (`?token=`) working with a log line, instead of breaking clients that already use it.
 - When a feature ships, update the home page, help, privacy page, `llms.txt`, structured data and manifest, in every language the app has.
 
+## Speed
+- Vercel runs functions in Washington (`iad1`) unless `vercel.json` sets `regions`. With the database in Europe every page makes several ocean crossings: put functions next to the database (`fra1` for eu-central-1).
+- A bottom tab lights up on tap (optimistic state), every tab has its own `loading.tsx`, and visited tabs stay cached (`staleTimes`). Measure taps with `references/speed.md`; a tab that "cannot be tapped" was usually a tap with no feedback for over a second.
+
 ## Process
 - Reviewers per area, the strongest model for security, live audio, AI and the database. Merge duplicates, then one skeptic per finding that tries to disprove it. About 85% of merged findings survived.
 - Fix in waves whose batches share no file. Then a knip sweep for dead code, then a second, fresh review of the whole fix diff. Then type check, tests, build, a local production check and a real live session.

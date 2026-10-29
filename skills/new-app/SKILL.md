@@ -56,7 +56,7 @@ Before the first deploy, always write `src/lib/home-content.ts` for this app: th
 ## 5. Database
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/provision-supabase.mjs" <appDir>`
-It creates the Supabase project, applies the migrations and writes `.env.local`. If it says two projects are already active (free limit), explain the two choices in plain words: pause a project the student does not use (dashboard link in the message), or put this app in an existing project with `--shared <project id>`. Shared is safe for the other apps: the app gets its own space (a separate schema) and nothing of theirs is touched. Before any shared run, read `references/shared-project.md` and do the dry run first. If the apps sit on subdomains of one domain and should share one sign-in, also read `references/shared-sign-in.md`. Then run `npm run build` to check the app builds.
+It creates the Supabase project, applies the migrations and writes `.env.local`. If it says two projects are already active (free limit), explain the two choices in plain words: pause a project the student does not use (dashboard link in the message), or put this app in an existing project with `--shared <project id>`. Shared is safe for the other apps: the app gets its own space (a separate schema) and nothing of theirs is touched. Before any shared run, read `references/shared-project.md` and do the dry run first. If the apps sit on subdomains of one domain and should share one sign-in, also read `references/shared-sign-in.md`. The template's `vercel.json` runs the server next to a database in eu-central-1 (`fra1`); if the database is elsewhere, set `regions` to the Vercel region nearest it (for example us-east-1 → `iad1`). Then run `npm run build` to check the app builds.
 
 ## 6. Save to GitHub
 
