@@ -60,3 +60,30 @@ Send: the index link or screenshots, the step-count table, and a short "what cha
 ## 7. Common mistakes
 
 See `references/patterns.md`, "Pitfalls". Check each before saying a PR is ready.
+
+## 8. Lessons from the first phone test (Catchy v2, Oct 2026)
+
+- **Legacy widgets leak into the new layout.** Anything mounted outside React (a vendored chat bubble on `<body>`, a shadow-DOM host) survives the layout switch, so you get two AIs on screen. Call the widget's own `destroy()` on unmount, *and* add a CSS backstop scoped to the new layout (`html[data-layout="v2"] #widget-root{display:none!important}`). Test it by asserting both exist.
+- **Sheets must be keyboard-safe.**
+  - Make them opaque, not translucent over the page.
+  - Size them from `visualViewport` (a `--vh` var updated on `resize` and `scroll`), not `100vh`/`dvh`, so the input stays above the iOS keyboard.
+  - Hide the bottom bar and FAB while open (`html.sheet-open`).
+  - Screenshot with a simulated keyboard (shrink the viewport height) as well as without.
+- **`[hidden]` loses to your own `display:` rules.** A collapsible group with `display:revert`/`flex` never collapses. Add `.x[hidden]{display:none}` and test the toggle.
+- **Tab switches must feel instant.**
+  - Use the framework's client links, not plain `<a>`.
+  - Light the tab optimistically and add `loading.tsx` skeletons.
+  - Measure before and after at 390px with 4x CPU throttle: time until the tab is lit and until the page has painted.
+- **Settings information architecture** (Linear, Notion, Slack, ChatGPT, Claude all converge on this):
+  - Grouped sections (Preferences / AI / Account).
+  - On phones, a drill-in list (`/settings` *is* the list; each section has `‹ Settings` + title).
+  - On desktop, a left sidebar. Never a long horizontal tab strip.
+  - Appearance is its own section.
+  - Content that isn't a setting (templates, libraries) belongs in the main navigation.
+- **Theme customisation:**
+  - Offer a few knobs (accent, background presets, text tone, font, size, radius, density), as Radix Themes and the ChatGPT appearance editor do, rather than every token.
+  - Save them to the account (auth metadata, no migration) and render them as a sanitised `<style>` on the server, so there is no flash.
+  - Warn on low contrast.
+- **Copy that assumes context:** "Open the app" inside the app, or a help link that leaves the app. Grep the i18n files for it.
+- **Connect / setup steps:** one instruction line, one copy block (copy icon in the corner → "Copied"), and "More details" for the rest.
+- **Helper scripts that `git checkout` files** (screenshot shims that patch layout or middleware) silently drop your uncommitted edits to those files. Commit first, or re-check `git diff` after turning the shim off.
