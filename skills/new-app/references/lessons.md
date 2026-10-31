@@ -34,6 +34,8 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Vercel Hobby allows 100 deploys a day: skip deploys for data-only commits.
 - Free Supabase projects pause after a week of no use; wake it in the dashboard before testing.
 - Vercel Hobby forbids commercial use, including taking payments.
+- ★ Vercel Hobby has 4 hours of server CPU a month across all your apps, and going over stops all of them for up to 30 days. One account reached 10 hours in a month: an MCP client reconnecting nonstop (169,000 calls), a job calling an app every minute with nothing to do, open tabs refreshing every 4 seconds, and crawlers. Rules are in `build-rules.md`, "Hosting costs".
+- Crawlers can cost more than visitors. Search crawlers (Googlebot, Bingbot, OAI-SearchBot, PerplexityBot) and link previews (facebookexternalhit) bring people in, so keep them. AI training and SEO crawlers (Amazonbot, KeenableBot, MJ12bot, ElevenlabsCrawler, GPTBot, meta-externalagent, Bytespider, CCBot, AhrefsBot, SemrushBot, DotBot, PetalBot) bring almost nobody. Other AI companies run both kinds too: read their crawler pages for the exact names. Deny them with a Vercel firewall rule on `user_agent`: it stops them before the server wakes, needs no deploy, and is free. `robots.txt` is only a request.
 - Changing a domain: payment webhooks do not follow redirects. Register the new endpoint first and use 308 redirects.
 
 ## Building

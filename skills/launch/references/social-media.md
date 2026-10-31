@@ -47,7 +47,7 @@ Per platform:
 - **Instagram**: carousel = one post with up to 10 images. In the crop step pick **Original** (4:5), not the square default, or the sides get cut off. Same for reels: check the crop before sharing. Don't post a single slide from a carousel alone; a lone slide with a "swipe" arrow looks broken.
 - **Facebook Page**: organic Page posts can't be swipe carousels (only ads can); several photos show as a grid. Post a **slideshow reel** instead: the slides as a video, 2-3 s each, with royalty-free music (a silent reel looks broken).
 - **LinkedIn**: carousels are **document posts**. Export the slides as one PDF and upload as a document. Several photos show as a grid, not a carousel.
-- **X**: one image, or up to 4. Use one summary image for a carousel. X rejects AV1 video and Opus audio: re-encode to H.264 + AAC (`ffmpeg -i in -c:v libx264 -crf 18 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart out.mp4`).
+- **X**: one image, or up to 4. Use one summary image for a carousel. X rejects AV1 video and some audio formats: re-encode to H.264 + AAC (`ffmpeg -i in -c:v libx264 -crf 18 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart out.mp4`).
 - **YouTube**: upload at high bitrate, ideally 1440p (`-vf scale=-2:1440 -c:v libx264 -crf 14 -preset slow`). A low-bitrate 1080p upload can stay stuck at 240-360p for viewers. New channels have a daily upload cap (about 10); spread uploads over days. Vertical under 60 s becomes a Short.
 - Always end with the website, or "link in bio" on Instagram (and only after the bio link is really set).
 

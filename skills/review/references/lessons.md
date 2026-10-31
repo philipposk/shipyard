@@ -26,6 +26,11 @@ From one full review of a big Next.js, Supabase and AI app (October 2026): 148 r
 - Vercel runs functions in Washington (`iad1`) unless `vercel.json` sets `regions`. With the database in Europe every page makes several ocean crossings: put functions next to the database (`fra1` for eu-central-1).
 - A bottom tab lights up on tap (optimistic state), every tab has its own `loading.tsx`, and visited tabs stay cached (`staleTimes`). Measure taps with `references/speed.md`; a tab that "cannot be tapped" was usually a tap with no feedback for over a second.
 
+## Server time
+- Read real usage before reviewing: `vercel metrics vercel.function_invocation.function_cpu_time_ms -p <project> -a sum --group-by route --since 30d`, then `--group-by clientUserAgent`, and the same for `vercel.middleware_invocation.function_cpu_time_ms`. Code alone did not show that a client was reconnecting 169,000 times a month.
+- Search the code for `setInterval`, repeating `setTimeout`, `cron.schedule`, `net.http_`, `crons` in `vercel.json`, and GET handlers on MCP routes. Check each against "Hosting costs" in `new-app/references/build-rules.md`.
+- Crawlers are findings too: if most CPU on a public page comes from AI training or SEO crawlers, deny them with a firewall rule (list in `new-app/references/lessons.md`).
+
 ## Process
 - Reviewers per area, the strongest model for security, live audio, AI and the database. Merge duplicates, then one skeptic per finding that tries to disprove it. About 85% of merged findings survived.
 - Fix in waves whose batches share no file. Then a knip sweep for dead code, then a second, fresh review of the whole fix diff. Then type check, tests, build, a local production check and a real live session.
