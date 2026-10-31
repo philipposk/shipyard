@@ -26,6 +26,16 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - Any AI feature has a spend limit at the provider, a per-app key, a daily cap inside the app, and a per-person limit.
 - Do not build a feature that can run up a bill on anyone's key without a cap.
 
+## Hosting costs (server time)
+Vercel's free plan gives 4 hours of server CPU a month, shared by every app on the account. Go over and every app stops for up to 30 days. One app that wakes the server all day can take the others down with it. Waking from idle costs the most, so count how often the server wakes, not only how long it works.
+- A page that refreshes by itself stops while its tab is hidden, waits at least 20 seconds between refreshes, and runs one refresh loop only. A screen where seconds matter (orders in a kitchen) may go faster while on screen, and at most once a minute when hidden. State the cost in `SPEC.md`.
+- A scheduled job asks the database first and only calls the app when there is work. Never call the app on a timer just to find out there is nothing to do. Clean-up work runs at most once an hour.
+- Public pages can be cached, so a visitor or crawler does not run the server. No `cookies()` or `headers()` in the root layout or a public page's layout, public data uses a client that reads no cookies, and the page sets `revalidate`. Signed-in details (the header, a favourite button) load in the browser. Test that no signed-in data ends up in a cached page.
+- `sitemap.ts` and `robots.ts` read no cookies and set `revalidate`.
+- Links to pages that always run the server (sign-in, account, inbox, and tab bars when the tabs are not cached) set `prefetch={false}`. Otherwise every page view, and every Google render of it, calls each of them.
+- A stateless MCP server answers GET with 405 when a token is sent, and 401 without one. Never `200` with a stream that closes at once: clients reconnect a few times a second, for as long as they stay connected.
+- Decide about crawlers in `SPEC.md` (see `lessons.md`).
+
 ## Behaviour
 - Brand name only from `BRAND` in `src/lib/constants.ts`.
 - A designed empty state, loading skeleton and error message for every screen that loads data.
