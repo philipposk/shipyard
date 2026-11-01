@@ -6,6 +6,7 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - ★ Never set a password from an email address alone (account takeover).
 - ★ The login cookie name in `proxy.ts` must match the one Supabase sets; otherwise sign-in appears to work and then loops. Do not share a cookie across domains you do not control.
 - ★ Next.js 16 renamed `middleware.ts` to `proxy.ts`. All `/api/auth/*` routes must be public in it or sign-up answers 405 or shows the sign-in page.
+- ★ Sign out with `{ scope: "local" }`. Supabase's default is global: it ends the person's sessions on every device and in every app on a shared project.
 - ★ `/api/health` is public, skips the sign-in check, and reads one database row with a 5 second limit (503 on failure, no user data). Answering 200 without asking the database hides an outage. `/auth/v1/health` can say OK while the database is stuck.
 - ★ Browser sign-in calls (`/auth/v1/`) give up after about 20 seconds and the sign-in page says it is not responding. Proxy and server sign-in checks give up after 3 seconds each and 5 seconds overall. Storage uploads are never timed out.
 - ★ Every new table has an explicit grant: `service_role`, and either `authenticated` or `revoke all` from `authenticated` for a server-only table. From 30 Oct 2026 Supabase does not grant new `public` tables. Do not grant `anon`. A cron schedule that runs more than once an hour fails the same test.
