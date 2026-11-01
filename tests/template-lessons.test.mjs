@@ -26,6 +26,11 @@ test('/auth/confirm: a token link never signs anyone in on GET; the button POSTs
   assert.match(await read('src/proxy.ts'), /"\/auth\/confirm"/, 'the continue page sits under a public prefix');
 });
 
+test('sign-out ends this session only: apps can share a Supabase project', async () => {
+  const signOut = await read('src/app/auth/sign-out/route.ts');
+  assert.match(signOut, /signOut\(\{ scope: "local" \}\)/, 'the default is global: it ends the sessions in every app on the project');
+});
+
 test('sign-out and other changes are POST only', async () => {
   const signOut = await read('src/app/auth/sign-out/route.ts');
   assert.doesNotMatch(signOut, /export async function GET/);
