@@ -263,3 +263,19 @@ test('otherRenderRunning: pgrep with -f only (never -l, which prints environment
   assert.deepEqual(seen[0], ['pgrep', '-f', 'remotion rende[r] src/']);
   assert.ok(seen.every((c) => !c.some((x) => /^-\w*l/.test(x))));
 });
+
+test('--youtube renders a master for YouTube: -14 LUFS sound and 1440p', async () => {
+  const app = await renderFixture();
+  try {
+    const run = engineRun();
+    await main({ _: [app.dir, 'launch:light'], json: true, youtube: true }, { run, which: whichAll, ...SAFE });
+    const env = run.calls.find((c) => c.cmd === 'node').env;
+    assert.equal(env.LOUDNORM, '-14');
+    assert.equal(env.SCALE, '1.3333');
+    const plain = engineRun();
+    await main({ _: [app.dir, 'launch:light'], json: true, loudnorm: true }, { run: plain, which: whichAll, ...SAFE });
+    assert.equal(plain.calls.find((c) => c.cmd === 'node').env.SCALE, undefined, '--loudnorm alone keeps 1080p');
+  } finally {
+    await removeDir(app.parent);
+  }
+});

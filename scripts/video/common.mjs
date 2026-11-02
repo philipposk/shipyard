@@ -8,14 +8,15 @@ import { classifyApp } from '../which-app.mjs';
 /**
  * The video engine is a public, MIT-licensed folder (`motion/`, built on Remotion) in this repository.
  * We always copy it from ONE pinned commit, never "latest", so a change upstream cannot break a student's video.
- * ENGINE_SHA was looked up (read-only, `git ls-remote` + GitHub API, both agreed) on 2026-10-28: the head of
- * demo-pipeline pull request 3 (real runs, ElevenLabs and in-video voices, real address, loudness), on top of pull
- * request 2. It must stay reachable, so those pull requests are merged with a merge commit, not squashed.
+ * ENGINE_SHA was looked up (read-only, `git ls-remote` + GitHub API, both agreed) on 2026-10-29: the head of
+ * demo-pipeline pull request 4 (an out-of-memory render is retried at concurrency 1; SCALE for 1440p masters; music
+ * stays down between close voices), on top of pull requests 2 and 3. It must stay reachable, so those pull requests are
+ * merged with a merge commit, not squashed.
  * To move to a newer engine: look up the new commit, change ENGINE_SHA, run the tests and the opt-in real test
  * (SHIPYARD_TEST_VIDEO=1).
  */
 export const ENGINE_REPO = 'https://github.com/philipposk/demo-pipeline';
-export const ENGINE_SHA = '0290ba45bfc03b4a3897b44f27e0315aef14db78';
+export const ENGINE_SHA = '94acf0eca15e68f0c93295e43a054624a312c67f';
 export const ENGINE_SUBDIR = 'motion';
 
 /** Folder inside the app that holds the engine and the student's scenes. */

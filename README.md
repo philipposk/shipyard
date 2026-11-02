@@ -150,6 +150,12 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.7
+
+- `video-render.mjs --youtube` renders a YouTube master: the loudness YouTube expects and 1440p, which YouTube plays back with a better codec, so the app's text stays sharp. A render that runs out of memory is tried once more by itself, one frame at a time.
+- The YouTube guide covers drafts, the AI-use question (an AI voice counts), the low quality YouTube shows until its HD processing finishes, and automatic subtitles that appear only later.
+- Voice by ear: cut one long pause out of a liked take instead of re-voicing it (dropping a comma made Greek sound foreign), never paste a word in from another take, and judge a line's start with the sound before it. The music stays down between voices less than 0.7 s apart. Voice and music tips from real videos: which ElevenLabs voices were picked over a slow-sounding OpenAI style, and where Mixkit keeps its tracks.
+
 ## What changed in 0.8.6
 
 - Privacy rules (RLS) that run once per row are caught: the template's `schema-rules` test flags a bare `auth.uid()` or a function given a column in a policy, the template's own policies use `(select auth.uid())`, and `skills/review/references/rls-speed.mjs` lists per-row policies and the Supabase performance advisor's findings for a live project. new-app runs it after verify, and the speed guide shows the `col in (select allowed_ids())` pattern and how to prove access did not change.
