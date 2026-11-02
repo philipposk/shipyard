@@ -72,7 +72,7 @@ Whatever way they chose, the result is ONE look with a light and a dark version,
 
 ## More looks (only when asked)
 
-Only if the student asks for switchable looks. Every extra look is a **pack**: light AND dark, never one mode alone.
+Only if the student asks for switchable looks. Every extra look is a **pack**: light AND dark, never one mode alone. If they want ready looks or to compare several side by side, use the `look-packs` skill instead.
 1. Copy the templates from `templates/theme-packs/` (see its README): registry `src/lib/theme-packs.ts` with entries `{ id, label, preview, tokens: { light, dark } }`, the current default first; `ThemePackPicker.tsx` in **Settings > Appearance**; `tests/theme-packs.test.mjs`.
 2. Write the packs as JSON too and run `node "${CLAUDE_PLUGIN_ROOT}/scripts/theme-packs.mjs" check packs.json --default <id>`. It fails on a missing mode, a forced mode or low contrast. Generate CSS and the pre-paint script with `css` and `boot`.
 3. A pack never forces light or dark. The Light / Dark / Auto toggle keeps working inside every pack; switching pack keeps the mode.

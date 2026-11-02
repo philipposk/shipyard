@@ -1,6 +1,6 @@
 // Theme packs: every look ships as a light + dark pair. Shared by the CLI
 // (scripts/theme-packs.mjs), the tests and the app templates.
-import { contrast, normalizeHex } from "./color.mjs";
+import { contrast, luminance, normalizeHex } from "./color.mjs";
 
 export const MODES = ["light", "dark"];
 export const REQUIRED_TOKENS = ["bg", "surface", "text", "muted", "border", "accent", "onAccent"];
@@ -42,6 +42,27 @@ export function checkPacks(packs, { defaultId } = {}) {
     }
   }
   if (defaultId !== undefined && !packs.some((p) => p?.id === defaultId)) problems.push(`The default pack "${defaultId}" is not in the list.`);
+  return problems;
+}
+
+// Dark versions people called "too dark" or "the boxes don't stand out" sat below these (Catchy, Nov 2026: near-black
+// page, card fill 1.09:1, card border 1.38:1). The versions they liked: page lifted off black, fill 1.25:1, border 2:1.
+const MIN_DARK_PAGE_LUMINANCE = 0.006;
+const MIN_DARK_CARD_FILL = 1.15;
+const MIN_DARK_CARD_BORDER = 1.5;
+
+/** Taste rules on top of checkPacks: dark versions that are too dark, or whose boxes melt into the page. */
+export function checkLookRules(packs) {
+  const problems = [];
+  for (const p of packs ?? []) {
+    const t = p?.tokens?.dark;
+    if (!t || !["bg", "surface", "border"].every((k) => normalizeHex(t[k] ?? ""))) continue;
+    if (luminance(t.bg) < MIN_DARK_PAGE_LUMINANCE) problems.push(`${p.id} (dark): the page ${t.bg} is nearly black. Lift it to a graphite or slate.`);
+    const fill = contrast(t.surface, t.bg);
+    if (fill < MIN_DARK_CARD_FILL) problems.push(`${p.id} (dark): cards barely differ from the page (${fill.toFixed(2)}:1, needs ${MIN_DARK_CARD_FILL}:1). Make "surface" lighter.`);
+    const edge = contrast(t.border, t.bg);
+    if (edge < MIN_DARK_CARD_BORDER) problems.push(`${p.id} (dark): card borders are too faint (${edge.toFixed(2)}:1, needs ${MIN_DARK_CARD_BORDER}:1). Make "border" lighter.`);
+  }
   return problems;
 }
 

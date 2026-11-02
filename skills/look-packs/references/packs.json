@@ -1,0 +1,94 @@
+{
+  "defaultId": "studio",
+  "packs": [
+    {
+      "id": "studio",
+      "label": "Studio",
+      "preview": "/themes/studio.png",
+      "description": "Warm paper with forest green by day, warm graphite with sage at night.",
+      "heading": { "family": "Newsreader", "weight": 500 },
+      "tokens": {
+        "light": {
+          "bg": "#F6F3EE", "surface": "#EFEAE2", "text": "#1C1B19", "muted": "#4E4A43", "border": "#DDD5C8", "accent": "#2F6B4A", "onAccent": "#FFFFFF",
+          "extra": {
+            "--link": "#2F6B4A", "--surface-raised": "#E8E2D8", "--field": "#FBF9F5", "--line-field": "#857C6E",
+            "--selected-bg": "#8BA88833", "--selected-bar": "#5E7F5C", "--ring": "#1C1B19", "--rec": "#D03A2F",
+            "--avatar-bg": "#C9D8C2", "--avatar-fg": "#1C1B19", "--glow": "0 6px 20px -8px #2F6B4A80",
+            "--radius": "18px", "--radius-control": "12px", "--radius-button": "12px"
+          }
+        },
+        "dark": {
+          "bg": "#1C1A17", "surface": "#302C28", "text": "#F3EFE8", "muted": "#CFC9BE", "border": "#524C45", "accent": "#A5CBA3", "onAccent": "#1C1A17",
+          "extra": {
+            "--link": "#B8D8B6", "--surface-raised": "#3D3833", "--field": "#262320", "--line-field": "#8F887C",
+            "--selected-bg": "#A5CBA326", "--selected-bar": "#A5CBA3", "--ring": "#A5CBA3", "--rec": "#FF8A7A",
+            "--avatar-bg": "#A5CBA3", "--avatar-fg": "#1C1A17", "--glow": "0 6px 20px -8px #A5CBA380",
+            "--radius": "18px", "--radius-control": "12px", "--radius-button": "12px"
+          }
+        }
+      }
+    },
+    {
+      "id": "glass",
+      "label": "Glass",
+      "preview": "/themes/glass.png",
+      "description": "Frosted cards on a soft wash: sky, sand and mint by day, slate and teal at night.",
+      "heading": { "family": "same as body", "weight": 680 },
+      "tokens": {
+        "light": {
+          "bg": "#EEF3F6", "surface": "#FBFDFE", "text": "#12202A", "muted": "#3F4E59", "border": "#D0D8DD", "accent": "#0F6E8C", "onAccent": "#FFFFFF",
+          "extra": {
+            "--link": "#0B5C76", "--surface-raised": "#E3EBF0", "--field": "#FFFFFF", "--line-field": "#66757F",
+            "--selected-bg": "rgb(15 110 140 / .12)", "--selected-bar": "#0F6E8C", "--ring": "#0F6E8C", "--rec": "#D03A2F",
+            "--avatar-bg": "#BFE3F0", "--avatar-fg": "#12202A", "--glow": "0 8px 22px -8px rgb(15 110 140 / .5)",
+            "--card-glass": "rgb(255 255 255 / .62)", "--blur": "blur(20px) saturate(1.6)",
+            "--wash": "radial-gradient(62% 56% at 6% 0%, #DCEEF7 0%, #DCEEF700 78%), radial-gradient(52% 50% at 100% 6%, #F7EFE0 0%, #F7EFE000 78%), radial-gradient(64% 56% at 60% 104%, #D9F2EA 0%, #D9F2EA00 78%)",
+            "--radius": "20px", "--radius-control": "12px", "--radius-button": "999px"
+          }
+        },
+        "dark": {
+          "bg": "#141A20", "surface": "#2A323C", "text": "#EEF2F6", "muted": "#C2CBD4", "border": "#3A4047", "accent": "#6FC3DF", "onAccent": "#0E1418",
+          "extra": {
+            "--link": "#8FD3E8", "--surface-raised": "#36404B", "--field": "#141A20", "--line-field": "#8A96A3",
+            "--selected-bg": "rgb(111 195 223 / .18)", "--selected-bar": "#6FC3DF", "--ring": "#8FD3E8", "--rec": "#FF8A7A",
+            "--avatar-bg": "#6FC3DF", "--avatar-fg": "#0E1418", "--glow": "0 8px 24px -8px rgb(111 195 223 / .5)",
+            "--card-glass": "rgb(58 68 78 / .5)", "--blur": "blur(20px) saturate(1.5)",
+            "--wash": "radial-gradient(62% 56% at 6% 0%, #263848 0%, #26384800 78%), radial-gradient(52% 50% at 100% 6%, #38342C 0%, #38342C00 78%), radial-gradient(64% 56% at 60% 104%, #183E3C 0%, #183E3C00 78%)",
+            "--radius": "20px", "--radius-control": "12px", "--radius-button": "999px"
+          }
+        }
+      }
+    },
+    {
+      "id": "sunny",
+      "label": "Sunny",
+      "preview": "/themes/sunny.png",
+      "description": "The happy one: a butter page, white cards and sunshine-yellow buttons by day, warm dark with yellow at night.",
+      "heading": { "family": "M PLUS Rounded 1c", "weight": 800 },
+      "tokens": {
+        "light": {
+          "bg": "#FFFBF0", "surface": "#FFFFFF", "text": "#1F1B10", "muted": "#4F4833", "border": "#F0E4C8", "accent": "#FFC933", "onAccent": "#1F1B10",
+          "extra": {
+            "--link": "#0A6C86", "--surface-raised": "#FFEFC8", "--field": "#FFFFFF", "--line-field": "#8A7F60",
+            "--selected-bg": "#FFE58A80", "--selected-bar": "#C98A00", "--ring": "#0A6C86", "--rec": "#E5344A",
+            "--avatar-bg": "#7FE0C3", "--avatar-fg": "#1F1B10", "--glow": "0 8px 20px -8px #FFB80099",
+            "--assistant-bg": "#0B7A7A", "--assistant-fg": "#FFFFFF",
+            "--wash": "radial-gradient(60% 50% at 0% 0%, #FFF0B8 0%, #FFF0B800 100%), radial-gradient(50% 45% at 100% 0%, #FFE0EC 0%, #FFE0EC00 100%), radial-gradient(60% 50% at 70% 105%, #D8F5E6 0%, #D8F5E600 100%)",
+            "--radius": "22px", "--radius-control": "14px", "--radius-button": "999px"
+          }
+        },
+        "dark": {
+          "bg": "#221E14", "surface": "#38321F", "text": "#FFF6DC", "muted": "#D9CFAF", "border": "#5A5132", "accent": "#FFC933", "onAccent": "#221E14",
+          "extra": {
+            "--link": "#7FD9CF", "--surface-raised": "#443C26", "--field": "#2E2919", "--line-field": "#9A8F6A",
+            "--selected-bg": "#FFC93326", "--selected-bar": "#FFD95A", "--ring": "#FFD95A", "--rec": "#FF8A7A",
+            "--avatar-bg": "#7FE0C3", "--avatar-fg": "#1F1B10", "--glow": "0 8px 20px -8px #FFB80066",
+            "--assistant-bg": "#7FD9CF", "--assistant-fg": "#1F1B10",
+            "--wash": "radial-gradient(60% 50% at 0% 0%, #FFC9331A 0%, #FFC93300 100%), radial-gradient(60% 50% at 70% 105%, #7FE0C314 0%, #7FE0C300 100%)",
+            "--radius": "22px", "--radius-control": "14px", "--radius-button": "999px"
+          }
+        }
+      }
+    }
+  ]
+}

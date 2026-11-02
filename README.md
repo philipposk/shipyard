@@ -70,7 +70,7 @@ It finds Codex and Cursor (or use `--agent codex`, `--agent cursor` or `--agent 
 |---|---|---|---|---|
 | setup | `/shipyard:setup` | `$shipyard-setup` (or the `/skills` list) | `/shipyard-setup` | "Shipyard setup" |
 | settings page | `/shipyard:setup settings` | `$shipyard-setup settings` | `/shipyard-setup settings` | "Shipyard settings" |
-| new-app, design, launch, video, ops, review, new-skill, email, apis | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
+| new-app, design, look-packs, launch, video, ops, review, new-skill, email, apis | `/shipyard:<name>` | `$shipyard-<name>` | `/shipyard-<name>` | "Shipyard <name>" |
 
 **The guard check.** Once per session, before anything touches keys, the agent runs a short check (`guard-check.mjs`) that proves the key guard is on: a test file with no key in it must be blocked, and the block message carries a code the script checks. If it says OFF, do the trust step (Codex) or reload the window (Cursor), then run `node "$HOME/.local/share/shipyard/scripts/install-agents.mjs" --check` in a terminal.
 
@@ -126,6 +126,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - `new-app`: asks a few questions, writes a plan, builds the app, creates the database, puts the code on GitHub, publishes it and runs checks (pages, sign-in, data isolation between users, phone layout, leaked keys).
 - A starter app with sign-in, light and dark mode, a phone-first, sidebar or top-links layout, installable as a phone shortcut (PWA), and a test gate that GitHub runs on every pull request.
 - `design`: choose how your app looks. Pick a site or screenshots you like, a free design file, three directions drafted for your own app (with real screenshots of it), or one of 8 ready-made looks. A look sets colours, fonts, menu style (bottom tabs, left sidebar or top links), homepage style, card and button feel, text size and spacing, in light and dark, and is checked for readability. Run `/shipyard:design`.
+- `look-packs`: give any app switchable looks people like. Three ready packs (Studio, Glass, Sunny), each light and dark, or new ones in the same spirit, compared side by side and then built in.
 - `launch`: go from a free test address to a real product. Your own web address and real sign-up emails (people confirm their email), privacy and terms pages written from the services your app uses (a draft: have it checked), a country checklist from official sources, payments with Stripe (test first, then live), an email list with one-click unsubscribe, phone and desktop app wrappers, and a go-live check. Run `/shipyard:launch`.
 - `video`: make a product video of your app, its screens rebuilt as code or the real app recorded from practice pages with made-up data: the script is approved before any voice cost, narration is timed to the words in any language, and you get light and dark, wide and phone cuts. Web copy under 10 MB goes into your app, and a guide helps put it on YouTube. Needs ffmpeg (optional). Takes hours and uses a lot of your Claude allowance, so do it after launch. Run `/shipyard:video`.
 - `ops`: keep a live app healthy. An error log and admin logs page with email alerts, health checks every 6 hours that open one GitHub issue when something is wrong, code review on every pull request (CodeRabbit, or `/code-review` for free), auto-merge for small safe changes (anything touching sign-in, data rules, payments or workflows waits for you), regular project reviews, backups kept on your own computer, and a clear loop for how problems get fixed. Run `/shipyard:ops`.
@@ -149,6 +150,11 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Every app gets a leaked-key scan before each push and in the pull request checks.
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
+
+## What changed in 0.8.9
+
+- New `look-packs` skill: give any app switchable looks. Three ready packs (Studio, Glass, Sunny), each with a light and a dark version, or new ones in the same spirit, compared side by side before anything is built. It carries the lessons from making them on a real app.
+- `theme-packs.mjs rules` fails a dark version that is nearly black or whose cards melt into the page.
 
 ## What changed in 0.8.8
 
