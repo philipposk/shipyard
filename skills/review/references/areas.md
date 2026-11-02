@@ -4,7 +4,7 @@ An area is one part of the app that one reviewer reads closely: sign-in, the dat
 
 ## Start from the example
 
-`${CLAUDE_PLUGIN_ROOT}/skills/review/examples/nextjs-supabase-areas.json` lists 17 areas for a Next.js and Supabase app with AI features, written for the Shipyard template's folders (`src/app`, `src/lib`, `src/proxy.ts`, `supabase/migrations`). Copy it to the scratch folder and edit it for this app:
+`${CLAUDE_PLUGIN_ROOT}/skills/review/examples/nextjs-supabase-areas.json` lists 18 areas for a Next.js and Supabase app with AI features, written for the Shipyard template's folders (`src/app`, `src/lib`, `src/proxy.ts`, `supabase/migrations`). Copy it to the scratch folder and edit it for this app:
 
 - Drop areas the app does not have (payments, live audio, more than one language). Leaving them in costs usage and finds nothing.
 - Replace folder names with the real files. Look at the tree first (`git ls-files | head -200`, the `src/app/api` folder, the migrations). A scope that names real files gets a much better review.

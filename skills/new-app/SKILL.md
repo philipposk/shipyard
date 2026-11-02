@@ -56,7 +56,7 @@ Before the first deploy, always write `src/lib/home-content.ts` for this app: th
 ## 5. Database
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/provision-supabase.mjs" <appDir>`
-It creates the Supabase project, applies the migrations and writes `.env.local`. If it says two projects are already active (free limit), explain the two choices in plain words: pause a project the student does not use (dashboard link in the message), or put this app in an existing project with `--shared <project id>`. Shared is safe for the other apps: the app gets its own space (a separate schema) and nothing of theirs is touched. Before any shared run, read `references/shared-project.md` and do the dry run first. If the apps sit on subdomains of one domain and should share one sign-in, also read `references/shared-sign-in.md`. Then run `npm run build` to check the app builds.
+It creates the Supabase project, applies the migrations and writes `.env.local`. If it says two projects are already active (free limit), explain the two choices in plain words: pause a project the student does not use (dashboard link in the message), or put this app in an existing project with `--shared <project id>`. Shared is safe for the other apps: the app gets its own space (a separate schema) and nothing of theirs is touched. Before any shared run, read `references/shared-project.md` and do the dry run first. If the apps sit on subdomains of one domain and should share one sign-in, also read `references/shared-sign-in.md`. The template's `vercel.json` runs the server next to a database in eu-central-1 (`fra1`); if the database is elsewhere, set `regions` to the Vercel region nearest it (for example us-east-1 → `iad1`). Then run `npm run build` to check the app builds.
 
 ## 6. Save to GitHub
 
@@ -70,7 +70,7 @@ Ask: "OK to save this first version to GitHub?" If yes: `git add -A`, check noth
 ## 8. Verify
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs" <appDir>`
-Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not say the app is live until the checks pass on the real address. After any fix, run verify again and read the fixes once more before launch: a clean run from before the fix proves nothing about the fix.
+Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Then run `SUPABASE_ACCESS_TOKEN=... node "${CLAUDE_PLUGIN_ROOT}/skills/review/references/rls-speed.mjs" <project-ref>` and fix every per-row policy it lists (see `skills/review/references/speed.md`). Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not say the app is live until the checks pass on the real address. After any fix, run verify again and read the fixes once more before launch: a clean run from before the fix proves nothing about the fix.
 
 ## 9. Owner account
 

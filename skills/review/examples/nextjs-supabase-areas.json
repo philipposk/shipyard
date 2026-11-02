@@ -25,6 +25,11 @@
   "scope": "AI and model calls: every file that calls an AI provider (grep for openai, anthropic, openrouter, gemini, groq, fetch to /v1/), prompt building, JSON parsing of model output, fallback chains. Check that the client can never pick the model on the app's key (allowlist the model ids), caps per person and per day, timeouts shorter than the hosting limit, retries that multiply cost, whole records re-sent on every call, cache staleness, model ids that no longer exist, errors that silently drop the result, prompt injection from user documents into actions."
  },
  {
+  "key": "server-time",
+  "strong": false,
+  "scope": "Hosting cost: everything that wakes the server without a person asking. Timers in the browser (setInterval, repeating setTimeout: is it paused while the tab is hidden, how often, can two loops run at once), scheduled jobs (vercel.json crons, cron.schedule, net.http_ calls: do they call the app when there is nothing to do), MCP GET handlers (a stateless server must answer 405 with a token, never 200 with a stream that closes at once), cookies() or headers() in the root or public layouts that stop public pages being cached, sitemap and robots that read cookies, prefetch on links to pages that always run the server. See 'Hosting costs' in new-app/references/build-rules.md."
+ },
+ {
   "key": "api-keys-mcp",
   "strong": true,
   "scope": "SECURITY: personal API tokens, bring-your-own-key storage, MCP server routes (src/app/api/mcp or similar), any proxy that forwards to an LLM, speech-to-text or text-to-speech provider. Check token hashing and timing-safe compare, scopes, rate limits charged per tools/call (not per HTTP request), batch size caps on JSON-RPC batches, an open proxy that gives anyone free model calls, encryption IV reuse, keys leaking to the browser or logs, MCP tools that reach other users' data, deprecated auth (?token=) that should keep working with a log line."

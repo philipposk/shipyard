@@ -130,6 +130,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - `video`: make a product video of your app, its screens rebuilt as code or the real app recorded from practice pages with made-up data: the script is approved before any voice cost, narration is timed to the words in any language, and you get light and dark, wide and phone cuts. Web copy under 10 MB goes into your app, and a guide helps put it on YouTube. Needs ffmpeg (optional). Takes hours and uses a lot of your Claude allowance, so do it after launch. Run `/shipyard:video`.
 - `ops`: keep a live app healthy. An error log and admin logs page with email alerts, health checks every 6 hours that open one GitHub issue when something is wrong, code review on every pull request (CodeRabbit, or `/code-review` for free), auto-merge for small safe changes (anything touching sign-in, data rules, payments or workflows waits for you), regular project reviews, backups kept on your own computer, and a clear loop for how problems get fixed. Run `/shipyard:ops`.
 - `review`: a full review, fix and ship of a whole app, for an app that already works. One helper agent per area (sign-in, data rules, AI costs, uploads and more), a skeptic that tries to disprove every finding, fixes in waves that never touch the same file, a dead-code sweep, a second review of the fixes, a local production check, a live microphone test, and the result split into pull requests of 150 files or fewer. Works on apps Shipyard did not make too. Uses a large share of your plan. Run `/shipyard:review`.
+- `ux-redesign`: rethink how your app works on a phone when it feels cluttered: an audit from the code, workflows with step counts, patterns from similar apps, phone mockups with screenshots, then small pull requests behind a "New layout (beta)" switch. Run `/shipyard:ux-redesign`.
 - `new-skill`: build your own skill or plugin for coding agents, or add one to Shipyard. It asks what you want, tells you when an idea is weak and offers a better one, looks at your code and agent chats (with your yes) to recommend building on Shipyard or from scratch, then writes the skill, a test, plugin files for Claude Code and Cursor, and a publishing checklist (skills.sh, ClawHub, Hermes, the Cursor and Claude Code marketplaces). Run `/shipyard:new-skill`.
 - Desktop that uses the screen: phone-first apps show a left rail instead of the tab bar on computers, with pages at full content width, and tab switches show the next page's outline at once.
 - Service keys per app: `scripts/app-keys.mjs <app> GROQ_API_KEY ...` gives an app the AI, speech-to-text (Groq, Deepgram) or other keys from your keys file without showing them. The new-app skill also builds AI features on the server where they help, suggests the next best features, and can add an API, webhooks and an MCP server so other tools and AI assistants can use your app.
@@ -149,11 +150,15 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
-## What changed in 0.8.6
+## What changed in 0.8.7
 
 - `video-render.mjs --youtube` renders a YouTube master: the loudness YouTube expects and 1440p, which YouTube plays back with a better codec, so the app's text stays sharp. A render that runs out of memory is tried once more by itself, one frame at a time.
 - The YouTube guide covers drafts, the AI-use question (an AI voice counts), the low quality YouTube shows until its HD processing finishes, and automatic subtitles that appear only later.
 - Voice by ear: cut one long pause out of a liked take instead of re-voicing it (dropping a comma made Greek sound foreign), never paste a word in from another take, and judge a line's start with the sound before it. The music stays down between voices less than 0.7 s apart. Voice and music tips from real videos: which ElevenLabs voices were picked over a slow-sounding OpenAI style, and where Mixkit keeps its tracks.
+
+## What changed in 0.8.6
+
+- Privacy rules (RLS) that run once per row are caught: the template's `schema-rules` test flags a bare `auth.uid()` or a function given a column in a policy, the template's own policies use `(select auth.uid())`, and `skills/review/references/rls-speed.mjs` lists per-row policies and the Supabase performance advisor's findings for a live project. new-app runs it after verify, and the speed guide shows the `col in (select allowed_ids())` pattern and how to prove access did not change.
 
 ## What changed in 0.8.5
 

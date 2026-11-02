@@ -1,6 +1,6 @@
 ---
 name: launch
-description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"publish to the app stores\", \"Capacitor\", \"TestFlight\", \"store screenshots\", \"desktop app\", or \"/shipyard:launch\". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide and do the full standard instead of the launch scripts."
+description: "Take an app from a free test address to a real product: own domain, real sign-up emails, privacy and terms pages, payments, an email list, phone and desktop apps, and a go-live check. Use for \"launch\", \"go live\", \"custom domain\", \"real emails\", \"privacy policy\", \"terms\", \"payments\", \"Stripe\", \"subscriptions\", \"newsletter\", \"app store\", \"play store\", \"publish to the app stores\", \"Capacitor\", \"TestFlight\", \"store screenshots\", \"desktop app\", \"social media\", \"Instagram\", \"carousel\", \"post on X\", or \"/shipyard:launch\". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide and do the full standard instead of the launch scripts."
 ---
 
 # Shipyard launch
@@ -44,7 +44,8 @@ This step is only for a Shipyard app (see First). Use the current folder if it h
 6. **A phone or desktop app** -> `references/stores.md` (all the way to the App Store and Google Play: `stores-audit.md`, `stores-build.md`, `stores-listing.md`, `stores-gotchas.md`)
 7. **Write and reply from my own address in Gmail** (after 1) -> `references/gmail-send-as.md`
 8. **Check if I am ready** -> run the go-live check below, then `references/seo-performance.md` (search setup), `references/search-console.md` (Google verification and sitemaps) and `references/image-rights.md` (image sources audit)
-9. **Receive mail at my domain, ImprovMX, DMARC, owner emails** -> `/shipyard:email`
+9. **Social media profiles and posts** (X, Instagram, Facebook, LinkedIn, YouTube, Reddit) -> `references/social-media.md`
+10. **Receive mail at my domain, ImprovMX, DMARC, owner emails** -> `/shipyard:email`
 
 For options 2 and 4 also read `references/country.md` (rules differ by country: tax, company registration, consumer rights).
 

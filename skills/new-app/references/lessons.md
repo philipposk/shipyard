@@ -12,6 +12,7 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - ★ A "finished setup" cookie (onboarding, age check, consent) is signed with a server secret and bound to the user id (`<userId>.<HMAC>`, `src/lib/auth/onboarded-cookie.mjs`). A plain `1` or bare user id can be typed into the browser to skip setup. API routes enforce the same gate (403 `onboarding_required`), not only pages, or a script skips the setup page.
 - A column people may write but only under a rule (an `onboarding_complete` flag that needs a name first, counters, plan, Stripe ids) needs the rule on the server: the route sets it only after checking the required fields and never lets the client set it back, and a `before update` trigger (or no grant at all) stops a direct write with the browser key. Write counters and billing columns with the server key, filtered to the person's id.
 - ★ Never put a wildcard host (`https://<app>-*.vercel.app/**`) in Supabase's redirect list: anyone can register a matching address and receive sign-in tokens.
+- ★ Policies run once per row: write `(select auth.uid())`, never a bare `auth.uid()`, and check membership as `col in (select private.allowed_ids())`, never `has_access(col)`. Index the columns policies compare. The `schema-rules` test flags it; `skills/review/references/rls-speed.mjs` checks a live project.
 - Views ignore RLS unless `with (security_invoker = true)`; a policy without `to authenticated` applies to visitors who are not signed in; security definer functions must be revoked from public, anon and authenticated. The app's `schema-rules` test checks all three.
 - A key deleted in the next commit is still in the history that gets pushed. The pre-push hook and CI scan every pushed commit, not just the files on disk.
 - Account-level keys (Supabase access token) never go into an app's hosting settings.
@@ -33,6 +34,8 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Vercel Hobby allows 100 deploys a day: skip deploys for data-only commits.
 - Free Supabase projects pause after a week of no use; wake it in the dashboard before testing.
 - Vercel Hobby forbids commercial use, including taking payments.
+- ★ Vercel Hobby has 4 hours of server CPU a month across all your apps, and going over stops all of them for up to 30 days. One account reached 10 hours in a month: an MCP client reconnecting nonstop (169,000 calls), a job calling an app every minute with nothing to do, open tabs refreshing every 4 seconds, and crawlers. Rules are in `build-rules.md`, "Hosting costs".
+- Crawlers can cost more than visitors. Search crawlers (Googlebot, Bingbot, OAI-SearchBot, PerplexityBot) and link previews (facebookexternalhit) bring people in, so keep them. AI training and SEO crawlers (Amazonbot, KeenableBot, MJ12bot, ElevenlabsCrawler, GPTBot, meta-externalagent, Bytespider, CCBot, AhrefsBot, SemrushBot, DotBot, PetalBot) bring almost nobody. Other AI companies run both kinds too: read their crawler pages for the exact names. Deny them with a Vercel firewall rule on `user_agent`: it stops them before the server wakes, needs no deploy, and is free. `robots.txt` is only a request.
 - Changing a domain: payment webhooks do not follow redirects. Register the new endpoint first and use 308 redirects.
 
 ## Building

@@ -40,8 +40,8 @@ test('every reference, workflow and script the skill names exists', () => {
 
 test('the example areas are generic and complete', () => {
   const areas = JSON.parse(readFileSync(path.join(SKILL_DIR, 'examples', 'nextjs-supabase-areas.json'), 'utf8'));
-  assert.equal(areas.length, 17);
-  assert.equal(new Set(areas.map((a) => a.key)).size, 17);
+  assert.equal(areas.length, 18);
+  assert.equal(new Set(areas.map((a) => a.key)).size, 18);
   for (const a of areas) {
     assert.match(a.key, /^[a-z0-9]+(-[a-z0-9]+)*$/);
     assert.equal(typeof a.strong, 'boolean', a.key);

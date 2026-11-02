@@ -8,7 +8,7 @@ const iso = (...names) => names.map((table) => ({ table, ownerColumn: "user_id" 
 const GOOD_TABLE = `
 create table if not exists public.notes (id uuid primary key, user_id uuid not null);
 alter table public.notes enable row level security;
-create policy "notes select own" on public.notes for select to authenticated using (user_id = auth.uid());
+create policy "notes select own" on public.notes for select to authenticated using (user_id = (select auth.uid()));
 revoke all on public.notes from anon;
 grant select on public.notes to authenticated;
 `;
@@ -107,7 +107,7 @@ for (const policy of [
   'create policy "open" on public.notes for select to public using (true);',
   'create policy "open" on public.notes for select to anon using (true);',
   'create policy "open" on public.notes for select to authenticated, anon using (true);',
-  "create policy open on public.notes as permissive for select using (user_id = auth.uid());",
+  "create policy open on public.notes as permissive for select using (user_id = (select auth.uid()));",
   'create policy "to authenticated" on public.notes for select using (true);',
 ]) {
   test(`policy flagged: ${policy}`, () => {
@@ -117,7 +117,7 @@ for (const policy of [
 
 test("policies for authenticated and service_role are fine, including insert with check and restrictive ones", () => {
   const sql = `${GOOD_TABLE}
-    create policy "ins" on public.notes for insert to authenticated with check (user_id = auth.uid());
+    create policy "ins" on public.notes for insert to authenticated with check (user_id = (select auth.uid()));
     create policy "svc" on public.notes as permissive for all to service_role using (true) with check (true);
     create policy "r" on public.notes as restrictive for update to authenticated using (true);`;
   assert.deepEqual(findProblems(sql, iso("notes")), []);
@@ -162,4 +162,23 @@ test("ordinary (security invoker) functions need nothing", () => {
 test("statements() ignores semicolons inside strings and $$ bodies", () => {
   const sts = statements("select 'a;b'; create function f() returns int as $body$ begin; return 1; end $body$ language plpgsql; select 2");
   assert.equal(sts.length, 3);
+});
+
+// ---- (5) policy conditions that run once per row ------------------------------------
+
+test("a bare auth.uid() in a policy is flagged (it runs once per row)", () => {
+  const sql = GOOD_TABLE.replace("(select auth.uid())", "auth.uid()");
+  assert.match(findProblems(sql, iso("notes")).join(), /\(select auth\.uid\(\)\)/);
+});
+
+test("a policy calling a function with a column is flagged", () => {
+  const sql = `${GOOD_TABLE}\ncreate policy "notes shared" on public.notes for select to authenticated using (private.has_access(user_id));`;
+  assert.match(findProblems(sql, iso("notes")).join(), /has_access\(user_id\) once per row/);
+});
+
+test("col in (select allowed_ids()) and exists (select ...) pass", () => {
+  const sql = `${GOOD_TABLE}
+create policy "notes shared" on public.notes for select to authenticated using (user_id in (select private.allowed_ids()));
+create policy "notes team" on public.notes for select to authenticated using (exists (select 1 from public.notes n where n.user_id = (select auth.uid())));`;
+  assert.deepEqual(findProblems(sql, iso("notes")), []);
 });
