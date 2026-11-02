@@ -11,6 +11,7 @@ import { runCli, isMain, ProvisionError, resolveAppDir, readAppConfig } from './
 import * as log from './lib/log.mjs';
 import { BrowserError, launchChromium, loadPlaywright } from './design/capture/browser.mjs';
 import { headingIsSerif, iconPage, monogramSvg, monogramText, ogPage, readAppLook, readBrand } from './design/capture/icons.mjs';
+import { readLogoPair } from './design-logo.mjs';
 
 const HELP = `
 Draw your app's icons and share image from its look and name.
@@ -24,6 +25,8 @@ Writes into <app-folder>/public/:
   og-image.png             the 1200 by 630 picture shown when the app's link is shared
 
 If you put your own icon at public/brand-approved/icon.svg, that is used instead of the letter.
+If public/brand-approved has an approved logo-light.svg and logo-dark.svg, only the share image is drawn:
+design-logo.mjs makes the icons from those.
 Nothing else in the app changes. Your app needs npm install to have been run first (it brings the browser tool).
 
   --json    print the result as JSON
@@ -93,14 +96,17 @@ export async function makeIcons({ appDir, onProgress = () => {} }) {
   const { colors } = look;
   const publicDir = path.join(appDir, 'public');
   await mkdir(publicDir, { recursive: true });
+  const logoPair = await readLogoPair(appDir);
 
-  // 1. the SVG (always written; it needs no browser)
+  // 1. the SVG (always written unless a logo pair owns it; it needs no browser)
   const svg = approved ?? monogramSvg({ name, accent: colors.accent, accentContrast: colors.accentContrast });
   const files = [];
-  const svgFile = path.join(publicDir, 'icon.svg');
-  const before = await readIfExists(svgFile);
-  if (before !== svg) await writeAtomic(svgFile, svg);
-  files.push({ file: 'public/icon.svg', status: before === null ? 'created' : before === svg ? 'unchanged' : 'changed' });
+  if (!logoPair) {
+    const svgFile = path.join(publicDir, 'icon.svg');
+    const before = await readIfExists(svgFile);
+    if (before !== svg) await writeAtomic(svgFile, svg);
+    files.push({ file: 'public/icon.svg', status: before === null ? 'created' : before === svg ? 'unchanged' : 'changed' });
+  }
 
   // 2. the PNGs
   const playwright = await loadPlaywright(appDir);
@@ -122,7 +128,7 @@ export async function makeIcons({ appDir, onProgress = () => {} }) {
     },
   ];
   try {
-    for (const job of jobs) {
+    for (const job of logoPair ? jobs.filter((j) => j.file === 'og-image.png') : jobs) {
       onProgress(`Drawing ${job.file}...`);
       const context = await browser.newContext({ viewport: { width: job.width, height: job.height }, deviceScaleFactor: 1 });
       try {
@@ -140,7 +146,7 @@ export async function makeIcons({ appDir, onProgress = () => {} }) {
   } finally {
     await browser.close().catch(() => {});
   }
-  return { ok: true, source: approved ? 'brand-approved' : 'monogram', text: approved ? null : monogramText(name), name, files };
+  return { ok: true, source: logoPair ? 'logo-pair' : approved ? 'brand-approved' : 'monogram', text: approved || logoPair ? null : monogramText(name), name, files };
 }
 
 export async function main(args) {
@@ -155,7 +161,8 @@ export async function main(args) {
     }
     throw err;
   }
-  log.ok(r.source === 'brand-approved' ? 'Icons drawn from your approved icon (public/brand-approved/icon.svg).' : `Icons drawn: the letters "${r.text}" in your accent colour.`);
+  if (r.source === 'logo-pair') log.ok('Share image drawn. The app has an approved logo, so its icons were left alone (design-logo.mjs makes them).');
+  else log.ok(r.source === 'brand-approved' ? 'Icons drawn from your approved icon (public/brand-approved/icon.svg).' : `Icons drawn: the letters "${r.text}" in your accent colour.`);
   for (const f of r.files) log.info(`${f.status}: ${f.file}`);
   return r;
 }
