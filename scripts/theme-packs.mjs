@@ -1,16 +1,17 @@
 #!/usr/bin/env node
 // Theme packs CLI.
 //   check <packs.json> [--default <id>]   fail on a missing light/dark version, a forced mode or low contrast
+//   rules <packs.json>                    fail on a dark version that is too dark or whose cards melt into the page
 //   css   <packs.json> --default <id>     print the CSS for every pack
 //   boot  <packs.json> --default <id>     print the no-flash pre-paint script
 //   mock  <directions.json> --app <name> [--out file.html]   write the simple comparison page
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { bootScript, checkPacks, mockPage, packsCss } from "./design/packs.mjs";
+import { bootScript, checkLookRules, checkPacks, mockPage, packsCss } from "./design/packs.mjs";
 
 const [cmd, file, ...rest] = process.argv.slice(2);
 const opt = (n) => { const i = rest.indexOf(`--${n}`); return i >= 0 ? rest[i + 1] : undefined; };
-const usage = () => { console.error("usage: theme-packs.mjs check|css|boot|mock <file.json> [--default id] [--app name] [--out file]"); process.exit(2); };
+const usage = () => { console.error("usage: theme-packs.mjs check|rules|css|boot|mock <file.json> [--default id] [--app name] [--out file]"); process.exit(2); };
 if (!cmd || !file) usage();
 let data;
 try { data = JSON.parse(readFileSync(resolve(file), "utf8")); } catch (e) { console.error(`Could not read ${file}: ${e.message}`); process.exit(2); }
@@ -21,6 +22,10 @@ if (cmd === "check") {
   const problems = checkPacks(packs, { defaultId });
   if (problems.length) { for (const p of problems) console.error(`- ${p}`); process.exit(1); }
   console.log(`OK: ${packs.length} pack(s), each with light and dark, all text at AA contrast.`);
+} else if (cmd === "rules") {
+  const problems = checkLookRules(packs);
+  if (problems.length) { for (const p of problems) console.error(`- ${p}`); process.exit(1); }
+  console.log(`OK: ${packs.length} pack(s), every dark version lifted off black with cards that stand out.`);
 } else if (cmd === "css" || cmd === "boot") {
   const problems = checkPacks(packs, { defaultId });
   if (problems.length || !defaultId) { for (const p of problems.length ? problems : ["--default is required."]) console.error(`- ${p}`); process.exit(1); }
