@@ -150,6 +150,12 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.8
+
+- `design` can draw a real logo: a light and a dark version in one `icon.svg`, so the browser tab follows the device setting. The new `references/logos.md` holds the method, including what went wrong on real logos and what follows the device once an app is installed.
+- `design-logo.mjs` makes every icon from an approved pair (tab, phone, maskable, iPhone and one-colour icons, and a dark twin of the manifest) and draws a review sheet to show first. It also works on sites Shipyard did not make, and `design-icons.mjs` leaves those icons alone.
+- Nothing in a new app changes unless someone asks for a logo.
+
 ## What changed in 0.8.7
 
 - `video-render.mjs --youtube` renders a YouTube master: the loudness YouTube expects and 1440p, which YouTube plays back with a better codec, so the app's text stays sharp. A render that runs out of memory is tried once more by itself, one frame at a time.

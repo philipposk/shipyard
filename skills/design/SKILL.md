@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Choose or change how an app looks: colours, fonts, layout, homepage style, dark mode, icons. Use for \"design\", \"how my app looks\", \"change the look\", \"change the colours\", \"change the fonts\", \"copy this website's style\", \"make it look like\", \"3 directions\", \"/shipyard:design\", or the sentences \"Shipyard: use the <name> look\" and \"Shipyard: use direction <A|B|C> for <app>\". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide and do the full standard, including a proposed look."
+description: "Choose or change how an app looks: colours, fonts, layout, homepage style, dark mode, icons, logo. Use for \"logo\", \"app icon\", \"favicon\", \"design\", \"how my app looks\", \"change the look\", \"change the colours\", \"change the fonts\", \"copy this website's style\", \"make it look like\", \"3 directions\", \"/shipyard:design\", or the sentences \"Shipyard: use the <name> look\" and \"Shipyard: use direction <A|B|C> for <app>\". If the folder has no .shipyard-app.json, do not stop: follow the new-app upgrade guide and do the full standard, including a proposed look."
 ---
 
 # Shipyard design
@@ -109,6 +109,10 @@ A look carries its own menu style, and applying it sets that. Only if they want 
 2. If the app runs locally or is deployed, run the browser check and look at the light and dark phone screenshots yourself. Fix what looks off (hard-to-read text, cramped spacing, empty screens, a homepage that still says generic words) and say what you changed. Homepage words live in `src/lib/home-content.ts`; edit them for the app's real purpose.
 3. If icons say "later", run `node "${CLAUDE_PLUGIN_ROOT}/scripts/design-icons.mjs" <appDir>` after `npm install`.
 
+## Logo (the app icon and the browser tab)
+
+When they want a real logo, not the letter `design-icons.mjs` draws, read `references/logos.md`. You draw it by hand in SVG, as a light and a dark version, and show them `design-logo.mjs --sheet`. Only after they say yes do you run `node "${CLAUDE_PLUGIN_ROOT}/scripts/design-logo.mjs" <appDir>` and put the tags it prints in the page head. Say up front that the browser tab follows the device, and an installed app mostly keeps the icon it was installed with.
+
 ## 8. Use it again?
 
 Ask: "Use this look for your next apps too?" If yes, apply again with `--set-default`.
@@ -121,7 +125,7 @@ For depth and motion (shadows, transitions, glass, grain) read `references/depth
 
 ## Reference files
 
-`references/presets.md` (the 8 looks), `references/tokens.md` (the look file, and how to read a look from images), `references/directions.md` (drafting 3 directions), `references/propose.md` (proposing with mood images and a simple mock), `references/depth-motion.md`, `references/sound.md`, `references/anti-slop.md`, `references/polish.md`. Templates: `templates/theme-packs/`.
+`references/logos.md` (drawing a logo, light and dark), `references/presets.md` (the 8 looks), `references/tokens.md` (the look file, and how to read a look from images), `references/directions.md` (drafting 3 directions), `references/propose.md` (proposing with mood images and a simple mock), `references/depth-motion.md`, `references/sound.md`, `references/anti-slop.md`, `references/polish.md`. Templates: `templates/theme-packs/`.
 
 ## Handy facts
 
