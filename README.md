@@ -151,6 +151,11 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 - Nothing is sent anywhere except to the services you sign up for (GitHub, Vercel, Supabase and any AI or email provider you add), plus the once-a-day update check, which asks GitHub's public API for the latest Shipyard version and sends nothing about you (turn it off with `SHIPYARD_NO_UPDATE_CHECK=1`). Shipyard has no telemetry.
 - Shipyard never needs Claude Code's bypass-permissions mode.
 
+## What changed in 0.8.10
+
+- Apps that share one sign-in across subdomains and keep data on the device (offline copies, queued writes) get the rules from a real data-loss bug. Signing in as someone else in one app switched the session under an open tab of another, and that tab's sync wiped its offline copy. `shared-sign-in.md` now covers the fix: check the account before each sync, send requests as the checked account, heal missing rows, and reset one app without "Clear site data". It also covers two accounts for one person. new-app's lessons carry the short version.
+- `review` has a new `offline-sync` area and lessons for reviewing sync code. They also say to check another agent's diagnosis with a real request before acting on it.
+
 ## What changed in 0.8.9
 
 - New `look-packs` skill: give any app switchable looks. Three ready packs (Studio, Glass, Sunny), each with a light and a dark version, or new ones in the same spirit, compared side by side before anything is built. It carries the lessons from making them on a real app.

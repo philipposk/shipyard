@@ -40,6 +40,11 @@
   "scope": "Live and realtime features (recording, live transcription, websockets, Supabase realtime channels, collaborative editing): their pages, components, hooks and API routes. Check races between stop/save, reconnect and pushes, stuck 'Saving...' states, lost audio or data parts, timers, listeners and media streams not cleaned up, debounced saves that are lost when the tab closes (flush on pagehide/visibilitychange with keepalive), usage metering that can be bypassed, unbounded loops."
  },
  {
+  "key": "offline-sync",
+  "strong": true,
+  "scope": "Offline copies and sync (IndexedDB or localStorage copies, outboxes of queued writes, service-worker data caches): src/lib/offline/**, the store hooks and every caller of the sync. Check that each sync and queued write first compares the session user id with the account the local copy belongs to (a shared sign-in cookie across subdomains switches the session under open tabs with no event) and sends its requests with that checked token; local rows deleted only against that account's server list; a \"changed since\" pull that also re-fetches rows missing locally; outbox ids re-read after every await before merging or pruning; nothing thrown between merging into memory and saving to storage; an account switch that waits for the running sync or makes it drop its results; signed-out reads that get 401, not an empty list. Skip if the app keeps no data on the device."
+ },
+ {
   "key": "uploads-media",
   "strong": false,
   "scope": "Uploads, files and media: upload routes and components, chunked or resumable uploads, storage paths, file conversion, media players. Check part size caps on chunked uploads, leaving the page while parts failed, storage paths built from user input (prefix checks before any server-key delete), temp file cleanup, timeouts versus hosting limits, quota metering, playback position lost when a signed URL is renewed (restore it after loadedmetadata), stuck processing states."

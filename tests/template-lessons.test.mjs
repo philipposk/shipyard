@@ -67,6 +67,13 @@ test('the written rules carry the lessons, in the app and in the skill', async (
   const lessons = await readRoot('skills/new-app/references/lessons.md');
   assert.match(lessons, /never used on a GET/);
   assert.match(lessons, /1000 rows/);
+  // Offline copy wiped by an account switch on a shared sign-in (November 2026).
+  assert.match(lessons, /switches the session under every open tab/);
+  assert.match(lessons, /re-fetches rows the server has and the device lacks/);
+  const shared = await readRoot('skills/new-app/references/shared-sign-in.md');
+  for (const re of [/Check the account before every sync/, /setHeader\("Authorization"/, /must also heal/, /Signed-out requests must fail/, /Clear site data/]) {
+    assert.match(shared, re, String(re));
+  }
   assert.match(await readRoot('skills/new-app/references/verify.md'), /re-run the review on the fixed code/);
   assert.match(await readRoot('skills/new-app/SKILL.md'), /run verify again and read the fixes once more/);
 });
