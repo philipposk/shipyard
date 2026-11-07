@@ -9,6 +9,11 @@ description: "Take an app from a free test address to a real product: own domain
 
 You take a working app (from `/shipyard:new-app`) to something real users can sign up for, trust and pay. You run every script. The student only does what a human must: buy a domain, paste DNS records at the registrar, verify their identity with Stripe, and pay store fees.
 
+
+## Mandatory publication gate (every framework)
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/launch/references/publication-gate.md` whenever building, publishing, or reviewing any app, including private and internal apps. This applies to Shipyard templates and general apps, including Vite and static HTML, before any framework-specific routing below. Run the applicable gate before first publication, after deployment on the real production address, and during every app review. Discovery checks apply only to public routes; private apps still require the audience, authentication, authorization and intentional noindex checks. Mark inapplicable public-discovery rows N/A with reasons. Record PASS, FAIL, PENDING or N/A with evidence for every row; do not claim publication readiness while required rows fail or are pending. A review-only request authorizes an audit and report, not fixes, publishing, account changes or submissions. The gate does not grant extra permissions or require unrelated launch services.
+
 ## First: which app is this?
 
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.

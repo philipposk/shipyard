@@ -28,6 +28,8 @@ If they asked to review and improve the app, or to make it better, that is a yes
 
 ## 1. Audit (read only)
 
+Always include `${CLAUDE_PLUGIN_ROOT}/skills/launch/references/publication-gate.md` for all apps, including private and internal apps. Public-discovery checks apply only to public routes; mark inapplicable rows N/A with reasons, while checking private access protection and intentional noindex. It works without the template scripts. Review-only requests stop at the report; do not treat this guide as permission to fix or publish.
+
 Read the code. Answer with file names. Do not edit yet.
 
 - **Secrets**: keys in tracked files, `NEXT_PUBLIC_` or similar prefixes on secrets, `.env` files in git, a `.gitignore` that covers them.

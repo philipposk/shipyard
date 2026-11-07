@@ -1,6 +1,6 @@
 # Search engines and speed (before and after going live)
 
-Ported from 6x7-app-factory's `checklists/seo.md` and `checklists/performance.md` (lessons from the 6x7 launches), minus what Shipyard's template and `verify.mjs` already do (robots, sitemap, llms.txt, icons, per-page canonical, `poweredByHeader: false`, security headers). Tick each with the student; fix in a pull request.
+Mandatory baseline: read `publication-gate.md` first, for every framework and every app review, including private/internal apps. Apply discovery checks only to public routes; mark inapplicable rows N/A with reasons and still check private access protection and intentional noindex. Never assume the template or `verify.mjs` supplied these files: verify actual production status, headers and content. A 200 response containing the SPA shell is not a valid robots file or sitemap. Tick each applicable check with evidence; fixes require an authorized scope and a pull request.
 
 ## Make a public app searchable (checklist)
 
