@@ -31,11 +31,26 @@ From one full review of a big Next.js, Supabase and AI app (October 2026): 148 r
 - Search the code for `setInterval`, repeating `setTimeout`, `cron.schedule`, `net.http_`, `crons` in `vercel.json`, and GET handlers on MCP routes. Check each against "Hosting costs" in `new-app/references/build-rules.md`.
 - Crawlers are findings too: if most CPU on a public page comes from AI training or SEO crawlers, deny them with a firewall rule (list in `new-app/references/lessons.md`).
 
+## Offline sync and shared sign-in (November 2026)
+From a data-loss bug in an offline-first notes app on a shared sign-in: a laptop's local copy lost 414 notes, while the server and the phone were fine.
+- With one sign-in cookie across subdomains, a second account signing in to another app switches the session under open tabs, and no event fires. Check that every sync and every queued write first compares the session's user id with the account the local data belongs to, and sends its requests with that checked token (`setHeader("Authorization", …)` on PostgREST and storage calls).
+- Look for local rows deleted against a server list (`pruneMissing`-style code). It must be sure the list is this account's; one empty list wipes the copy.
+- A pull that uses a "changed since" cursor needs a heal step that re-fetches rows missing on the device. Without it, any rows lost locally stay lost.
+- Concurrency checks:
+  - The set of rows waiting to upload is read again after every `await` before merging or deleting.
+  - Nothing throws between merging into memory and saving to IndexedDB.
+  - An account switch waits for the running sync, or makes it drop its results.
+  - An op whose request succeeded just before the switch is still recorded in the old account's copy, or it is sent again later and overwrites newer edits.
+- Signed-out reads should get 401 (no `anon` grants on user tables). Test it with one request using the public key; an empty 200 makes a sync think everything was deleted.
+
 ## Process
 - Reviewers per area, the strongest model for security, live audio, AI and the database. Merge duplicates, then one skeptic per finding that tries to disprove it. About 85% of merged findings survived.
 - Fix in waves whose batches share no file. Then a knip sweep for dead code, then a second, fresh review of the whole fix diff. Then type check, tests, build, a local production check and a real live session.
 - Give every helper the absolute path of the worktree. Some drift into the main checkout otherwise.
 - Another agent's commits may carry a different author email. List authors before choosing what gets extra scrutiny.
+- Check another agent's diagnosis before acting on it. A bot blamed "the server returns an empty list when the session expires"; one request with the public key returned 401, which ruled that out.
+- Read real data before guessing a cause. An admin read of which accounts own rows, plus each account's last sign-in time, found the second account and matched the time of the loss.
+- Review fixes to sync and concurrency code until a round finds only rare edge cases. Here each of three rounds found a new, smaller bug in the previous round's fix.
 
 ## Pull requests
 - CodeRabbit's free plan skips pull requests over 150 files. Keep each one at 150 or fewer; ship a bigger release as a stack, merge each with a merge commit (a squash makes the next one show the earlier files again), change the next one's target to `main` after each merge, and smoke-test the live app between merges.

@@ -25,6 +25,12 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Google sign-in redirects to `https://<project>.supabase.co/auth/v1/callback`, not the app's address. Hide the button if the client id is missing.
 - Supabase's built-in mailer is for testing: very few emails an hour. Real sign-up email needs your own provider and a verified domain.
 
+## Offline copies and shared sign-in
+- With one sign-in across subdomains, signing in as someone else in any app switches the session under every open tab, with no event in those tabs. An offline copy checks the session's user id before every sync and queued write, sends each request with that checked token, and opens the other account's own copy on a mismatch. Otherwise it syncs one account's list into the other's copy and wipes it. Details and the rest of the rules: `shared-sign-in.md`, "Data kept on the device".
+- A sync that pulls only "changed since last time" also re-fetches rows the server has and the device lacks, so a copy damaged by any bug repairs itself.
+- Same person, two accounts: Google and email with one address are one account, but a second Google account or Apple "Hide My Email" is a new, empty one. Show the signed-in email in the app.
+- Never tell people to "Clear site data" to fix one app on a shared domain: it wipes every app's saved data there. Delete that app's own IndexedDB database instead.
+
 ## Deploy and hosting
 - ★ Deployment Protection must be off, or every visitor gets 401.
 - ★ Verify on the real address, not "Vercel says ready".

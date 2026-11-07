@@ -40,15 +40,15 @@ test('every reference, workflow and script the skill names exists', () => {
 
 test('the example areas are generic and complete', () => {
   const areas = JSON.parse(readFileSync(path.join(SKILL_DIR, 'examples', 'nextjs-supabase-areas.json'), 'utf8'));
-  assert.equal(areas.length, 18);
-  assert.equal(new Set(areas.map((a) => a.key)).size, 18);
+  assert.equal(areas.length, 19);
+  assert.equal(new Set(areas.map((a) => a.key)).size, 19);
   for (const a of areas) {
     assert.match(a.key, /^[a-z0-9]+(-[a-z0-9]+)*$/);
     assert.equal(typeof a.strong, 'boolean', a.key);
     assert.ok(a.scope.length > 80, `${a.key} scope is too thin`);
     assert.doesNotMatch(a.scope, /\/Users\/|\/home\/|~\/\.claude|—/, a.key);
   }
-  for (const key of ['auth-signin', 'api-routes', 'db-rls', 'ai-llm', 'api-keys-mcp', 'realtime-live']) assert.equal(areas.find((a) => a.key === key)?.strong, true, key);
+  for (const key of ['auth-signin', 'api-routes', 'db-rls', 'ai-llm', 'api-keys-mcp', 'realtime-live', 'offline-sync']) assert.equal(areas.find((a) => a.key === key)?.strong, true, key);
 });
 
 test('no private words, machine paths or em dashes in the skill and its scripts', () => {
