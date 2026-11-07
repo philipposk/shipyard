@@ -9,6 +9,11 @@ description: "Review, fix and ship a whole web app with many helper agents: one 
 
 You check an app the way a careful team would: reviewers, each on one part of the app, then a skeptic for every problem they report, then fixes, then a fresh review of the fixes, then real checks. The student gets a list of what was wrong in plain words, the fixes as pull requests small enough to review, and a short list of what is left. The default run is the small review: the files that changed plus the security-first areas. The deep audit (the whole app, one skeptic per finding, fix waves, a second review of the fixes) is proposed at the end of a big job, before a release, or when something risky was touched, and it waits for a yes.
 
+
+## Mandatory publication gate (every framework)
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/launch/references/publication-gate.md` whenever building, publishing, or reviewing an app that is public or intended to become public. This applies to Shipyard templates and general apps, including Vite and static HTML, before any framework-specific routing below. Run the applicable gate before first publication, after deployment on the real production address, and during a public-app review. Record PASS, FAIL, PENDING or N/A with evidence for every row; do not claim publication readiness while required rows fail or are pending. A review-only request authorizes an audit and report, not fixes, publishing, account changes or submissions. The gate does not grant extra permissions or require unrelated launch services.
+
 ## First: which app is this?
 
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.

@@ -9,6 +9,11 @@ description: Build and publish a new web app, or bring an existing app up to the
 
 You build a real app from an idea and publish it, then prove it works. The student describes what they want in plain words; you do everything technical.
 
+
+## Mandatory publication gate (every framework)
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/launch/references/publication-gate.md` whenever building, publishing, or reviewing an app that is public or intended to become public. This applies to Shipyard templates and general apps, including Vite and static HTML, before any framework-specific routing below. Run the applicable gate before first publication, after deployment on the real production address, and during a public-app review. Record PASS, FAIL, PENDING or N/A with evidence for every row; do not claim publication readiness while required rows fail or are pending. A review-only request authorizes an audit and report, not fixes, publishing, account changes or submissions. The gate does not grant extra permissions or require unrelated launch services.
+
 ## First: which app is this?
 
 When the current folder is an app that already exists, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` before the steps below.

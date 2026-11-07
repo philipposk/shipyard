@@ -1,6 +1,10 @@
 # Search engines and speed (before and after going live)
 
+<<<<<<< HEAD
 Ported from two launch checklists (SEO and performance), minus what Shipyard's template and `verify.mjs` already do (robots, sitemap, llms.txt, icons, per-page canonical, `poweredByHeader: false`, security headers). Tick each with the student; fix in a pull request.
+=======
+Mandatory baseline: read `publication-gate.md` first, for every framework and every public-app review. Never assume the template or `verify.mjs` supplied these files: verify actual production status, headers and content. A 200 response containing the SPA shell is not a valid robots file or sitemap. Tick each applicable check with evidence; fixes require an authorized scope and a pull request.
+>>>>>>> c9b39b4 (Require evidence-based publication gate across app workflows)
 
 ## Make a public app searchable (checklist)
 
