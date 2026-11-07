@@ -27,3 +27,22 @@ test('gate defines concrete evidence, privacy boundaries and full applicable rel
   assert.match(text, /not a promise of indexing/);
   assert.match(text, /External account steps may remain PENDING/);
 });
+
+
+test('private and internal apps cannot skip the gate; only inapplicable discovery is N/A', () => {
+  for (const name of ['new-app', 'launch', 'review']) {
+    const text = read(`skills/${name}/SKILL.md`);
+    assert.match(text, /reviewing any app, including private and internal apps/);
+    assert.match(text, /Discovery checks apply only to public routes/);
+    assert.match(text, /private apps still require.*authentication, authorization and intentional noindex/);
+    assert.match(text, /N\/A with reasons/);
+    assert.doesNotMatch(text, /whenever building, publishing, or reviewing an app that is public/);
+  }
+  const gate = read('skills/launch/references/publication-gate.md');
+  assert.match(gate, /Do not expose private content/);
+  assert.match(gate, /valid supported card dimensions and aspect ratio/);
+  assert.match(gate, /1200x630 recommended/);
+  assert.match(gate, /Always check audience\/host policy, authentication\/authorization, intentional noindex/);
+  for (const path of ['skills/new-app/references/upgrade.md', 'skills/launch/references/seo-performance.md'])
+    assert.match(read(path), /private[\/ ](?:and )?internal apps/);
+});

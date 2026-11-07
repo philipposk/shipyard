@@ -1,6 +1,6 @@
 # Search engines and speed (before and after going live)
 
-Mandatory baseline: read `publication-gate.md` first, for every framework and every public-app review. Never assume the template or `verify.mjs` supplied these files: verify actual production status, headers and content. A 200 response containing the SPA shell is not a valid robots file or sitemap. Tick each applicable check with evidence; fixes require an authorized scope and a pull request.
+Mandatory baseline: read `publication-gate.md` first, for every framework and every app review, including private/internal apps. Apply discovery checks only to public routes; mark inapplicable rows N/A with reasons and still check private access protection and intentional noindex. Never assume the template or `verify.mjs` supplied these files: verify actual production status, headers and content. A 200 response containing the SPA shell is not a valid robots file or sitemap. Tick each applicable check with evidence; fixes require an authorized scope and a pull request.
 
 ## Make a public app searchable (checklist)
 
