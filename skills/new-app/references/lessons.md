@@ -6,6 +6,7 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - ★ Never set a password from an email address alone (account takeover).
 - ★ The login cookie name in `proxy.ts` must match the one Supabase sets; otherwise sign-in appears to work and then loops. Do not share a cookie across domains you do not control.
 - ★ Next.js 16 renamed `middleware.ts` to `proxy.ts`. All `/api/auth/*` routes must be public in it or sign-up answers 405 or shows the sign-in page.
+- ★ Sign out with `{ scope: "local" }`. Supabase's default is global: it ends the person's sessions on every device and in every app on a shared project.
 - ★ Row level security update rules must limit columns, or a user can make themself admin.
 - ★ Admin comes from a database flag only the server key can set, never from an email address. Starter-mode sign-up does not prove the person owns the email, so an email match would hand admin to the first stranger who types the owner's address.
 - ★ The secret server key skips every privacy rule. A route that uses it and does `select *` without a user filter hands out everyone's rows even when every table has RLS. Use the signed-in person's own client.
