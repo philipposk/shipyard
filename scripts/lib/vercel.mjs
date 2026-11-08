@@ -18,7 +18,8 @@ import { skillHint } from './agent.mjs';
 // The one place that says which Vercel CLI version Shipyard runs. An exact version, not `latest`,
 // so a new Vercel release can never change what a student's setup does overnight.
 // Bump it on purpose, after a test run: log in, link, set a variable and deploy a test app with the new version.
-export const VERCEL_CLI = 'vercel@64.3.1';
+// 64.3.1 -> 65.12.1 on 8 Nov 2026 (unit tests run; the live login/link/deploy check needs real credentials).
+export const VERCEL_CLI = 'vercel@65.12.1';
 
 const ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
 const clean = (s) => String(s ?? '').replace(ANSI, '');

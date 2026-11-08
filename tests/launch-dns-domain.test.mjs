@@ -137,7 +137,7 @@ const fakeRun = (answers) => async (cmd, args) => {
 
 test('domainsVerify: reads the records, name servers and clashes from the CLI JSON (with noise around it)', async () => {
   const json = { ok: false, status: 'invalid', message: 'DNS not set', recommended: { records: [{ type: 'a', name: '@', value: '76.76.21.21' }, { type: 'CNAME', name: 'www', value: 'cname.vercel-dns.com' }], nameservers: ['ns1.vercel-dns.com'] }, conflicts: [{ type: 'A', value: '1.2.3.4' }] };
-  const run = fakeRun([[/domains verify tea\.example --project tea-shop --format=json/, { stdout: `Vercel CLI 64.3.1\n${JSON.stringify(json, null, 2)}\n` }]]);
+  const run = fakeRun([[/domains verify tea\.example --project tea-shop --format=json/, { stdout: `Vercel CLI 65.12.1\n${JSON.stringify(json, null, 2)}\n` }]]);
   const r = await domainsVerify({ cwd: '.', domain: 'tea.example', project: 'tea-shop', run });
   assert.equal(r.parsed, true);
   assert.equal(r.ok, false);

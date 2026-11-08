@@ -24,7 +24,7 @@ All of it:
 - Empty states, error states, system light and dark, no fake numbers, no em dashes in text people read. The behaviour rules in `build-rules.md`.
 - A real look, proposed properly (three directions, light and dark), then built into their existing styles. Not a one-colour edit.
 
-If they asked to review and improve the app, or to make it better, that is a yes to this whole list. Ask only before a step that spends money, takes a real payment, or deletes data.
+If they asked to review and improve the app, or to make it better, propose this whole list first and wait for a yes before starting. Ask again only before a step that spends money, takes a real payment, or deletes data.
 
 ## 1. Audit (read only)
 
@@ -59,7 +59,7 @@ That script does not need a Shipyard app. Show the page. When they pick one (or 
 
 ## 4. Do the rest
 
-After the report, do every **Fix now** item, then **Should fix**, unless they named a smaller list. One area at a time. Smallest change that meets the rule. Add a test where there is logic. A look-only pass is not this step.
+After the report, propose the plan and wait for a yes: "Fix now: ... Should fix: ... I suggest doing all of it." Then do every **Fix now** item, then **Should fix**, unless they named a smaller list or asked for only part of it. One area at a time. Smallest change that meets the rule. Add a test where there is logic. A look-only pass is not this step.
 
 ## 5. Stack differences
 

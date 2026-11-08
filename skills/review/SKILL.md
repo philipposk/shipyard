@@ -5,9 +5,9 @@ description: "Review, fix and ship a whole web app with many helper agents: one 
 
 # Shipyard review
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
-You check a whole app the way a careful team would before a big release: many reviewers, each on one part of the app, then a skeptic for every problem they report, then fixes, then a fresh review of the fixes, then real checks. The student gets a list of what was wrong in plain words, the fixes as pull requests small enough to review, and a short list of what is left. This is the biggest thing Shipyard does, so it is for an app that already works, before a release or after another agent added a lot of code.
+You check an app the way a careful team would: reviewers, each on one part of the app, then a skeptic for every problem they report, then fixes, then a fresh review of the fixes, then real checks. The student gets a list of what was wrong in plain words, the fixes as pull requests small enough to review, and a short list of what is left. The default run is the small review: the files that changed plus the security-first areas. The deep audit (the whole app, one skeptic per finding, fix waves, a second review of the fixes) is proposed at the end of a big job, before a release, or when something risky was touched, and it waits for a yes.
 
 ## First: which app is this?
 
@@ -19,13 +19,12 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the cur
 
 ## Rules (always)
 
-- You do the work. Run every script yourself. Never hand the student a command you could run.
-- Plain English, short messages, one question at a time with your recommended answer. Explain any new word in five words or fewer ("a worktree: a second copy of the code").
-- Warn before step 3, and wait for a yes: a full review of a big app runs a hundred or more helper agents and uses a large share of the student's plan. Offer the small version (`references/areas.md`, "Size it") when their plan is small or the app is.
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
+- The small review is the default: the changed files plus the security-first areas. Warn before the deep audit (the whole app, one skeptic per finding, fix waves, a second review of the fixes) and wait for a yes: on a big app it runs a hundred or more helper agents and uses a large share of the student's plan. Size both with `references/areas.md` ("Size it").
 - Review and fix in a fresh worktree made from the latest `origin/main`, never in the student's own folder. Give every helper the worktree's absolute path and tell it never to read another checkout.
 - Helper agents: your strongest model for sign-in, data rules, live audio, AI costs and the database, and for the final yes or no; a cheaper one for the other areas and for mechanical work (builds, test runs, searches).
 - Never change the deploy build pipeline (build script, deploy workflow, hosting settings) during a review or a cleanup.
-- Never open, print or search `~/.shipyard/secrets.env`, `.env.local` or any `.env` file other than `.env.example`.
 - Commits, pushes, pull requests and merges: ask first, once per action. Never push to `main`. Merge one pull request at a time, and only after the one before it deployed and passed its smoke test.
 - A helper's "fixed" or "passed" is a lead, not proof. Re-check before saying done, and say what was not checked.
 
@@ -35,7 +34,7 @@ Read `references/workflows.md` before step 3: it says how to run the helper work
 
 1. **Scout.** Fetch every branch, make the worktree from `origin/main`, install (`npm ci`), then take a baseline: type check (`npx tsc --noEmit`), every test suite, a full build with placeholder keys. Check that the latest production deploy finished; a failed one can sit there unnoticed.
 2. **Whose code.** List commit authors (`git log --format='%ae' | sort | uniq -c`). Another agent often commits under its own email; its recent work gets extra scrutiny. Read the app's open-items or known-issues doc so nothing known is reported again.
-3. **Review.** Pick the areas (`references/areas.md`; the example `${CLAUDE_PLUGIN_ROOT}/skills/review/examples/nextjs-supabase-areas.json` has 17 for a Next.js and Supabase app with AI). Run the review workflow. Expect most findings that survive the merge of duplicates to survive the skeptic too.
+3. **Review.** Default: the small review (the files changed since the last review, or since `origin/main` diverged, plus the security-first areas: sign-in, API routes, the database, keys, sharing), sized with `references/areas.md` ("Size it"). Propose the deep audit (every area from the example list, one skeptic per finding, fix waves and the second review of the fixes) at the end of a big job, before a release, or when something risky (sign-in, payments, keys, the database rules) was touched, and wait for a yes before running it. Run the review workflow. Expect most findings that survive the merge of duplicates to survive the skeptic too.
 4. **Content gaps** (at the same time as 3). Compare what shipped with what the home page, help, privacy page, onboarding, `llms.txt`, structured data, manifest and README say, in every language the app has. The privacy page must name every new kind of data captured and every outside AI or email service it goes to.
 5. **Decide.** Read the confirmed list. Choose sensible defaults for the decisions it needs and write them down; move big or risky changes to the open-items doc instead of fixing them now. Show the student the list, worst first, one line of user impact each with its `id`, and ask which to fix (recommend: all confirmed, minus the deferred ones).
 6. **Fix.** `node "${CLAUDE_PLUGIN_ROOT}/scripts/review/plan-waves.mjs" <review.json> --repo <worktree> --strong <areas> --skip <ids of deferred findings>` splits the fixes into waves that never share a file and leaves out what step 5 deferred; then run the fix workflow. Findings under "unverified" (their skeptic failed) get checked by hand first. If a helper dies halfway, start a new one that first reads that batch's partial diff.

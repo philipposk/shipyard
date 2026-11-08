@@ -144,7 +144,7 @@ export function planInstall({ root, opts, env = process.env, platform = process.
     nodeOnPath = found.onPath;
   }
   if (platform === 'win32' && !core.findOnPath('node', env, platform)) {
-    throw new PlainError('The hooks run "node", but node is not on your PATH. Install Node 20 or newer from nodejs.org (it adds itself to PATH), open a new terminal and run this again.');
+    throw new PlainError('The hooks run "node", but node is not on your PATH. Install Node 22 LTS or newer from nodejs.org (it adds itself to PATH), open a new terminal and run this again.');
   }
   const badNode = core.checkPathChars(node, 'node');
   if (badNode) throw new PlainError(`${badNode} Pass another one with --node.`);

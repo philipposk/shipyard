@@ -16,9 +16,10 @@ export const REWRITES = [
   // ---------- setup ----------
   {
     id: 'S2',
-    file: 'setup/SKILL.md',
-    find: '- Do not spawn big groups of helper agents. If you use one (for example to look something up), give it a cheaper model than yours (Opus → `model: "sonnet"`, Sonnet → `model: "haiku"` for lookups only).',
-    replace: '- Do not spawn big groups of helper agents. If your agent can use one (for example to look something up), give it a smaller, cheaper model than yours, for lookups only.',
+    file: 'new-app/references/working-rules.md',
+    find: 'Save the student\'s usage: give helper agents a smaller, cheaper model than yours, and only for mechanical work (builds, test runs, searches, listing files, renames, doc and copy edits).',
+    replace:
+      "Save the student's usage: if your agent has helper agents, give them a smaller, cheaper model than yours, and only mechanical work (builds, test runs, searches, listing files, renames, doc and copy edits).",
   },
   {
     id: 'S1',
@@ -82,13 +83,6 @@ export const REWRITES = [
 
   // ---------- new-app ----------
   {
-    id: 'N1',
-    file: 'new-app/SKILL.md',
-    find: /- Save the student's usage: give helper agents one model cheaper than yours[^\n]*/,
-    replace:
-      '- Save the student\'s usage: if your agent can use helper agents, give them a smaller, cheaper model than yours, and only mechanical work (builds, test runs, searches, doc and copy edits, simple UI fixes). Keep sign-in, data privacy (RLS), keys, payments and the final check on your own model. At most a couple of helpers at a time, and re-check their "done" yourself.',
-  },
-  {
     id: 'N2',
     file: 'new-app/SKILL.md',
     find: 'Otherwise run the design skill and ask its one question',
@@ -121,26 +115,26 @@ export const REWRITES = [
   {
     id: 'W1',
     file: 'design/SKILL.md',
-    find: "Read new-app's `references/upgrade.md` and follow it.",
-    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+    find: "The full upgrade lives in new-app's `references/upgrade.md`",
+    replace: 'The full upgrade lives in `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md`',
   },
   {
     id: 'W2',
     file: 'ops/SKILL.md',
-    find: "Read new-app's `references/upgrade.md` and follow it.",
-    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+    find: "The full upgrade lives in new-app's `references/upgrade.md`",
+    replace: 'The full upgrade lives in `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md`',
   },
   {
     id: 'W3',
     file: 'launch/SKILL.md',
-    find: "Read new-app's `references/upgrade.md` and follow it.",
-    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+    find: "The full upgrade lives in new-app's `references/upgrade.md`",
+    replace: 'The full upgrade lives in `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md`',
   },
   {
     id: 'W4',
     file: 'video/SKILL.md',
-    find: "Read new-app's `references/upgrade.md` and follow it.",
-    replace: 'Read `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and follow it.',
+    find: "offer new-app's `references/upgrade.md` and wait for a yes before starting it",
+    replace: 'offer `{{SKILLS_DIR}}/shipyard-new-app/references/upgrade.md` and wait for a yes before starting it',
   },
 
   // ---------- design ----------
@@ -205,12 +199,6 @@ export const REWRITES = [
 
   // ---------- launch ----------
   {
-    id: 'L1',
-    file: 'launch/SKILL.md',
-    find: '- Helper agents: one model cheaper than yours, mechanical work only (same rule as new-app).',
-    replace: '- Helper agents, if your agent has them: a smaller, cheaper model, mechanical work only.',
-  },
-  {
     id: 'L2',
     file: 'launch/SKILL.md',
     find: "offer the upgrade in new-app's `references/upgrade.md` first.",
@@ -258,12 +246,6 @@ export const REWRITES = [
   },
 
   // ---------- ops ----------
-  {
-    id: 'O1',
-    file: 'ops/SKILL.md',
-    find: '- Helper agents: one model cheaper than yours, mechanical work only (listing files, running checks).',
-    replace: '- Helper agents, if your agent has them: a smaller, cheaper model, mechanical work only (listing files, running checks).',
-  },
   {
     id: 'O2',
     file: 'ops/SKILL.md',

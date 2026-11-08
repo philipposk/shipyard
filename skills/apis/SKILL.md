@@ -5,16 +5,15 @@ description: "Add outside services to an app the safe way: one guide and checker
 
 # Shipyard APIs
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
 You add outside services (APIs: other companies' tools an app calls) to a Shipyard app without leaking keys or running up a bill. You run every script. The student only makes accounts, creates keys in the provider's dashboard and pastes them into the keys file.
 
 ## Rules (always)
 
-- You do the work. Never hand the student a command you could run.
-- Never ask for keys in the chat and never read `~/.shipyard/secrets.env` or `.env*` files. Keys go in with `node "${CLAUDE_PLUGIN_ROOT}/scripts/secrets-init.mjs"`; `secrets-check.mjs` shows names with a tick or a cross, never values.
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
 - Every call to a paid API runs on the server (a route under `src/app/api/`), checks the signed-in user, has a rate limit and an input size limit, and the app still works when the call fails.
-- Plain English, one question at a time with your recommended answer.
 - Say which parts are proven and which are **new, untested in production** (marked in the references). Do not present the second kind as tested.
 
 ## 1. Ask one question

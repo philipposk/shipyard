@@ -4,7 +4,7 @@ GitHub can merge a pull request by itself once the checks pass. Shipyard only al
 
 ## The tiers in plain words
 
-- **Merges itself after green checks:** small changes to ordinary app code, text, styles, docs, tests, and routine dependency updates (patch and minor versions from Dependabot).
+- **Merges itself after green checks:** small changes to ordinary app code, text, styles, docs, and routine dependency updates (patch and minor versions from Dependabot).
 - **Always waits for a person (label `needs-review`):**
   - anything touching sign-in or sessions (`src/lib/auth/`, `src/lib/session.ts`, `src/app/auth/`, `src/app/api/auth/`, `src/proxy.ts`) and the guards that protect it (`src/lib/safe-next.mjs`, `src/lib/same-origin.mjs`, `src/lib/rate-limit.mjs`)
   - the database: everything in `supabase/` (migrations, privacy rules, `isolation.json`) and `src/lib/supabase/`

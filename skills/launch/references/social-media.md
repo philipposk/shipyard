@@ -1,6 +1,6 @@
 # Social media: brand profiles and posting
 
-Set up the app's own accounts, fill them in, and post in the right format for each platform. Example used below: Catchy, a meeting-notes app at catchy.6x7.gr. Never put passwords, codes or private details in the repo or in posts; logins go in the keys file only.
+Set up the app's own accounts, fill them in, and post in the right format for each platform. Example used below: Catchy, a meeting-notes app. Never put passwords, codes or private details in the repo or in posts; logins go in the keys file only.
 
 ## Rules (always)
 
@@ -26,7 +26,7 @@ Use one email per brand (for example `hello@<domain>` through the domain's catch
 | Reddit | Account made by the student in their own browser | Reddit blocks automated browsers. Build karma by commenting before any post; read each subreddit's self-promotion rules. |
 
 What to fill in on every profile:
-- **Name**: the product name. **Handle**: the same everywhere you can (`@catchyapp`, or `@catchy6x7` if taken).
+- **Name**: the product name. **Handle**: the same everywhere you can (`@catchyapp`, or add a short suffix if that one is taken).
 - **Logo**: one square image, readable at 40 px, same on all platforms. Banner/cover where there is one.
 - **Bio**: one line of what it does for whom, plus the free offer (for example "AI meeting notes. Free: 120 min/month, no card"). No prices that aren't live yet.
 - **Link**: the website. On Instagram the link and pinned posts can only be set in the phone app.
@@ -40,15 +40,15 @@ Good first posts: a 30-60 s demo, a how-to carousel (step 1, 2, 3), a features c
 | Format | Size | Platform notes |
 |---|---|---|
 | Carousel / cards | 1080x1350 (4:5) | Keep all slides one theme (all dark or all light). |
-| Reel / Short / vertical video | 1080x1920 (9:16) | Under 60 s for Shorts. |
+| Reel / Short / vertical video | 1080x1920 (9:16) | Up to 3 minutes for Shorts. |
 | Long video | 16:9, 1440p upload | YouTube. |
 
 Per platform:
-- **Instagram**: carousel = one post with up to 10 images. In the crop step pick **Original** (4:5), not the square default, or the sides get cut off. Same for reels: check the crop before sharing. Don't post a single slide from a carousel alone; a lone slide with a "swipe" arrow looks broken.
+- **Instagram**: carousel = one post with up to 20 images. In the crop step pick **Original** (4:5), not the square default, or the sides get cut off. Same for reels: check the crop before sharing. Don't post a single slide from a carousel alone; a lone slide with a "swipe" arrow looks broken.
 - **Facebook Page**: organic Page posts can't be swipe carousels (only ads can); several photos show as a grid. Post a **slideshow reel** instead: the slides as a video, 2-3 s each, with royalty-free music (a silent reel looks broken).
 - **LinkedIn**: carousels are **document posts**. Export the slides as one PDF and upload as a document. Several photos show as a grid, not a carousel.
 - **X**: one image, or up to 4. Use one summary image for a carousel. X rejects AV1 video and some audio formats: re-encode to H.264 + AAC (`ffmpeg -i in -c:v libx264 -crf 18 -pix_fmt yuv420p -c:a aac -b:a 160k -movflags +faststart out.mp4`).
-- **YouTube**: upload at high bitrate, ideally 1440p (`-vf scale=-2:1440 -c:v libx264 -crf 14 -preset slow`). A low-bitrate 1080p upload can stay stuck at 240-360p for viewers. New channels have a daily upload cap (about 10); spread uploads over days. Vertical under 60 s becomes a Short.
+- **YouTube**: upload at high bitrate, ideally 1440p (`-vf scale=-2:1440 -c:v libx264 -crf 14 -preset slow`). A low-bitrate 1080p upload can stay stuck at 240-360p for viewers. New channels have a daily upload cap (varies by channel; spread uploads over days). Vertical videos up to 3 minutes become Shorts.
 - Always end with the website, or "link in bio" on Instagram (and only after the bio link is really set).
 
 ## 3. Instagram 3x3 grid
@@ -68,8 +68,7 @@ Nine tiles that join into one picture on the profile.
 
 ## Lessons learned / don'ts
 
-From a real launch where the brand Instagram got locked after one evening:
-- **What got the account flagged** ("confirm you're human", then a lock and an appeal): in one session on a brand-new account, about 8 deletes, about 6 reposts, the same link comment on every post, uploads pushed through the page's hidden file inputs by script, a server (datacenter) IP the account had never seen, and switching the browser to a fake iPhone user-agent mid-session. Facebook, LinkedIn and X took the same posts without complaint because those were tied to an old personal account.
+- A brand-new account got locked ("confirm you're human") after one session that mixed many deletes and reposts, scripted uploads, the same link comment everywhere and a faked phone browser from a new server IP.
 - So: **post Instagram from the student's real phone**. Hand them a Drive folder with numbered files, captions and the order. Automation only reads.
 - Web Instagram can't edit the bio link, pin posts or archive posts. Faking a phone browser doesn't unlock them; it only adds risk. Ask the student to do these in the app.
 - Reddit blocks automated browsers. The student posts and replies themselves; you draft.

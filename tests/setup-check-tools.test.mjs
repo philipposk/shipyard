@@ -53,9 +53,9 @@ test('old Node fails with the install line for the system', async () => {
   assert.equal(r.os, 'Windows');
 });
 
-test('Node 20.9 is the minimum', async () => {
-  assert.equal((await checkTools(deps({ nodeVersion: 'v20.8.9' }))).ok, false);
-  assert.equal((await checkTools(deps({ nodeVersion: 'v20.9.0' }))).ok, true);
+test('Node 22 is the minimum', async () => {
+  assert.equal((await checkTools(deps({ nodeVersion: 'v21.7.3' }))).ok, false);
+  assert.equal((await checkTools(deps({ nodeVersion: 'v22.0.0' }))).ok, true);
 });
 
 test('missing git and gh are required and show install lines per OS', async () => {

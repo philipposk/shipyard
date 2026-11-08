@@ -42,7 +42,7 @@ Look at that picture before you call the video done.
 A render does not start with less than 3 GB of free disk, or while another video render runs on this computer
 (another project or chat): two at once run out of memory. Remotion's working folder for each render (about 250 MB)
 is removed from the temp folder afterwards.
-Output goes to <app>/video/out/. Delete old renders when you are done: each is several MB.
+Output goes to <app>/video/out/. Delete old renders when you are done: each is several MB. Keep the --youtube master until it is uploaded.
 Exit code: 0 ok, 1 a render failed, 2 wrong options.
 `;
 

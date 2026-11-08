@@ -201,11 +201,13 @@ test('header.md and habits.md are agent-neutral', () => {
   assert.match(header, /\$shipyard-<name>` in Codex or `\/shipyard-<name>` in Cursor/);
 });
 
-test('the habits match the Claude Code starter apart from agent wording', () => {
-  const habits = readFileSync(path.join(ROOT, 'scripts', 'agents', 'habits.md'), 'utf8').split('\n');
-  const starter = readFileSync(path.join(ROOT, 'starter', 'CLAUDE.md'), 'utf8').split('\n');
-  assert.equal(habits.length, starter.length, 'same number of lines as starter/CLAUDE.md');
-  assert.equal(habits[0], starter[0]);
+test('habits.md is generated from starter/CLAUDE.md: same habits, one line reworded', () => {
+  const starter = readFileSync(path.join(ROOT, 'starter', 'CLAUDE.md'), 'utf8');
+  const expected = starter.replace(
+    '- Use cheaper models or helper agents for mechanical work (renames, running tests, searching). Keep the strongest model for hard decisions and security.',
+    '- If your agent offers helper agents or smaller models, use them for mechanical work (renames, running tests, searching). Keep the strongest model for hard decisions and security.',
+  );
+  assert.equal(readFileSync(path.join(ROOT, 'scripts', 'agents', 'habits.md'), 'utf8'), expected, 'run node scripts/agents/build-habits.mjs');
 });
 
 test('the lint skips the paths filled in from this computer (a home folder named Claude is fine)', () => {

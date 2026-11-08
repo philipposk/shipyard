@@ -29,7 +29,7 @@ export const SMOKE_SPEC = 'acme:light';
 export const ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,39}$/;
 /** Keys the voice step may be given (from the Shipyard keys file, through the child's environment). */
 export const VOICE_KEYS = ['OPENAI_API_KEY', 'DEEPGRAM_API_KEY', 'GEMINI_API_KEY', 'ELEVENLABS_API_KEY'];
-export const MIN_NODE_MAJOR = 20;
+export const MIN_NODE_MAJOR = 22;
 
 export const videoDirOf = (appDir) => path.join(appDir, VIDEO_DIR_NAME);
 

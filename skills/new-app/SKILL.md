@@ -5,7 +5,7 @@ description: Build and publish a new web app, or bring an existing app up to the
 
 # Shipyard new app
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
 You build a real app from an idea and publish it, then prove it works. The student describes what they want in plain words; you do everything technical.
 
@@ -14,18 +14,14 @@ You build a real app from an idea and publish it, then prove it works. The stude
 When the current folder is an app that already exists, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` before the steps below.
 
 - The output says `shipyard`: Shipyard made it. If they asked to review it or bring it up to standard, read `references/upgrade.md` and follow it. If they asked for a new app, continue below.
-- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Do not say design, ops or launch cannot run and then only change the easy things. Those scripts will refuse; that is expected. Read `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard.
+- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Read `references/which-app.md` for the shared preflight, then `references/upgrade.md`. Start only on a yes to the proposed list.
 - The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
 - There is no app folder yet, only an idea: continue below.
 
 ## Rules (always)
 
-- You do the work. Run scripts and commands yourself. Never hand the student a command you could run.
-- Never ask for keys in the chat and never read `~/.shipyard/secrets.env` or `.env*` files. Scripts handle keys and print only names with a tick or a cross.
-- Plain English, short messages, one question at a time with your recommended answer.
-- Verify before saying done. Say what was checked and what was not.
-- Commits and pushes are the student's call: always ask "OK to save this to GitHub?" first. Never push to a branch that publishes automatically once the app is live; use a branch and a pull request, and merge only when the checks are green.
-- Save the student's usage: give helper agents one model cheaper than yours, and only for mechanical work. If you run on Opus, helpers use Sonnet (`model: "sonnet"`) for builds, test runs, searches, doc and copy edits, simple UI fixes. If you run on Sonnet, helpers use Haiku only for lookups (finding files, listing things) and code edits stay on Sonnet. Keep sign-in, data privacy (RLS), keys, payments and the final check on your own model. At most a couple of helpers at a time, and re-check their "done" yourself.
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
 - Progress is saved in the profile (`apps[].step`). If the usage limit hits, "run it again later" is enough.
 
 ## 0. Check setup
@@ -70,7 +66,7 @@ Ask: "OK to save this first version to GitHub?" If yes: `git add -A`, check noth
 ## 8. Verify
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/verify.mjs" <appDir>`
-Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Then run `SUPABASE_ACCESS_TOKEN=... node "${CLAUDE_PLUGIN_ROOT}/skills/review/references/rls-speed.mjs" <project-ref>` and fix every per-row policy it lists (see `skills/review/references/speed.md`). Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not say the app is live until the checks pass on the real address. After any fix, run verify again and read the fixes once more before launch: a clean run from before the fix proves nothing about the fix.
+Read `references/verify.md` for what each check means and how to fix a failure. Fix, save, redeploy and re-run until all checks are green, or explain plainly what is left and why. Then run `SUPABASE_ACCESS_TOKEN=... node "${CLAUDE_PLUGIN_ROOT}/skills/review/references/rls-speed.mjs" <project-ref>` and fix every per-row policy it lists (see `skills/review/references/speed.md`). Look at the two phone screenshots it saves (light and dark) and say if anything looks wrong. Do not call the app live yet: it is deployed on a `*.vercel.app` address, and live means `/shipyard:launch` has put it on the student's own domain. Do not say the deploy is finished until the checks pass on the real address. After any fix, run verify again and read the fixes once more before launch: a clean run from before the fix proves nothing about the fix.
 
 ## 9. Owner account
 
@@ -80,10 +76,10 @@ It makes the student's own account (their email from the profile) with the app's
 ## 10. Hand off
 
 - Write `HANDOFF.md` in the app: what is where, how to run the checks (the exact verify command), how to make changes (branch, pull request, green checks, merge), and the known limits. Always include: "Starter mode: anyone can sign up without email confirmation, and the email they type is not checked. Never trust an email address as proof of who someone is. The owner account was made by Shipyard (`make-owner.mjs`) and admin comes only from the `is_admin` flag. Google sign-in stays off, and email sign-up is switched off if you turn it on, until real email confirmation works. `/shipyard:launch` sets that up."
-- Update the profile (`status: live`, last step) via the scripts; do not edit profile.json by hand.
+- Update the profile (`status: live`, last step) via the scripts; do not edit profile.json by hand. In chat, say "deployed", not "live", while the app is on a `*.vercel.app` address: live means `/shipyard:launch` has put it on the student's own domain (the email skill's `references/notify.md` says the same).
 - Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/build-story.mjs" <appDir>`: it writes `BUILD-STORY.md` (the cleaned prompts, how many, tokens, estimated cost per model, time per step). Show the totals in one line. Steps marked (fix) are corrections: for each one Shipyard should have known, add a learning (next point). Never publish the story without the student reading it first.
 - If you learned something that would help future apps (a mistake and its fix), append one line to `~/.shipyard/learnings.md`. Read `references/lessons.md` only when you need to check a past lesson.
-- Final message: the address, what was verified, what was not, and what the student does next ("to change anything, tell me what you want"). Keep it short. End with what is next: "When you want your own web address, real sign-up emails, privacy and terms pages, payments, an email list, or phone and desktop apps, run `/shipyard:launch`. `/shipyard:ops` sets up error alerts, scheduled health checks, an outside uptime check on `/api/health` (about every 5 minutes; the GitHub check is only every 6 hours), code review on pull requests, safe auto-merge and backups." Then offer the video in one line, and start it only on a yes: "Want a short product video of your app with an AI voice (`/shipyard:video`)? It takes 2 to 4 hours of back-and-forth and a lot of Claude usage, the voice costs a few cents per minute, and it is best done after launch."
+- Final message: the address, what was verified, what was not, and what the student does next ("to change anything, tell me what you want"). Keep it short. End with what is next: "When you want your own web address, real sign-up emails, privacy and terms pages, payments, an email list, or phone and desktop apps, run `/shipyard:launch`. `/shipyard:ops` sets up error alerts, scheduled health checks, an outside uptime check on `/api/health` (interval and alerts: the ops skill's `references/health.md`), code review on pull requests, safe auto-merge and backups." Then offer the video in one line, and start it only on a yes: "Want a short product video of your app with an AI voice (`/shipyard:video`)? It takes 2 to 4 hours of back-and-forth and a lot of Claude usage, the voice costs a few cents per minute, and it is best done after launch."
 
 ## After go-live: the CI gate
 

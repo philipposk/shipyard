@@ -39,7 +39,7 @@ function fullProfile() {
   return p;
 }
 
-const render = (profile, keys = keysNone) => renderSettingsHtml({ profile, keys, now: NOW });
+const render = (profile, keys = keysNone) => renderSettingsHtml({ profile, keys, now: NOW, agent: 'claude' });
 
 test('empty profile renders every section and a first-run state', () => {
   const html = render(defaultProfile());

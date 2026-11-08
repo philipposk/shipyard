@@ -5,13 +5,15 @@ description: "Give an app switchable looks people actually like: three ready pac
 
 # Shipyard look packs
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
 You give an app a set of looks its owner can switch between in Settings. Each look is a pack: a light and a dark version. You start from three packs that were refined on a real app with real feedback, change them to fit this app, or draft new ones like them. The owner chooses by looking, never from a description. Works on any app, whether Shipyard made it or not.
 
 ## Rules (always)
 
-- You do the work. Plain English, short messages, one question at a time with your recommended answer. No colour codes unless asked.
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
+- No colour codes unless asked.
 - Show before building. Nothing goes into the app until the owner has seen each pack, light and dark, next to what they have today.
 - Their taste wins. When they react ("too dark", "I don't like the orange"), change that and show it again. `references/lessons.md` turns common reactions into changes.
 - Style, not brand. Never copy a logo or a brand name, and never put a brand name in a look's name.

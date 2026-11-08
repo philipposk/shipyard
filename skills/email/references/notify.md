@@ -1,6 +1,6 @@
 # Owner emails: "<App> is live" and other notices
 
-Ported from 6x7-app-factory's `notify-ready.ts` (PR #3), which sends the deploy email in production. Before that fix, every app's email arrived as "CommitR" (the name in the shared sender line), and nothing said why it was sent. Now:
+Ported from the production deploy email. Before these rules, every app's email arrived with the shared sender's name instead of the app's, and nothing said why it was sent. Now:
 
 - **Sender name is the app** (`Ballpark <noreply@send.example.com>`): the verified address stays, only the display name changes. Slugs become names (`journal-find` -> "Journal Find").
 - **First line says why**: "You're receiving this because you deployed Ballpark to ballpark.example.com." Every automated email should open with one.

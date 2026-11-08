@@ -18,7 +18,7 @@ If they already told you something, do not ask again. If they say "you decide", 
 - Data: what is stored, and whose it is (almost always "each person's own").
 - Money and email plans (note only).
 - Look: the reference they gave, or "starter look".
-- Hard rules: copy the list from `build-rules.md`.
+- Hard rules: "The Shipyard build rules apply (the new-app skill's `references/build-rules.md`, and the plugin version this app was built with), plus these exceptions for this app:" and list any rule deliberately not followed, with the reason. Do not copy the whole rule list into the spec.
 
 ## Plan
 

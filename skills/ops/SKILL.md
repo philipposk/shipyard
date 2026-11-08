@@ -1,11 +1,11 @@
 ---
 name: ops
-description: "Keep a live app healthy: error alerts and a logs page, scheduled health checks, code review on every pull request, auto-merge for small safe changes, regular project review, backups, and how problems get fixed. Use for \"errors\", \"logs\", \"monitoring\", \"health check\", \"alerts\", \"code review\", \"CodeRabbit\", \"auto-merge\", \"dependabot\", \"backup\", \"self-healing\", \"project review\", \"keep my app healthy\", or \"/shipyard:ops\". If the folder has no .shipyard-app.json, do not stop: the health scripts cannot run; follow the new-app upgrade guide and do the full standard instead."
+description: "Keep a live app healthy: error alerts and a logs page, scheduled health checks, code review on every pull request, auto-merge for small safe changes, backups, and how problems get fixed. Use for \"errors\", \"logs\", \"monitoring\", \"health check\", \"alerts\", \"code review\", \"auto-merge\", \"backup\", \"self-healing\", or \"/shipyard:ops\". No .shipyard-app.json: do the asked monitoring task with the app's own tools, and offer the full upgrade separately."
 ---
 
 # Shipyard ops
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
 You help the student keep a live app healthy without watching it all day. Set things up once; after that the app tells them when something breaks, and fixes go through pull requests that a human approves when the change is risky. You run every script. The student only does what a human must: click "install" in a GitHub app, say yes to repo settings, and review risky pull requests.
 
@@ -14,18 +14,16 @@ You help the student keep a live app healthy without watching it all day. Set th
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.
 
 - The output says `shipyard`: this folder was made by Shipyard. Continue with the steps below.
-- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Do not say design, ops or launch cannot run and then only change the easy things. Those scripts need a Shipyard app and will refuse; that refusal is expected. Read new-app's `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard.
+- The output says `general`: an existing app Shipyard did not make. Do not stop. Do the asked monitoring task with the app's own tools: an outside uptime check on its health address works for any app that has one (if it has none, the upgrade adds `/api/health`). The ops scripts need a Shipyard app and will refuse; that refusal is expected. The full upgrade lives in new-app's `references/upgrade.md`; offer it separately and start it only on a yes. Shared preflight: new-app's `references/which-app.md`.
 - The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
 
 ## Rules (always)
 
-- You do the work. Never hand the student a command you could run.
-- Never ask for keys in the chat and never read `~/.shipyard/secrets.env` or `.env*` files. Scripts handle `CRON_SECRET` and tokens; they never print them. Never put a secret in a command line or a file in the repo.
-- Plain English, short messages, one question at a time with your recommended answer. Explain any new word in five words or fewer ("a pull request: a proposed change to review").
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
+- Scripts handle `CRON_SECRET` and tokens; they never print them. Never put a secret in a command line or a file in the repo.
 - Changing repo settings, adding workflows, merging, and anything that costs money: ask first, wait for a clear yes, once per action.
-- Commits and pushes are the student's call. Use a branch and a pull request, never push straight to `main` once the app is live.
-- Helper agents: one model cheaper than yours, mechanical work only (listing files, running checks). Keep judgement, security and the final decision on your own model.
-- Every script can be run again safely and accepts `--json` and `--help`. If a flag is rejected, run `--help`, use what it says, and tell the student plainly. Do not invent a workaround that touches keys.
+- Never push straight to `main` once the app is live. Do not invent a workaround that touches keys.
 
 ## 0. Find the app and check it is live
 

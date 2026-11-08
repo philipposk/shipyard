@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Runs every tests/*.test.mjs with Node's built-in test runner (`npm test`).
 // Why not `node --test tests/*.test.mjs`? The * is expanded by the shell, and Windows
-// shells do not do that, so on Windows with Node 20 it fails. This lists the files itself.
+// shells do not do that, so on Windows it fails. This lists the files itself.
 // Node built-ins only. Extra arguments go to `node --test` (for example --test-name-pattern).
 
 import { spawnSync } from "node:child_process";

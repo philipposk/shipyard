@@ -10,6 +10,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/add-module.mjs" <app-folder> <module> [--dry
 |---|---|
 | `billing` | Payments with Stripe: `/pricing`, plans in one file (`src/lib/billing/plans.ts`), subscriptions, a billing section in Settings, a webhook, Health checks. |
 | `newsletter` | An email list: opt-in boxes at sign-up and in Settings, one-click unsubscribe, `/admin/newsletter` to write and send updates. |
+| `errors` | An error log and alerts: problems are saved, the owner gets an email, crashed pages say sorry and report themselves, and `/admin/logs` shows what happened. |
 
 ## How a module is built
 

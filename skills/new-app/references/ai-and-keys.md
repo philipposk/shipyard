@@ -8,7 +8,7 @@ When a feature would be better with AI, build it in: summaries, tags and categor
 - Every AI route checks the signed-in user, has a rate limit (`src/lib/rate-limit.mjs`) and a size limit on input.
 - The app must still work when the AI call fails or the key is missing: show the plain version and a short message.
 - Write the prompt and the parsing as a small function with a test (fake the provider response in the test).
-- Default provider order: OpenRouter (one key, many models, cheap ones first), then Groq (very fast, free tier, also speech-to-text with Whisper), then OpenAI. Speech-to-text: Groq Whisper or Deepgram. Pick the cheapest model that does the job well and say which in `SPEC.md`.
+- Default provider order: OpenRouter (one key, many models, cheap ones first), then Groq (very fast, free tier, also speech-to-text with Whisper), then OpenAI. Speech-to-text: Groq Whisper or Deepgram. Pick the cheapest model that does the job well and say which in `SPEC.md`. For Gemini, NVIDIA and a fallback router that picks per task, the apis skill's `references/ai-router.md`.
 
 ## Give the app its keys (never ask in the chat)
 

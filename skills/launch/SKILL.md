@@ -5,7 +5,7 @@ description: "Take an app from a free test address to a real product: own domain
 
 # Shipyard launch
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
 You take a working app (from `/shipyard:new-app`) to something real users can sign up for, trust and pay. You run every script. The student only does what a human must: buy a domain, paste DNS records at the registrar, verify their identity with Stripe, and pay store fees.
 
@@ -14,19 +14,17 @@ You take a working app (from `/shipyard:new-app`) to something real users can si
 Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the current folder when that folder is the app.
 
 - The output says `shipyard`: this folder was made by Shipyard. Continue with the steps below.
-- The output says `general`: this is an existing app Shipyard did not make. Do not stop. Do not say design, ops or launch cannot run and then only change the easy things. Those scripts need a Shipyard app and will refuse; that refusal is expected. Read new-app's `references/upgrade.md` and follow it. That path proposes a real look and brings secrets, sign-in, data isolation, costs, tests, deploys, legal pages and the other build rules up to the same standard.
+- The output says `general`: an existing app Shipyard did not make. Do not stop. Do what runs without Shipyard scripts: domain email works on any domain (`email-check.mjs` and the email skill read public DNS). The go-live check, legal pages, payments and stores need a Shipyard app. The full upgrade lives in new-app's `references/upgrade.md`; offer it for everything else and start it only on a yes. Shared preflight: new-app's `references/which-app.md`.
 - The output says `damaged`: `.shipyard-app.json` is here but broken. Say so. Do not treat the folder as a general app.
 
 ## Rules (always)
 
-- You do the work. Never hand the student a command you could run.
-- Never ask for keys in the chat and never read `~/.shipyard/secrets.env` or `.env*` files. Keys go in the keys file via `node "${CLAUDE_PLUGIN_ROOT}/scripts/secrets-init.mjs"`; scripts show only names with a tick or a cross. Live Stripe keys, Resend keys and SMTP passwords never go in argv, files in the repo, or logs.
-- Plain English, short messages, one question at a time with your recommended answer. Explain any new word in five words or fewer.
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
+- Live Stripe keys, Resend keys and SMTP passwords never go in argv, files in the repo, or logs.
 - **Never fake legal certainty.** Legal text and country notes are drafts and research, not legal or tax advice. Say "draft, have it checked" in chat, in `HANDOFF.md` and in the checklist. The public pages themselves do not carry that wording; the admin Health page does.
 - Real money only after the student says so, in chat, for that step. Test mode first, always.
-- Commits and pushes are the student's call: ask "OK to save this to GitHub?". Never push to a branch that publishes automatically once the app is live; use a branch and a pull request, merge when checks are green, then redeploy with `deploy.mjs`.
-- Helper agents: one model cheaper than yours, mechanical work only (same rule as new-app). Keep legal text, keys, payments, sign-in and the final check on your own model.
-- Every script can be run again safely and accepts `--json` and `--help`. Run `--help` if you are unsure of a flag.
+- After merging, redeploy with `deploy.mjs`.
 
 ## 0. Find the app and check setup
 
@@ -85,7 +83,7 @@ Google's screen reads "Sign in to continue to <host>". With Supabase's redirect 
 
 ## Go-live check
 
-`node "${CLAUDE_PLUGIN_ROOT}/scripts/launch-check.mjs" <appDir>` (add `--live` before taking real money). It runs the full verify plus launch checks (legal pages, domain, email, Stripe objects, account deletion, store files). Show the tick/cross list. For each cross say what it means for their users, then fix it or give the one thing the student must do. The admin Health page (`/admin/health`, admins only) shows the same kind of list on the live site. Also register an outside uptime check on `https://<the app>/api/health`, about every 5 minutes, expecting 200 (see the ops skill's `references/db-outage.md`). The GitHub health workflow only runs every 6 hours.
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/launch-check.mjs" <appDir>` (add `--live` before taking real money). It runs the full verify plus launch checks (legal pages, domain, email, Stripe objects, account deletion, store files). Show the tick/cross list. For each cross say what it means for their users, then fix it or give the one thing the student must do. The admin Health page (`/admin/health`, admins only) shows the same kind of list on the live site. Also register an outside uptime check on `https://<the app>/api/health`, expecting 200 (interval and alerts: the ops skill's `references/health.md`).
 
 ## Hand off
 

@@ -35,8 +35,8 @@ Run `check-tools.mjs`. It prints the install line for the student's system. Typi
 ## 3. Vercel
 
 1. vercel.com, Sign up, choose "Continue with GitHub". Pick the free Hobby plan.
-2. You run `npx --yes vercel@64.3.1 login`. A browser page opens; they confirm.
-3. `npx --yes vercel@64.3.1 whoami` prints the user. If they have a team, `npx --yes vercel@64.3.1 teams ls` shows it.
+2. You run `npx --yes vercel@65.12.1 login`. A browser page opens; they confirm.
+3. `npx --yes vercel@65.12.1 whoami` prints the user. If they have a team, `npx --yes vercel@65.12.1 teams ls` shows it.
 
 ## 4. Supabase
 
@@ -66,7 +66,7 @@ stripe.com, create an account, stay in Test mode (toggle at the top). Developers
 
 ## 8. Domain
 
-None is fine to start. If they want one, Cloudflare Registrar (cost price, about $10.5 a year for .com) or Porkbun (about $11). Connecting it comes in a later step.
+None is fine to start. If they want one, Cloudflare Registrar (cost price, about $11.2 a year for .com) or Porkbun (about $11.8). Connecting it comes in a later step. Prices: `checked-facts.md`.
 
 ## 9. Profile and 10. Habits
 

@@ -28,7 +28,8 @@ test('the skill pushes back on weak specs and asks before publishing', () => {
   assert.match(skill, /push back/i);
   assert.match(skill, /ask which they prefer/i);
   assert.match(skill, /Publishing[^\n]*ask first/i);
-  assert.match(skill, /Never read `~\/\.shipyard\/secrets\.env`/);
+  assert.match(skill, /Never put a key in a skill/);
+  assert.match(skill, /working-rules\.md/, 'the shared key-safety rules apply through the working-rules pointer');
 });
 
 test('a plugin scaffold has both manifests, a test, a README with publishing notes, and passes the check', () => {

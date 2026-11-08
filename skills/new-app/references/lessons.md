@@ -44,7 +44,7 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Free Supabase projects pause after a week of no use; wake it in the dashboard before testing.
 - A shared Supabase project has one disk IO budget. A job every minute, a new realtime feed, or tight polling can use it up and stall every app. Sign-in then hangs with no error. Check project health before the browser. Restart does not refill the budget. Filter `noreply@supabase.com` to starred and important.
 - Vercel Hobby forbids commercial use, including taking payments.
-- ★ Vercel Hobby has 4 hours of server CPU a month across all your apps, and going over stops all of them for up to 30 days. One account reached 10 hours in a month: an MCP client reconnecting nonstop (169,000 calls), a job calling an app every minute with nothing to do, open tabs refreshing every 4 seconds, and crawlers. Rules are in `build-rules.md`, "Hosting costs".
+- ★ Vercel Hobby has 4 hours of server CPU a month across all your apps, and going over stops all of them for up to 30 days. The rules are in `build-rules.md`, "Hosting costs".
 - Crawlers can cost more than visitors. Search crawlers (Googlebot, Bingbot, OAI-SearchBot, PerplexityBot) and link previews (facebookexternalhit) bring people in, so keep them. AI training and SEO crawlers (Amazonbot, KeenableBot, MJ12bot, ElevenlabsCrawler, GPTBot, meta-externalagent, Bytespider, CCBot, AhrefsBot, SemrushBot, DotBot, PetalBot) bring almost nobody. Other AI companies run both kinds too: read their crawler pages for the exact names. Deny them with a Vercel firewall rule on `user_agent`: it stops them before the server wakes, needs no deploy, and is free. `robots.txt` is only a request.
 - Changing a domain: payment webhooks do not follow redirects. Register the new endpoint first and use 308 redirects.
 
@@ -74,8 +74,8 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Optimistic send plus polling can show a message twice; dedupe by id.
 - A share button that only copies, with a short message at the bottom of the screen, feels broken. Change the button itself to "Copied!", use the share sheet on phones, and fall back to a copy-by-hand box when the browser blocks copying.
 - Pop-up messages (toasts) go straight under `<body>` (a React portal) with their own animation; inside a moving or transformed parent, "fixed" stops meaning the screen, and an animation that ends in `transform: none` breaks the centring.
-- Leaderboards and group stats must include things done late (archive days), marked as late. Hiding them made two players who both scored 100 show "Not played yet". Keep streaks for on-the-day only and say so in the help text.
-- A daily-content app with an empty archive at launch has nothing to do after day one: ship a back catalogue (Ballpark launched again with 300 past days), with every fact sourced.
+- Leaderboards and group stats must include things done late (archive days), marked as late. Keep streaks for on-the-day only and say so in the help text.
+- A daily-content app with an empty archive at launch has nothing to do after day one: ship a back catalogue, with every fact sourced.
 
 ## Working with the agent
 - A helper agent's "passed" is not evidence. Re-run the flow that was reported broken before saying done.
@@ -93,4 +93,4 @@ One line each. A star means `verify.mjs` or the app's own tests check it automat
 - Debounced saves lose the last edit when the tab closes unless they flush on `pagehide`. Seeking a video before `loadedmetadata` is ignored. Chunked upload parts need a size cap.
 - `:root:is(...) button:not([class])` in a theme outranks menu and toggle buttons.
 - A big review found 117 real problems, and a second review of the fixes found 14 new ones. Review the fixes, not only the code.
-- Pull requests over 150 files are skipped by CodeRabbit's free plan: stack them, and smoke-test between merges.
+- Pull requests over 150 files are skipped by CodeRabbit's free plan: stack them, and smoke-test between merges. The full procedure is the review skill's `references/ship.md` ("Stacked pull requests").

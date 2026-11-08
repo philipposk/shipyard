@@ -15,7 +15,7 @@ Every result also lists what could not be checked: `failedAreas` (a reviewer die
 
 Start each one with the Workflow tool and the file's absolute path: `Workflow({ scriptPath: "<absolute path of ${CLAUDE_PLUGIN_ROOT}/skills/review/workflows/review.js>", args: { ... } })`. If the path still shows the variable, run `echo "$CLAUDE_PLUGIN_ROOT"` to get it. Starting this skill is the student asking for a multi-agent review, but say how big the run will be before the first one.
 
-The workflows set the models themselves. Opus: areas with `"strong": true`, every skeptic on a high, critical or security finding, every diff-review reviewer, every diff-review skeptic except on low findings, the diff-review fixes and the content-gaps copy plan. Sonnet: the other areas and skeptics, the dedup, the inventories, the knip sweep and the final check. Fixers follow their batch's `strong` flag. Results land in the run's journal too (`journal.jsonl` in the transcript folder), so a failed save can be recovered from there. To resume after a stop, start it again with `resumeFromRunId`.
+The workflows set the models themselves. Your strongest model: areas with `"strong": true`, every skeptic on a high, critical or security finding, every diff-review reviewer, every diff-review skeptic except on low findings, the diff-review fixes and the content-gaps copy plan. A cheaper model: the other areas and skeptics, the dedup, the inventories, the knip sweep and the final check. Fixers follow their batch's `strong` flag. Results land in the run's journal too (`journal.jsonl` in the transcript folder), so a failed save can be recovered from there. To resume after a stop, start it again with `resumeFromRunId`.
 
 ## Without a workflow tool
 

@@ -18,3 +18,7 @@ If the student cannot decide: `calm-blue` for most apps, `clean-mono` for tools,
 Saved looks (from screenshots, a website or a DESIGN.md, saved with `--set-default`) also work with `--preset <id>`.
 
 Each look has its own menu, homepage, card, button and spacing style, so applying one changes the structure as well as the colours. The gallery shows exactly this. To keep the app's current menu style, add `--keep-layout` to `apply-design`.
+
+## The gallery
+
+`node "${CLAUDE_PLUGIN_ROOT}/scripts/design-gallery.mjs" --app <appDir>` opens a page showing the 8 looks on a phone and on a computer screen, light and dark. Add `--real` to see the looks on their own app instead of the pictures (takes about a minute, needs `npm install` first); offer it, don't force it. Before `--real`, write the app's real home words in `<appDir>/src/lib/home-content.ts` (otherwise every look is shown with the template's filler text; the script warns). They click "Use this look" and paste the sentence back. If they just name a look, skip the gallery.

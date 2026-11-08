@@ -18,7 +18,7 @@ You know which one you are. Follow the matching section: **A. Codex**, **B. Curs
 
 Run `node --version` and `git --version`.
 
-- Node must be 20 or newer. Git must exist.
+- Node must be 22 LTS or newer. Git must exist.
 - If one is missing, do not run installers that need an administrator password. Tell the user the one install line for their system (Node: https://nodejs.org, the LTS version; Git on Windows: https://git-scm.com; on a Mac, `git --version` makes the computer offer to install Git) and re-check when they say it is done. If `brew` exists on a Mac you may offer `brew install node`, and run it only after they say yes.
 
 ## A. Codex

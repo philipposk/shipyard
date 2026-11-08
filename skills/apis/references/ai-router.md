@@ -1,6 +1,6 @@
 # Pick the AI provider and model per task
 
-new-app's `references/ai-and-keys.md` has the proven default order (OpenRouter, then Groq, then OpenAI). This adds Gemini and NVIDIA and a small router. The router itself is **new, untested in production**.
+new-app's `references/ai-and-keys.md` owns the proven provider defaults (OpenRouter, then Groq, then OpenAI) and the `app-keys.mjs` flow that gives an app its keys. This file adds Gemini and NVIDIA and a small router on top. The router itself is **new, untested in production**.
 
 All five accept the OpenAI chat format (`POST <base>/chat/completions`, header `Authorization: Bearer <key>`), so one function covers them:
 

@@ -8,7 +8,7 @@ import { run as realRun, which as realWhich } from './lib/run.mjs';
 import { isMainModule } from './lib/paths.mjs';
 import { ok, fail, warn, info, json, parseArgs, setQuiet, UsageError } from './lib/log.mjs';
 
-const MIN_NODE = [20, 9]; // Next.js 16 needs Node 20.9 or newer
+const MIN_NODE = [22, 0]; // Node 20 is end of life since April 2026; Node 22 LTS is the floor (Next.js 16 needs at least 20.9).
 
 const HELP = `Usage: check-tools.mjs [--json]
 
@@ -29,7 +29,7 @@ export const INSTALL = {
   node: {
     macOS: 'brew install node   (no Homebrew? download the LTS installer from https://nodejs.org)',
     Windows: 'winget install OpenJS.NodeJS.LTS   (or download the LTS installer from https://nodejs.org)',
-    Linux: 'Install Node 20 or newer from https://nodejs.org/en/download (or with your package manager / nvm)',
+    Linux: 'Install Node 22 LTS or newer from https://nodejs.org/en/download (or with your package manager / nvm)',
   },
   git: {
     macOS: 'xcode-select --install   (or: brew install git)',

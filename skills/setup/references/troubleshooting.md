@@ -9,7 +9,7 @@ Start with `node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-status.mjs"` and `check-to
 | `gh: command not found` | Install the GitHub tool (see accounts.md step 1), then reopen the terminal |
 | `gh auth status` says not logged in | Run `gh auth login --web` again. The code expires after a few minutes |
 | `git push` asks for a password | Run `gh auth setup-git` so git uses the GitHub login |
-| Vercel login page never finishes | Close it, run `npx --yes vercel@64.3.1 login` again, pick "Continue with GitHub" |
+| Vercel login page never finishes | Close it, run `npx --yes vercel@65.12.1 login` again, pick "Continue with GitHub" |
 | `vercel whoami` says no credentials | Login did not finish. Run login again |
 | `secrets-check` says the Supabase token is missing | Open the keys file again with `secrets-init.mjs`. The line must be `SUPABASE_ACCESS_TOKEN=sbp_...` with no spaces, quotes or line breaks. Save the file |
 | Token looks right but `--live` fails with 401 | The token was revoked or copied incompletely. Generate a new one and replace the whole line |

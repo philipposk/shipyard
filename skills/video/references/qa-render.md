@@ -52,7 +52,7 @@ None ships. To add one: a royalty-free source whose licence you have read and th
 
 ## Memory and disk
 
-- Each render adds several MB to `video/out/`. Delete old renders when you are done (`out/` is not committed).
+- Each render adds several MB to `video/out/`. Delete old renders when you are done (`out/` is not committed), keeping the `--youtube` master until the student has uploaded it.
 - A render needs a few GB of free disk to work in; `video-render.mjs` will not start one with less than 3 GB free, and it removes Remotion's working folder (about 250 MB per render) from the temp folder afterwards.
 - "Could not extract frame from compositor ... disk space is low" or "TypeError: Failed to fetch" means the computer ran out of memory or disk, not a bug in the scenes. The engine tries such a render once more by itself, one frame at a time. If that fails too, close other apps, free disk space, and render again with `--low-memory` (one frame at a time, a smaller frame cache: slower). Long real-app footage needs it most.
 - One render at a time, in the foreground, on the whole computer. `video-render.mjs` does not start while another video render runs (another project or chat), and never removes that render's working folder. Never check with `pgrep -l` or `-fl`: they print other programs' settings, keys included.

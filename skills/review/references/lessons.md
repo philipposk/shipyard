@@ -24,7 +24,7 @@ From one full review of a big Next.js, Supabase and AI app (October 2026): 148 r
 
 ## Speed
 - Vercel runs functions in Washington (`iad1`) unless `vercel.json` sets `regions`. With the database in Europe every page makes several ocean crossings: put functions next to the database (`fra1` for eu-central-1).
-- A bottom tab lights up on tap (optimistic state), every tab has its own `loading.tsx`, and visited tabs stay cached (`staleTimes`). Measure taps with `references/speed.md`; a tab that "cannot be tapped" was usually a tap with no feedback for over a second.
+- A bottom tab lights up on tap (optimistic state), every tab has its own `loading.tsx` (except tabs that can answer "not found"; the 404 exception is in new-app's `references/build-rules.md`), and visited tabs stay cached (`staleTimes`). Measure taps with `references/speed.md`; a tab that "cannot be tapped" was usually a tap with no feedback for over a second.
 
 ## Server time
 - Read real usage before reviewing: `vercel metrics vercel.function_invocation.function_cpu_time_ms -p <project> -a sum --group-by route --since 30d`, then `--group-by clientUserAgent`, and the same for `vercel.middleware_invocation.function_cpu_time_ms`. Code alone did not show that a client was reconnecting 169,000 times a month.
@@ -53,4 +53,4 @@ From a data-loss bug in an offline-first notes app on a shared sign-in: a laptop
 - Review fixes to sync and concurrency code until a round finds only rare edge cases. Here each of three rounds found a new, smaller bug in the previous round's fix.
 
 ## Pull requests
-- CodeRabbit's free plan skips pull requests over 150 files. Keep each one at 150 or fewer; ship a bigger release as a stack, merge each with a merge commit (a squash makes the next one show the earlier files again), change the next one's target to `main` after each merge, and smoke-test the live app between merges.
+- CodeRabbit's free plan skips pull requests over 150 files: keep each one at 150 or fewer, and for a bigger release follow the procedure in the review skill's `references/ship.md` ("Stacked pull requests"): merge commits, retarget the next pull request after each merge, smoke-test the live app between merges.

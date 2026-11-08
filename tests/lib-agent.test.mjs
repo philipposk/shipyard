@@ -61,7 +61,14 @@ test('the hints for each agent', () => {
   assert.equal(reviewHint('codex'), 'ask your coding agent to review the branch before you merge');
 });
 
-test('the Claude Code default is exactly the old wording', () => {
+test('the Claude Code default is exactly the old wording', (t) => {
+  // Deterministic on machines with a real Codex or Cursor install record: no SHIPYARD_HOME means Claude Code.
+  const prev = process.env.SHIPYARD_HOME;
+  process.env.SHIPYARD_HOME = path.join(os.tmpdir(), 'no-such-shipyard-home');
+  t.after(() => {
+    if (prev === undefined) delete process.env.SHIPYARD_HOME;
+    else process.env.SHIPYARD_HOME = prev;
+  });
   assert.equal(skillHint('setup', 'claude'), '/shipyard:setup');
   assert.equal(agentName('claude'), 'Claude');
   assert.equal(agentNameStart('claude'), 'Claude');

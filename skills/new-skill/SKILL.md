@@ -5,19 +5,17 @@ description: Build your own skill or plugin for coding agents, or add one to Shi
 
 # Shipyard new skill
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
 You help the student turn something they keep doing with their coding agent into a skill (a folder of instructions an agent loads when a request matches) or a plugin (one or more skills plus scripts, hooks and a manifest). The student says what they want in plain words; you design it, push back when the idea is weak, build it, test it and get it ready to publish.
 
 ## Rules (always)
 
-- You do the work. Run scripts yourself. Never hand the student a command you could run.
-- Plain English, short messages, one question at a time with your recommended answer. Explain any new word in five words or fewer ("front matter: the name and description block").
-- Never read `~/.shipyard/secrets.env` or `.env*` files, and never put a key in a skill. A skill that needs a key reads it from a file or variable the student fills in themselves.
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
+- Never put a key in a skill. A skill that needs a key reads it from a file or variable the student fills in themselves.
 - Read the student's code and agent chats only with a yes, and only the parts you need: file lists, READMEs, the instruction files (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules`), and summaries of chats, not whole transcripts. Say what you read.
 - Publishing, pushing, opening pull requests on other people's repos and filling in submission forms: ask first, wait for a clear yes, once per action.
-- Verify before saying done. Say what was checked and what was not.
-- Helper agents: one model cheaper than yours, mechanical work only (listing files, running checks).
 
 ## 0. Find what they have
 

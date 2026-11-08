@@ -5,18 +5,16 @@ description: First-time Shipyard setup. Connects GitHub, Vercel and Supabase, st
 
 # Shipyard setup
 
-> Part of the Shipyard plugin. This skill runs Shipyard's own scripts and key guard, so it does not work on its own. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, stop and install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md, then start again.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
 
 You are helping a beginner get ready to build and publish apps. Setup can be stopped and continued: progress is saved in `~/.shipyard/profile.json`, so if the usage limit hits, they just run `/shipyard:setup` again later.
 
 ## Rules (always)
 
-- You do the work. Run the scripts and commands yourself. The student only clicks in a browser, signs up, and pastes keys into the keys file.
-- Never ask the student to paste a key in the chat. Never read or print `~/.shipyard/secrets.env`. Only scripts read it, and they show names with a tick or a cross, never values.
-- Plain English. Short steps. Say what to click and what URL to open. Explain any technical word in a few words.
-- One question at a time. Tell them which answer you recommend.
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+
+- The student only clicks in a browser, signs up, and pastes keys into the keys file. Say what to click and what URL to open.
 - Check each step before moving on. Do not say "done" until the check passes.
-- Do not spawn big groups of helper agents. If you use one (for example to look something up), give it a cheaper model than yours (Opus → `model: "sonnet"`, Sonnet → `model: "haiku"` for lookups only).
 
 ## Start
 
@@ -31,13 +29,13 @@ For the exact clicks of each step, read `references/accounts.md` when you reach 
 After each step passes, run `node "${CLAUDE_PLUGIN_ROOT}/scripts/profile.mjs" step-done <id>`.
 
 **1. `tools`** Why: Shipyard needs a few programs on the computer.
-Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-tools.mjs"`. It checks Node 20 or newer, git, the GitHub tool (`gh`), `npx`, and the Playwright browser used for phone-size checks. It prints the exact install line for their system. Do not run installers that need an admin password; show the line and ask them to run it, then re-check. For the Playwright browser, run `npx playwright install chromium` yourself.
+Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/check-tools.mjs"`. It checks Node 22 LTS or newer, git, the GitHub tool (`gh`), `npx`, and the Playwright browser used for phone-size checks. It prints the exact install line for their system. Do not run installers that need an admin password; show the line and ask them to run it, then re-check. For the Playwright browser, run `npx playwright install chromium` yourself.
 
 **2. `github`** Why: your app code is stored on GitHub.
 If they have no account, they sign up at github.com. Run `gh auth login --web` and show them the code and page; they approve in the browser. Then run `gh auth setup-git`. Check with `gh auth status`. Save the user name: `profile.mjs set accounts.github.user <name>` and `profile.mjs set accounts.github.ok true`.
 
 **3. `vercel`** Why: Vercel puts the app on the internet.
-They sign up at vercel.com with "Continue with GitHub". Run `npx --yes vercel@64.3.1 login` (it opens a browser). Check with `npx --yes vercel@64.3.1 whoami`. Save `accounts.vercel.user`, `accounts.vercel.scope` (their team name if shown, otherwise the user name) and `accounts.vercel.ok true`.
+They sign up at vercel.com with "Continue with GitHub". Run `npx --yes vercel@65.12.1 login` (it opens a browser). Check with `npx --yes vercel@65.12.1 whoami`. Save `accounts.vercel.user`, `accounts.vercel.scope` (their team name if shown, otherwise the user name) and `accounts.vercel.ok true`.
 
 **4. `supabase`** Why: Supabase holds the database and sign-in.
 Sign up at supabase.com with GitHub. Create an access token at supabase.com/dashboard/account/tokens (any name). Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/secrets-init.mjs"`. It opens the keys file. They paste the token after `SUPABASE_ACCESS_TOKEN=`, save, close, and say "done". Then run `node "${CLAUDE_PLUGIN_ROOT}/scripts/secrets-check.mjs" --live`. When it shows a tick, find their organisation (the check output or the Supabase dashboard shows it; if there is only one, use it). Save `accounts.supabase.orgId` (the organisation's slug, the short name in the dashboard URL), `accounts.supabase.orgName` and `accounts.supabase.ok true`.

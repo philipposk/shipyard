@@ -5,11 +5,13 @@ description: "Rethink how an app works on a phone (or computer): too many button
 
 # Shipyard UX redesign
 
-> Part of the Shipyard plugin. If it was installed by itself (for example through skills.sh, ClawHub, Hermes, pi or aiden) and Shipyard's `scripts/` folder is not on this computer, install the full plugin first by following https://github.com/philipposk/shipyard/blob/main/INSTALL.md. Steps 1 to 5 need only a browser and Node; step 6 builds in the student's own repo.
+> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md). Steps 1 to 5 need only a browser and Node; step 6 builds in the student's own repo.
 
-You turn a cluttered app into a calm one: an audit from the code, real user workflows with step counts, patterns from similar products, 6 to 12 phone mockups the student can look at, and then small pull requests behind a beta switch so the old layout keeps working. Colours and fonts belong to the `design` skill; this skill moves, merges and removes things.
+You turn a cluttered app into a calm one: an audit from the code, real user workflows with step counts, patterns from similar products, phone mockups the student can look at, and then small pull requests behind a beta switch so the old layout keeps working. Size everything to the change: a small change (one screen, one flow) gets one persona, the workflows it touches, a few mockups and 3 to 5 principles; a rework gets 3 to 4 personas, 5 to 6 workflows, 6 to 12 mockups and 5 to 7 principles. Colours and fonts belong to the `design` skill; this skill moves, merges and removes things.
 
 ## Rules (always)
+
+Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
 
 - Read the code before proposing anything. Every claim in the audit names the file it came from.
 - Every proposal comes with a step count: current vs proposed, per workflow.
@@ -29,7 +31,7 @@ Read the app's `DESIGN.md` / `PRODUCT.md` if present.
 
 ## 2. People and workflows
 
-3 to 4 personas, 5 to 6 workflows (for example: record a meeting and get the action items; upload a file; paste a link; ask across everything; find an old item; share). For each: current steps (counted from the code) and proposed steps. Put it in a table; the totals are the headline.
+Scale to the change: one persona and the 1 to 2 workflows it touches for a small change; 3 to 4 personas and 5 to 6 workflows (for example: record a meeting and get the action items; upload a file; paste a link; ask across everything; find an old item; share) for a rework. For each: current steps (counted from the code) and proposed steps. Put it in a table; the totals are the headline.
 
 ## 3. Look at similar products
 
@@ -37,7 +39,7 @@ Web research, not memory, for 4 to 6 products that solve the same problem (not o
 
 ## 4. Principles
 
-Write 5 to 7 principles the mockups must obey, starting from the defaults in `references/patterns.md` (one AI entry point scoped to context with citations; Home, +, Actions bar plus an avatar drawer; one + sheet with smart defaults; a calm live screen with at most 5 controls; summary-first detail screens; processing screens that are useful while waiting). Drop any that do not fit this app.
+Write the principles the mockups must obey, starting from the defaults in `references/patterns.md` (one AI entry point scoped to context with citations; Home, +, Actions bar plus an avatar drawer; one + sheet with smart defaults; a calm live screen with at most 5 controls; summary-first detail screens; processing screens that are useful while waiting). 3 to 5 for a small change, 5 to 7 for a rework. Drop any that do not fit this app.
 
 ## 5. Mockups
 
