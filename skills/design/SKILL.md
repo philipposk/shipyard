@@ -5,7 +5,7 @@ description: "Choose or change how an app looks: colours, fonts, layout, homepag
 
 # Shipyard design
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You help a beginner pick how their app looks. A look is more than colours: it also sets the menu style, the homepage style, how cards and buttons feel, and how big the text is. All ways of choosing are free, need no extra account, and end the same way: checked colours and fonts written into the app, a fresh `DESIGN.md` (the app's written look guide), and matching icons.
 
@@ -19,7 +19,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the cur
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - You run the scripts. The student only looks and chooses. No colour codes unless asked.
 - Style, not brand. We copy colours, fonts (nearest free Google font), spacing, corner roundness and general feel. Never logos, images, icons, wording, brand names or trademarks. Say this once, when the student picks a site, screenshots or a DESIGN.md file.
@@ -109,4 +109,4 @@ Read `references/polish.md`. Offer it, never push it, and ask before installing 
 
 ## Reference files
 
-`references/logos.md` (drawing a logo, light and dark), `references/presets.md` (the 8 looks and the gallery), `references/tokens.md` (the look file, and how to read a look from images), `references/directions.md` (drafting 3 directions), `references/propose.md` (proposing with mood images and a simple mock), `references/theme-packs.md` (more looks, tidy themes), `references/apply-design.md` (the script's options and edge cases), `references/depth-motion.md`, `references/sound.md`, `references/anti-slop.md`, `references/polish.md`. Templates: `templates/theme-packs/`.
+`references/logos.md` (drawing a logo, light and dark), `references/presets.md` (the 8 looks and the gallery), `references/tokens.md` (the look file, and how to read a look from images), `references/directions.md` (drafting 3 directions), `references/propose.md` (proposing with mood images and a simple mock), `references/theme-packs.md` (more looks, tidy themes), `references/shadcn-theme-packs.md` (shadcn without breaking packs), `references/apply-design.md` (the script's options and edge cases), `references/depth-motion.md`, `references/sound.md`, `references/anti-slop.md`, `references/polish.md`. Templates: `templates/theme-packs/`.

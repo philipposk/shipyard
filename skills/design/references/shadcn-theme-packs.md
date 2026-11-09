@@ -1,10 +1,6 @@
 # shadcn components in a Shipyard app (without breaking the look)
 
-Shipyard apps get their colours from theme packs (`.shipyard/design/packs.json`, generated
-into `globals.css` between the `shipyard:theme-packs` markers) and switch mode with a
-`data-theme` attribute on `<html>`. A plain `npx shadcn init` ignores all of that and writes
-a static token block that silently breaks the packs. This page is the integration recipe,
-worked out on the MindScope app (9 Nov 2026, after v0 produced a broken integration).
+Shipyard apps get their colours from theme packs and switch mode with `data-theme` on `<html>`. A plain `npx shadcn init` writes a static token block that breaks that.
 
 ## What a naive init breaks
 
@@ -32,8 +28,6 @@ worked out on the MindScope app (9 Nov 2026, after v0 produced a broken integrat
 
    ```css
    @theme inline {
-     --font-sans: var(--app-font);
-     --font-heading: var(--heading-font);
      --color-background: var(--background);
      --color-foreground: var(--foreground);
      --color-card: var(--card);
@@ -41,7 +35,7 @@ worked out on the MindScope app (9 Nov 2026, after v0 produced a broken integrat
      --color-popover: var(--card);
      --color-popover-foreground: var(--foreground);
      --color-primary: var(--accent);          /* the app's one accent colour */
-     --color-primary-foreground: var(--on-accent);
+     --color-primary-foreground: var(--accent-contrast);
      --color-secondary: var(--accent-soft);
      --color-secondary-foreground: var(--foreground);
      --color-muted: var(--card);              /* bg-muted = a surface, NOT the muted text colour */
@@ -53,13 +47,13 @@ worked out on the MindScope app (9 Nov 2026, after v0 produced a broken integrat
      --color-border: var(--border);
      --color-input: var(--border);
      --color-ring: var(--focus);
-     --color-sidebar: var(--sidebar-bg, var(--card));
+     --color-sidebar: var(--card);
      --color-sidebar-foreground: var(--foreground);
      --color-sidebar-border: var(--border);
      --color-sidebar-accent: var(--accent-soft);
      --color-sidebar-accent-foreground: var(--accent);
      --color-sidebar-primary: var(--accent);
-     --color-sidebar-primary-foreground: var(--on-accent);
+     --color-sidebar-primary-foreground: var(--accent-contrast);
      --color-sidebar-ring: var(--focus);
      --radius-sm: calc(var(--radius) * 0.75);
      --radius-md: var(--radius);
@@ -75,13 +69,13 @@ worked out on the MindScope app (9 Nov 2026, after v0 produced a broken integrat
    `--muted` is a TEXT colour, and shadcn's `--accent` is a soft hover background while
    Shipyard's `--accent` is the brand colour. Map them as above, never rename Shipyard's.
 
-5. **Do not** add the font override (`--font-sans` belongs to the app's font system).
+5. Extend the existing `@theme inline` block in `globals.css`. Do not add a second one, and do not set `--font-sans` again (the template already maps it to `--app-font`).
 
 ## Verification
 
-After integrating, check all of these in a browser (or the live-smoke script):
+After integrating, check all of these in a browser:
 
-- Every pack (Studio, Calm blue, Soft pastel) in light, dark and Auto.
+- Every pack this app actually has, in light, dark and Auto. The template's control is the cycle button `ThemeToggle` (`aria-label` starts with `Theme:`), not a radio group.
 - `bg-primary` controls follow the pack accent; `text-muted-foreground` stays readable.
 - `dark:` variants change with the mode switch (they follow `data-theme`, not a class).
 - `npm run check:design`, `npm test`, `npm run build` still pass.
