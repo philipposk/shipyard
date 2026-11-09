@@ -25,6 +25,8 @@ export const SERVER_KEY_ALLOWED = [
   'lib/analysis/',
   // Same for the chat assistant: the budget check, reply persistence and usage ledger.
   'lib/chat/',
+  // Cross-chat projects: queueing and running the combined analysis.
+  'lib/projects/',
   // Public uptime probe. One head-only read of profiles, no row returned. See app/api/health/route.ts.
   'app/api/health/route.ts',
 ];
