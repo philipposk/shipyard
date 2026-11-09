@@ -44,6 +44,11 @@ export const RISKY_PATHS = [
   "src/app/api/newsletter/",
   "src/lib/errors/",
   "src/app/api/errors/",
+  // Analysis apps (readings, chat, projects): their stores and workers write the server-only tables.
+  "src/lib/readings/",
+  "src/lib/analysis/",
+  "src/lib/chat/",
+  "src/lib/projects/",
   // The tests that guard all of this. A pull request must not be able to delete the tests that would fail it.
   "tests/",
   // The robot's own rules and the checks that guard the app.
