@@ -23,7 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["20", "24"]
+        # The setup check requires Node 22 or newer, so older lines are not tested.
+        node: ["22", "24"]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
