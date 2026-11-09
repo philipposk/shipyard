@@ -1,6 +1,6 @@
 # API keys: where to get them, names, storage, checks
 
-All keys live in `~/.shipyard/secrets.env` on the student's computer (one `NAME=value` line each). Claude, Codex, Cursor and Shipyard scripts all use this same file. Save a key with `secrets-set.mjs <NAME>` and the value on stdin only. Add missing empty lines with `secrets-init.mjs`. Check with `secrets-check.mjs --live`. Copy into an app with `app-keys.mjs <appDir> NAME`. Other tools (for example DeepSeek Harness) are separate products with their own config unless the student symlinks this file. Apps read them from `process.env.NAME` on the server only. Nothing here goes in `NEXT_PUBLIC_*` names, the repo or a chat.
+All keys live in `~/.shipyard/secrets.env` on the student's computer (one `NAME=value` line each). Codex, Cursor and every skill installed by Shipyard read this same file through the scripts. Save a key with `secrets-set.mjs <NAME>` and the value on stdin only. Add missing empty lines with `secrets-init.mjs`. Check with `secrets-check.mjs --live`. Copy into an app with `app-keys.mjs <appDir> NAME`. Other tools (for example DeepSeek Harness) are separate products with their own config unless the student symlinks this file. Apps read them from `process.env.NAME` on the server only. Nothing here goes in `NEXT_PUBLIC_*` names, the repo or a chat.
 
 | Service | Env var | Where to get it | Cheap check (`--live`) |
 |---|---|---|---|
