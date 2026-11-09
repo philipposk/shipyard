@@ -14,7 +14,6 @@
     "knip": "npx --yes knip@5 --no-progress",
     "check:design": "node scripts/design-check.mjs",
     "test": "node scripts/run-tests.mjs",
-    "smoke": "node scripts/live-smoke.mjs",
     "lighthouse": "node scripts/lighthouse-ci.mjs"
   },
   "dependencies": {
