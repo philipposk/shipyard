@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { healthyLines, run } from '../scripts/supabase-health.mjs';
+import { healthyLines, run, triggerReport } from '../scripts/supabase-health.mjs';
 const harness = (argv, extra = {}) => {
   const said = [];
   return run(argv, {
@@ -56,4 +56,35 @@ test('--restart calls restart and says the budget does not refill', async () => 
 test('a missing ref exits 2', async () => {
   const { code } = await harness([]);
   assert.equal(code, 2);
+});
+
+test('triggerReport flags a definition that writes encrypted_password and ignores other columns', () => {
+  const rows = triggerReport([
+    { tgname: 'clear_password_on_first_confirm', def: "BEFORE UPDATE BEGIN new.encrypted_password := ''; RETURN new; END" },
+    { tgname: 'on_auth_user_created', def: 'AFTER INSERT BEGIN INSERT INTO public.profiles (id) VALUES (new.id); RETURN new; END' },
+  ]);
+  assert.deepEqual(rows, [
+    { name: 'clear_password_on_first_confirm', touchesPassword: true },
+    { name: 'on_auth_user_created', touchesPassword: false },
+  ]);
+});
+
+test('--auth-triggers prints names only and does not select emails', async () => {
+  let query = '';
+  const said = [];
+  const code = await run(['abcdefghijklmnopqrst', '--auth-triggers'], {
+    say: (line) => said.push(line),
+    getSecret: async () => 'sbp_test_token_not_real',
+    runSql: async (_auth, _ref, sql) => {
+      query = sql;
+      return [{ tgname: 'on_auth_user_created', def: 'insert into profiles (id) values (new.id)' }];
+    },
+  });
+  assert.equal(code, 0);
+  assert.match(query, /pg_trigger/);
+  assert.match(query, /::regclass/);
+  assert.doesNotMatch(query, /select email/i);
+  const text = said.join('\n');
+  assert.match(text, /on_auth_user_created: does not touch encrypted_password/);
+  assert.doesNotMatch(text, /@/);
 });

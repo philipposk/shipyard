@@ -13,10 +13,22 @@ import { startedAs } from './agents/entry.mjs';
 import { getSecret as realGetSecret } from './lib/secrets.mjs';
 import * as api from './lib/supabase-api.mjs';
 
-const USAGE = `Usage: node supabase-health.mjs <project-ref> [--restart]
+const USAGE = `Usage: node supabase-health.mjs <project-ref> [--restart] [--auth-triggers]
 
 Checks whether the database, sign-in and data API are up.
---restart restarts the project (about 5 minutes). The disk IO budget does not refill.`;
+--restart restarts the project (about 5 minutes). The disk IO budget does not refill.
+--auth-triggers lists triggers on the shared sign-in table and whether each definition mentions encrypted_password. It prints no emails.`;
+
+/** @param {unknown[]} rows */
+export function triggerReport(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return list.map((row) => {
+    const item = row && typeof row === 'object' ? row : {};
+    const name = typeof item.tgname === 'string' && item.tgname ? item.tgname : 'unnamed';
+    const def = typeof item.def === 'string' ? item.def : '';
+    return { name, touchesPassword: /encrypted_password/i.test(def) };
+  });
+}
 
 /** @param {unknown} body */
 export function healthyLines(body) {
@@ -41,8 +53,13 @@ export async function run(argv, deps = {}) {
     say(USAGE);
     return 0;
   }
+  const authTriggers = argv.includes('--auth-triggers');
   const restart = argv.includes('--restart');
-  const ref = argv.find((arg) => arg !== '--restart' && !arg.startsWith('-'));
+  if (authTriggers && restart) {
+    say(USAGE);
+    return 2;
+  }
+  const ref = argv.find((arg) => arg !== '--restart' && arg !== '--auth-triggers' && !arg.startsWith('-'));
   if (!ref) {
     say(USAGE);
     return 2;
@@ -59,6 +76,18 @@ export async function run(argv, deps = {}) {
   }
   const auth = { token, fetch: deps.fetch, sleep: deps.sleep };
   try {
+    if (authTriggers) {
+      const runSql = deps.runSql ?? api.runSql;
+      const sql = `select tgname, pg_get_triggerdef(oid) as def
+from pg_trigger
+where tgrelid = 'auth.users'::regclass and not tgisinternal`;
+      const rows = triggerReport(await runSql(auth, ref, sql));
+      if (rows.length === 0) say('No triggers on the shared sign-in table.');
+      for (const row of rows) {
+        say(`${row.name}: ${row.touchesPassword ? 'touches encrypted_password' : 'does not touch encrypted_password'}`);
+      }
+      return 0;
+    }
     if (restart) {
       await restartProject(auth, ref);
       say(`Restart requested for ${ref}. It takes about 5 minutes. The disk IO budget does not refill, so cut load once it is back.`);
