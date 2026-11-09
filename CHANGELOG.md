@@ -2,6 +2,11 @@
 
 Release notes, newest first. Moved out of README.md on 8 Nov 2026; add a new section per release.
 
+## What changed in 0.9.0
+
+- New `ai-visibility` skill and `scripts/ai-visibility.mjs`: audit llms.txt, JSON-LD, OG and robots for AI crawlers; OpenRouter baseline for whether models name the app; honest directory draft playbook.
+- `theme-picker` skill (per-user colours from Catchy). Publication gate across new-app, launch and review. Sign-out uses local scope on shared Supabase. Review speed tab-switch checklist; ux-redesign v2 phone lessons. Verify hygiene warns on top-level SDK clients and Vercel `api/` limits.
+
 ## What changed in 0.8.12
 
 - The server-key check no longer allows every file under a shared folder name. An app that needs the key lists an exact file.

@@ -5,9 +5,11 @@ description: "Let users of an app pick their own colours: preset themes plus a f
 
 # Shipyard theme picker
 
-> Part of the Shipyard plugin. If it was installed by itself and Shipyard's `scripts/` folder is not on this computer, install the full plugin first: https://github.com/philipposk/shipyard/blob/main/INSTALL.md.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 Reference build: Catchy PR #132 (`lib/custom-theme.ts`, `lib/color.ts`, `components/ColorPicker.tsx`, `components/ThemeEditor.tsx`).
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 ## 1. Make every colour a CSS variable first
 Before any picker, the app's CSS must read colours only from variables (`--bg`, `--surface`, `--text`, `--accent`, `--inverse`/`--on-inverse` for buttons, plus derived `--subtle`, `--raised`, `--line`, `--muted`). Search for hard-coded hex values and replace them. A picker over a half-variabled app looks broken.

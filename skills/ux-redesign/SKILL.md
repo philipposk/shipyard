@@ -76,7 +76,7 @@ See `references/patterns.md`, "Pitfalls". Check each before saying a PR is ready
   - Use the framework's client links, not plain `<a>`.
   - Light the tab optimistically and add `loading.tsx` skeletons.
   - Measure before and after at 390px with 4x CPU throttle: time until the tab is lit and until the page has painted.
-- **Settings information architecture** (Linear, Notion, Slack, ChatGPT, Claude all converge on this):
+- **Settings information architecture** (Linear, Notion, Slack and similar chat apps converge on this):
   - Grouped sections (Preferences / AI / Account).
   - On phones, a drill-in list (`/settings` *is* the list; each section has `‹ Settings` + title).
   - On desktop, a left sidebar. Never a long horizontal tab strip.
