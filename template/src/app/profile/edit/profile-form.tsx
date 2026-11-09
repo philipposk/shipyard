@@ -30,8 +30,8 @@ export function ProfileForm({ initialName, initialBio, finished }: ProfileFormPr
         setError(data.error || "Could not save your profile. Try again.");
         return;
       }
-      // A full navigation on purpose: router.replace then router.refresh races (the refresh cancels
-      // the replace), which leaves a new person stuck on this page after saving. See docs/lessons-2026-11-09.md.
+      // Full page load on purpose. A client-side replace then refresh cancels
+      // the navigation, so a new person stays on this page after a successful save.
       window.location.replace("/");
     } catch {
       setError("Could not reach the server. Check your connection and try again.");
