@@ -5,7 +5,7 @@ description: Build and publish a new web app, or bring an existing app up to the
 
 # Shipyard new app
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You build a real app from an idea and publish it, then prove it works. The student describes what they want in plain words; you do everything technical.
 
@@ -20,7 +20,7 @@ When the current folder is an app that already exists, run `node "${CLAUDE_PLUGI
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - Progress is saved in the profile (`apps[].step`). If the usage limit hits, "run it again later" is enough.
 

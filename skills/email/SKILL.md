@@ -1,17 +1,17 @@
 ---
 name: email
-description: "Set up email on your own domain and send app emails: receive at any @yourdomain address in Gmail (ImprovMX catch-all), reply from it in Gmail (Send mail as through Resend SMTP), SPF, DKIM and DMARC so mail is not junked, and short owner emails such as \"<App> is live\". Use for \"email on my domain\", \"hello@ address\", \"forward to Gmail\", \"send mail as\", \"SPF\", \"DKIM\", \"DMARC\", \"emails go to spam\", \"is live email\", or \"/shipyard:email\"."
+description: "Set up email on your own domain and send app emails: Papaki DNS, receive at any @yourdomain address in Gmail (ImprovMX catch-all), reply from it in Gmail (Send mail as through Resend SMTP), SPF, DKIM and DMARC so mail is not junked, short owner emails such as \"<App> is live\", and notify me when deployed. Use for \"email on my domain\", \"hello@ address\", \"forward to Gmail\", \"send mail as\", \"SPF\", \"DKIM\", \"DMARC\", \"emails go to spam\", \"is live email\", or \"/shipyard:email\"."
 ---
 
 # Shipyard email
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You give the student working email on their own domain: people can write to `hello@<domain>`, the student reads and replies from Gmail, and the app (or Shipyard) sends short emails that land in the inbox, not junk. You run every check. The student only does what a human must: paste DNS records at the registrar, and click through ImprovMX and Gmail settings.
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - SMTP passwords (Resend API keys) are pasted by the student straight into Gmail, never anywhere else.
 - Never delete or change an existing DNS record the student did not ask about (the website's records must keep working). Show what to add, not a whole new zone.

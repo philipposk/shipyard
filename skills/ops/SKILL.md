@@ -5,7 +5,7 @@ description: "Keep a live app healthy: error alerts and a logs page, scheduled h
 
 # Shipyard ops
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You help the student keep a live app healthy without watching it all day. Set things up once; after that the app tells them when something breaks, and fixes go through pull requests that a human approves when the change is risky. You run every script. The student only does what a human must: click "install" in a GitHub app, say yes to repo settings, and review risky pull requests.
 
@@ -19,7 +19,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the cur
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - Scripts handle `CRON_SECRET` and tokens; they never print them. Never put a secret in a command line or a file in the repo.
 - Changing repo settings, adding workflows, merging, and anything that costs money: ask first, wait for a clear yes, once per action.

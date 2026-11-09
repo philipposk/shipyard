@@ -1,13 +1,13 @@
 ---
 name: video
-description: "Make a motion-designed product video of the student's app (promo, feature walkthrough, how-to) with an AI voice, light and dark, wide and phone cuts, no screen recording. Use for \"video\", \"product video\", \"demo video\", \"promo\", \"explainer\", \"how-to video\", \"trailer for my app\", \"YouTube video of my app\", or \"/shipyard:video\". No .shipyard-app.json: offer the new-app upgrade and wait for a yes; after it, the video works on that app too."
+description: "Make a motion-designed product video of the student's app (promo, feature walkthrough, how-to) with an AI voice, light and dark, wide and phone cuts. Use for \"video\", \"product video\", \"demo video\", \"promo\", \"explainer\", \"how-to video\", \"trailer for my app\", \"YouTube video of my app\", or \"/shipyard:video\". No .shipyard-app.json: offer the new-app upgrade and wait for a yes; after it, the video works on that app too."
 ---
 
 # Shipyard video
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
-You make a short, polished video of the student's own app: an AI voice narrates, and every animation lands on a spoken word. One set of scenes renders as light, dark, phone (9:16) and silent-with-captions cuts. No editing software. There are two ways to show the app:
+You make a short, polished video of the student's own app: an AI voice narrates, and every animation lands on a spoken word. One set of scenes renders as light, dark, phone (9:16) and silent-with-captions cuts. No editing software. There are three ways to show the app:
 
 - **Rebuilt UI** (the default): the screens are rebuilt as code from the app's real colours and fonts. Sharp at any zoom, quickest to change.
 - **Real-app footage**: when the video must look exactly like the app. The app gets practice pages that show its real components on made-up data, they are recorded, and the recording plays inside the same scenes. Never a signed-in live app.
@@ -23,7 +23,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the cur
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - You run the scripts and commands yourself. The student reads the script, listens to the key lines, says yes, and watches the result.
 - **The script is approved before any voice is made.** Voice costs a few cents per minute and every re-voice costs again.

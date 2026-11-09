@@ -582,7 +582,7 @@ const skills = readdirSync(skillsDir).filter((name) => readFileSync(path.join(sk
 test('every skill orders a read of the shared rules and links the install doc', () => {
   for (const name of skills) {
     const text = readFileSync(path.join(skillsDir, name, 'SKILL.md'), 'utf8');
-    assert.match(text, /https:\/\/github\.com\/philipposk\/shipyard\/blob\/main\/INSTALL\.md/, name);
+    assert.match(text, /INSTALL\.md/, name);
     assert.match(text, /Read `\$\{CLAUDE_PLUGIN_ROOT\}\/skills\/new-app\/references\/working-rules\.md` now, before any other step/, name);
   }
 });
