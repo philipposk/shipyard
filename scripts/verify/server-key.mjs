@@ -23,6 +23,8 @@ export const SERVER_KEY_ALLOWED = [
   // write the server-only chunk, usage and report tables with the secret key.
   'lib/readings/',
   'lib/analysis/',
+  // Same for the chat assistant: the budget check, reply persistence and usage ledger.
+  'lib/chat/',
   // Public uptime probe. One head-only read of profiles, no row returned. See app/api/health/route.ts.
   'app/api/health/route.ts',
 ];
