@@ -184,6 +184,7 @@ const BASH_ALLOW = [
   'npm run build 2>&1 | tail -20',
   `node "${ROOT}/scripts/secrets-check.mjs" --live`,
   `node "${ROOT}/scripts/secrets-init.mjs"`,
+  `node "${ROOT}/scripts/secrets-set.mjs" OPENAI_API_KEY`,
   `node "${ROOT}/scripts/provision-supabase.mjs" ./my-app/.env.local`,
   `node "${ROOT}/scripts/profile.mjs" show`,
   'npm run dev -- --env-file .env.local',

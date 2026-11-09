@@ -17,6 +17,7 @@ const FAKE = {
   GROQ_API_KEY: `gsk_${'j0'.repeat(20)}`,
   DEEPGRAM_API_KEY: 'k1'.repeat(20),
   ELEVENLABS_API_KEY: `sk_${'m1'.repeat(12)}`,
+  INWORLD_API_KEY: `iwkey_${'q1'.repeat(20)}`,
   NVIDIA_API_KEY: `nvapi-${'n2'.repeat(12)}`,
   GEMINI_API_KEY: `AIza${'o3'.repeat(17)}`,
   BRAVE_API_KEY: 'BS'.repeat(15),
@@ -73,6 +74,19 @@ test('ensureSecretsFile appends missing keys without touching existing values', 
   const again = await S.ensureSecretsFile();
   assert.deepEqual(again.added, []);
   assert.equal(await readFile(SECRETS_PATH, 'utf8'), before);
+});
+
+test('setSecret replaces an existing line and appends new keys', async () => {
+  await S.ensureSecretsFile();
+  const first = await S.setSecret('GROQ_API_KEY', FAKE.GROQ_API_KEY);
+  assert.equal(first.replaced, true, 'empty placeholder line counts as replaced');
+  const second = await S.setSecret('GROQ_API_KEY', `${FAKE.GROQ_API_KEY}x`);
+  assert.equal(second.replaced, true);
+  const secrets = await S.readSecrets();
+  assert.equal(secrets.get('GROQ_API_KEY'), `${FAKE.GROQ_API_KEY}x`);
+  const custom = await S.setSecret('INWORLD_API_KEY', FAKE.INWORLD_API_KEY);
+  assert.equal(custom.replaced, true, 'known keys start as empty lines in ensureSecretsFile');
+  assert.equal((await S.readSecrets()).get('INWORLD_API_KEY'), FAKE.INWORLD_API_KEY);
 });
 
 test('readSecrets returns only keys with values', async () => {

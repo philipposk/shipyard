@@ -1,6 +1,6 @@
 # API keys: where to get them, names, storage, checks
 
-All keys live in the student's keys file `~/.shipyard/secrets.env` (one `NAME=value` line each, on their computer only). Add a missing one with `secrets-init.mjs` (it adds the empty line with a hint; the student pastes the value), check with `secrets-check.mjs --live`, and give it to an app with `app-keys.mjs <appDir> NAME`. Apps read them from `process.env.NAME` on the server only. Nothing here goes in `NEXT_PUBLIC_*` names, the repo or a chat.
+All keys live in `~/.shipyard/secrets.env` on the student's computer (one `NAME=value` line each). Claude, Codex, Cursor and Shipyard scripts all use this same file. Save a key with `secrets-set.mjs <NAME>` and the value on stdin only. Add missing empty lines with `secrets-init.mjs`. Check with `secrets-check.mjs --live`. Copy into an app with `app-keys.mjs <appDir> NAME`. Other tools (for example DeepSeek Harness) are separate products with their own config unless the student symlinks this file. Apps read them from `process.env.NAME` on the server only. Nothing here goes in `NEXT_PUBLIC_*` names, the repo or a chat.
 
 | Service | Env var | Where to get it | Cheap check (`--live`) |
 |---|---|---|---|
@@ -9,6 +9,7 @@ All keys live in the student's keys file `~/.shipyard/secrets.env` (one `NAME=va
 | Groq | `GROQ_API_KEY` | console.groq.com > API Keys | `GET /openai/v1/models` (free) |
 | Deepgram | `DEEPGRAM_API_KEY` | console.deepgram.com > API Keys | `GET /v1/projects` (free) |
 | ElevenLabs | `ELEVENLABS_API_KEY` | elevenlabs.io > Developers > API Keys | `GET /v1/user` (free; key needs "User: read") |
+| Inworld | `INWORLD_API_KEY` | Inworld Studio > Integrations | format check only |
 | NVIDIA | `NVIDIA_API_KEY` | build.nvidia.com > a model > Get API Key | format only (`nvapi-`) |
 | Gemini | `GEMINI_API_KEY` | aistudio.google.com > Get API key (free tier) | `GET /v1beta/models` (free) |
 | Brave Search | `BRAVE_API_KEY` | api-dashboard.search.brave.com | one search (`count=1`), uses 1 query |

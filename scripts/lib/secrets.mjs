@@ -40,6 +40,11 @@ export const KNOWN_SECRETS = [
     check: hasPrefix('sk_'),
   },
   {
+    name: 'INWORLD_API_KEY', required: false, step: 'ai-keys',
+    hint: 'Optional (Inworld voice and characters). Inworld Studio > Integrations > API key (long base64 string).',
+    check: (v) => /^[A-Za-z0-9_\-./+=]{20,}$/.test(v),
+  },
+  {
     name: 'NVIDIA_API_KEY', required: false, step: 'ai-keys',
     hint: 'Optional (free hosted models). build.nvidia.com > any model > Get API Key (starts with nvapi-).',
     check: hasPrefix('nvapi-'),
@@ -216,6 +221,34 @@ async function lockDown() {
   } catch {
     // not fatal
   }
+}
+
+const ENV_KEY = /^[A-Z][A-Z0-9_]*$/;
+
+/**
+ * Set or replace one key. Value from stdin in secrets-set.mjs; never log the value.
+ * Returns { path, name, replaced }.
+ */
+export async function setSecret(name, value) {
+  if (!ENV_KEY.test(name)) throw new Error(`Bad key name: ${name}`);
+  const v = String(value).trim();
+  if (!v || /\s/.test(v) || /[\r\n]/.test(v)) throw new Error('The value must be one line with no spaces.');
+  await ensureHomeDir();
+  await ensureSecretsFile();
+  let text = (await readText()) ?? '';
+  const lineRe = new RegExp(`^${name}=.*$`, 'm');
+  const replaced = lineRe.test(text);
+  if (replaced) {
+    text = text.replace(lineRe, `${name}=${v}`);
+  } else {
+    const known = KNOWN_SECRETS.find((k) => k.name === name);
+    const lead = text === '' || text.endsWith('\n') ? '' : '\n';
+    const extra = known ? `\n# ${known.hint}\n${name}=${v}\n` : `\n${name}=${v}\n`;
+    text = `${text}${lead}${extra}`;
+  }
+  await writeFile(SECRETS_PATH, text, { mode: 0o600 });
+  await lockDown();
+  return { path: SECRETS_PATH, name, replaced };
 }
 
 /** Error for a key that isn't set yet. Says which setup step fixes it. Never holds a value. */
