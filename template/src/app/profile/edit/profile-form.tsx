@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { MAX_BIO_LENGTH, MAX_DISPLAY_NAME_LENGTH } from "@/lib/validate.mjs";
 
 interface ProfileFormProps {
@@ -11,7 +10,6 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ initialName, initialBio, finished }: ProfileFormProps) {
-  const router = useRouter();
   const [displayName, setDisplayName] = useState(initialName);
   const [bio, setBio] = useState(initialBio);
   const [saving, setSaving] = useState(false);
@@ -32,9 +30,9 @@ export function ProfileForm({ initialName, initialBio, finished }: ProfileFormPr
         setError(data.error || "Could not save your profile. Try again.");
         return;
       }
-      // Go home and re-read the page from the server so the navigation appears now that the profile is done.
-      router.replace("/");
-      router.refresh();
+      // A full navigation on purpose: router.replace then router.refresh races (the refresh cancels
+      // the replace), which leaves a new person stuck on this page after saving. See docs/lessons-2026-11-09.md.
+      window.location.replace("/");
     } catch {
       setError("Could not reach the server. Check your connection and try again.");
     } finally {
