@@ -48,6 +48,13 @@ test('every new file the launch skill and the modules rely on exists', async () 
   ]) assert.ok(await exists(rel), rel);
 });
 
+test('profile save does a full navigation and does not cite a doc the app will not contain', async () => {
+  const form = await read('src/app/profile/edit/profile-form.tsx');
+  assert.match(form, /window\.location\.replace\("\/"\)/);
+  assert.doesNotMatch(form, /router\.(replace|refresh)/);
+  assert.doesNotMatch(form, /lessons-2026-11-09/);
+});
+
 test('signup modes: starter is the default, verified goes through Supabase signUp with the confirm address', async () => {
   const constants = await read('src/lib/constants.ts');
   assert.match(constants, /export const SIGNUP_MODE: "starter" \| "verified" = parseSignupMode\(process\.env\.NEXT_PUBLIC_SIGNUP_MODE\)/);
@@ -57,6 +64,12 @@ test('signup modes: starter is the default, verified goes through Supabase signU
   assert.match(signup, /emailRedirectTo: confirmRedirectUrl\(SITE_URL\)/);
   assert.match(signup, /isHiddenExistingUser/);
   assert.match(signup, /email_confirm: true/, 'starter mode keeps confirming on the server');
+  const starter = signup.slice(signup.indexOf('async function starterSignup'), signup.indexOf('async function verifiedSignup'));
+  assert.match(starter, /createUser\(\{[\s\S]*email_confirm: true/);
+  const createCall = starter.match(/createUser\(\{[\s\S]*?\}\);/)?.[0] ?? '';
+  assert.doesNotMatch(createCall, /password/);
+  assert.match(starter, /updateUserById\([\s\S]*password/);
+  assert.ok(starter.indexOf('updateUserById') < starter.indexOf('deleteUser'), 'a failed password set deletes the user just created');
   // The refusals still come before any account is made, in both modes; Google only blocks starter mode.
   assert.ok(signup.indexOf('process.env.ADMIN_EMAIL') < signup.indexOf('Signup(trimmed'));
   assert.match(signup, /SIGNUP_MODE === "starter" && GOOGLE_SIGNIN_ENABLED/);

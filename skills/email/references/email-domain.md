@@ -27,7 +27,7 @@ After each change run `email-check.mjs <domain>` again. Most changes show within
 
 ## 3. Reply as that address in Gmail ("Send mail as")
 
-**Mandatory route: Resend SMTP.** Measured on a production domain (October 2026, mail-tester.com): Gmail send-as through `smtp.gmail.com` scored **5.7/10**; the same addresses through Resend SMTP scored **10/10**. Through smtp.gmail.com the envelope-from stays `gmail.com` and the DKIM signature is Google's, so neither SPF nor DKIM aligns with `<domain>` and **DMARC fails**. Adding `_spf.google.com` to SPF does not change that. Resend signs as `<domain>`, so SPF, DKIM and DMARC all pass.
+**Mandatory route: Resend SMTP.** Gmail send-as through smtp.gmail.com fails DMARC, because the envelope stays gmail.com and the signature is Google's. Resend SMTP signs as the domain, so SPF, DKIM and DMARC pass. Adding _spf.google.com to SPF does not fix the Gmail route. On a deliverability test, aim for 9/10 or better.
 
 1. The domain must be verified in Resend first (`/shipyard:launch` `references/domain-email.md`; `email-check.mjs <domain> --gmail-send-as` checks it).
 2. In Resend make a sending-only API key for this, named "Gmail". The student creates it in the Resend dashboard and pastes it only into Gmail, never into chat or a file in the repo.
@@ -53,7 +53,7 @@ SPF is a public list, kept in the domain's DNS, of the mail servers allowed to s
 2. Receive: send to two addresses at the domain from an outside account (section 2, step 5).
 3. Send: from Gmail as `hello@<domain>` (through Resend SMTP, section 3) and from the app (or `notify.mjs ... --kind custom`), write to the check address at mail-tester.com and to a Gmail and an Outlook.com account. Aim for 9/10 or better; fix whatever it names first.
 4. Gmail > the received message > three dots > "Show original": SPF, DKIM and DMARC should say PASS. A DMARC FAIL with SPF PASS usually means the sending service is missing from the SPF line or is signing with its own domain.
-5. Never set a free-mail Reply-To (an @gmail.com, @hotmail.com, ... address) on mail sent from `@<domain>`. Spam filters score that as forged (`FREEMAIL_FORGED_REPLYTO`, -2.5 on mail-tester). Leave Reply-To out, or use an address at the domain such as `hello@<domain>`, which ImprovMX forwards. Measured on a production domain (October 2026): a Gmail Reply-To dropped a 10/10 Resend app email several points on mail-tester.
+5. Never set a free-mail Reply-To (an @gmail.com, @hotmail.com, ... address) on mail sent from `@<domain>`. Spam filters score that as forged (`FREEMAIL_FORGED_REPLYTO`, -2.5 on mail-tester). Leave Reply-To out, or use an address at the domain such as `hello@<domain>`, which ImprovMX forwards. Measured on a production domain (October 2026): a Gmail Reply-To dropped a high-scoring Resend app email several points on mail-tester.
 6. New domains: a few emails a day to people who expect them for the first weeks; ask a couple to reply or mark "Not spam".
 
 ## If something fails

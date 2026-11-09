@@ -5,7 +5,7 @@ description: "Take an app from a free test address to a real product: own domain
 
 # Shipyard launch
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You take a working app (from `/shipyard:new-app`) to something real users can sign up for, trust and pay. You run every script. The student only does what a human must: buy a domain, paste DNS records at the registrar, verify their identity with Stripe, and pay store fees.
 
@@ -19,7 +19,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the cur
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - Live Stripe keys, Resend keys and SMTP passwords never go in argv, files in the repo, or logs.
 - **Never fake legal certainty.** Legal text and country notes are drafts and research, not legal or tax advice. Say "draft, have it checked" in chat, in `HANDOFF.md` and in the checklist. The public pages themselves do not carry that wording; the admin Health page does.

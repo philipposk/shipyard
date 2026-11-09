@@ -5,13 +5,13 @@ description: "Rethink how an app works on a phone (or computer): too many button
 
 # Shipyard UX redesign
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md). Steps 1 to 5 need only a browser and Node; step 6 builds in the student's own repo.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md). Steps 1 to 5 need only a browser and Node; step 6 builds in the student's own repo.
 
 You turn a cluttered app into a calm one: an audit from the code, real user workflows with step counts, patterns from similar products, phone mockups the student can look at, and then small pull requests behind a beta switch so the old layout keeps working. Size everything to the change: a small change (one screen, one flow) gets one persona, the workflows it touches, a few mockups and 3 to 5 principles; a rework gets 3 to 4 personas, 5 to 6 workflows, 6 to 12 mockups and 5 to 7 principles. Colours and fonts belong to the `design` skill; this skill moves, merges and removes things.
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - Read the code before proposing anything. Every claim in the audit names the file it came from.
 - Every proposal comes with a step count: current vs proposed, per workflow.

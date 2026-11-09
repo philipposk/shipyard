@@ -19,14 +19,6 @@ export const SERVER_KEY_ALLOWED = [
   'lib/newsletter/store.ts',
   // Added by the errors module: the only file that reads and writes the error log.
   'lib/errors/store.ts',
-  // MindScope-style analysis apps: the reading store and the analysis worker are the only places that
-  // write the server-only chunk, usage and report tables with the secret key.
-  'lib/readings/',
-  'lib/analysis/',
-  // Same for the chat assistant: the budget check, reply persistence and usage ledger.
-  'lib/chat/',
-  // Cross-chat projects: queueing and running the combined analysis.
-  'lib/projects/',
   // Public uptime probe. One head-only read of profiles, no row returned. See app/api/health/route.ts.
   'app/api/health/route.ts',
 ];

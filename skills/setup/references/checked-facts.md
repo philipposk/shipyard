@@ -26,14 +26,10 @@ Live-checked on 8 Nov 2026. When a number here changes, update this file and the
 
 ## Contradiction decisions (8 Nov 2026)
 
-- **Touch targets: 44px baseline** (matches the shipped template's `.btn`, `template/DESIGN.md`, `design-md.mjs` and `template/AGENTS.md`; WCAG 2.5.8 enhanced = 44px). Exceptions: 24px hit area for small controls (checkboxes, calendar cells, `build-rules.md`); inputs stay at 16px.
+- **Touch targets: 44px baseline** (matches the shipped template's `.btn`, `template/DESIGN.md`, `design-md.mjs` and `template/AGENTS.md`; WCAG 2.5.8 Target Size (Minimum) is 24 CSS pixels at AA, and WCAG 2.5.5 Target Size (Enhanced) is 44 CSS pixels at AAA; Shipyard keeps 44 because the template's buttons are already 44). Exceptions: 24px hit area for small controls (checkboxes, calendar cells, `build-rules.md`); inputs stay at 16px.
 - **Helper models:** helpers get a smaller, cheaper model for mechanical work. Bounded exception (declared in `scripts/agents/header.md` and the shared working rules): the review skill's security areas (sign-in, data rules, live audio, AI costs, the database) take the strongest model.
 - **Design vs UX:** a look changes how things look; navigation is a separate setting. `apply-design` runs with `--keep-layout` unless the student asked for the look's own layout too.
 - **Video order:** the product is registered in `products.json`/`products.ts` before the voice step (step 2), so a voiced script is never skipped.
 - **Video cleanup:** old renders are deleted, but the `--youtube` master is kept until the student uploads it.
 - **"live" wording:** an app on a `*.vercel.app` address is "deployed"; "live" means `/shipyard:launch` has put it on the student's own domain.
 - **Vercel CLI pin:** bumped 64.3.1 → 65.12.1 on 8 Nov 2026 after the unit-test run; the live login/link/deploy check described in `scripts/lib/vercel.mjs` still needs real credentials before the next student run.
-
-## Left for a future agent (owner's note, 8 Nov 2026)
-
-The 6x7 anonymization covered the plan's §2 list (skill instructions). Pre-existing 6x7 mentions remain, untouched on purpose, in: `scripts/notify.mjs` and `scripts/email-check.mjs` provenance comments, `scripts/verify/hygiene.mjs` (comment + legacy `.6x7-private` marker compatibility), the release notes now in `CHANGELOG.md` (0.8.0, 0.6.2 entries), `tests/email-notify.test.mjs` and `tests/verify-hygiene.test.mjs` fixtures, and the course-site links in `README.md`/`INSTALL.md` (the plugin's own address). The owner chose to leave these as-is on 8 Nov 2026; a future agent may revisit them.

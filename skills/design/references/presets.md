@@ -1,6 +1,6 @@
 # The 8 ready-made looks
 
-Pick by feeling, not by colour. A look sets more than colours: the menu style (tabs at the bottom, a left sidebar, or links across the top), the homepage style, how cards and buttons feel, and the text size. Every look has a light and a dark version and passes the readability checks. Use the id with `apply-design.mjs <app> --preset <id>`.
+Pick by feeling, not by colour. A look sets more than colours: the homepage style, how cards and buttons feel, and the text size. Every look has a light and a dark version and passes the readability checks. Use the id with `apply-design.mjs <app> --preset <id>`.
 
 | Id | Name | Feels like | Good for |
 |---|---|---|---|
@@ -17,7 +17,7 @@ If the student cannot decide: `calm-blue` for most apps, `clean-mono` for tools,
 
 Saved looks (from screenshots, a website or a DESIGN.md, saved with `--set-default`) also work with `--preset <id>`.
 
-Each look has its own menu, homepage, card, button and spacing style, so applying one changes the structure as well as the colours. The gallery shows exactly this. To keep the app's current menu style, add `--keep-layout` to `apply-design`.
+Each look records a menu, homepage, card, button and spacing style. The design skill passes `--keep-layout` unless the student asked for that look's menu, so applying a preset keeps the app's current navigation. Drop the flag only when they asked for the look's menu too.
 
 ## The gallery
 

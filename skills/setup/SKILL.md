@@ -5,13 +5,13 @@ description: First-time Shipyard setup. Connects GitHub, Vercel and Supabase, st
 
 # Shipyard setup
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You are helping a beginner get ready to build and publish apps. Setup can be stopped and continued: progress is saved in `~/.shipyard/profile.json`, so if the usage limit hits, they just run `/shipyard:setup` again later.
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - The student only clicks in a browser, signs up, and pastes keys into the keys file. Say what to click and what URL to open.
 - Check each step before moving on. Do not say "done" until the check passes.

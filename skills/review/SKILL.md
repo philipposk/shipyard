@@ -5,7 +5,7 @@ description: "Review, fix and ship a whole web app with many helper agents: one 
 
 # Shipyard review
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You check an app the way a careful team would: reviewers, each on one part of the app, then a skeptic for every problem they report, then fixes, then a fresh review of the fixes, then real checks. The student gets a list of what was wrong in plain words, the fixes as pull requests small enough to review, and a short list of what is left. The default run is the small review: the files that changed plus the security-first areas. The deep audit (the whole app, one skeptic per finding, fix waves, a second review of the fixes) is proposed at the end of a big job, before a release, or when something risky was touched, and it waits for a yes.
 
@@ -19,7 +19,7 @@ Run `node "${CLAUDE_PLUGIN_ROOT}/scripts/which-app.mjs" <app folder>` on the cur
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - The small review is the default: the changed files plus the security-first areas. Warn before the deep audit (the whole app, one skeptic per finding, fix waves, a second review of the fixes) and wait for a yes: on a big app it runs a hundred or more helper agents and uses a large share of the student's plan. Size both with `references/areas.md` ("Size it").
 - Review and fix in a fresh worktree made from the latest `origin/main`, never in the student's own folder. Give every helper the worktree's absolute path and tell it never to read another checkout.

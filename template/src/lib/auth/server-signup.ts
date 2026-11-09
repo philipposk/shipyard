@@ -41,25 +41,33 @@ export async function serverSignup(email: string, password: string): Promise<Sig
 async function starterSignup(email: string, password: string): Promise<SignupResult> {
   const admin = createSupabaseAdmin();
 
+  // Confirm first, set the password second. One shared-project trigger clears
+  // encrypted_password when email_confirmed_at is set in the same update as the password.
   const { data, error } = await admin.auth.admin.createUser({
     email,
-    password,
     email_confirm: true,
     user_metadata: { full_name: email.split("@")[0] },
   });
 
-  if (error) {
-    const msg = error.message.toLowerCase();
-    if (error.code === "email_exists" || msg.includes("already") || msg.includes("registered")) {
+  if (error || !data.user?.id) {
+    const msg = error?.message.toLowerCase() ?? "";
+    if (error?.code === "email_exists" || msg.includes("already") || msg.includes("registered")) {
       return { ok: false, status: 409, error: "This email already has an account. Sign in instead." };
     }
     return { ok: false, status: 400, error: "Could not create the account. Check the email and try again." };
   }
 
-  // The sign-up trigger normally makes the profile row; without it (shared project) make it now.
-  if (data.user?.id) await ensureProfile(data.user.id, email);
+  const createdId = data.user.id;
+  const { error: passwordError } = await admin.auth.admin.updateUserById(createdId, { password });
+  if (passwordError) {
+    await admin.auth.admin.deleteUser(createdId);
+    return { ok: false, status: 400, error: "Could not create the account. Check the email and try again." };
+  }
 
-  return { ok: true, userId: data.user?.id, needsConfirmation: false };
+  // The sign-up trigger normally makes the profile row; without it (shared project) make it now.
+  await ensureProfile(createdId, email);
+
+  return { ok: true, userId: createdId, needsConfirmation: false };
 }
 
 async function verifiedSignup(email: string, password: string): Promise<SignupResult> {

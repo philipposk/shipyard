@@ -5,13 +5,13 @@ description: Build your own skill or plugin for coding agents, or add one to Shi
 
 # Shipyard new skill
 
-> Part of the Shipyard plugin. It needs the full plugin installed (repo INSTALL.md): its scripts and key guard do not work on their own.
+> Part of the Shipyard plugin. It needs the full plugin installed (https://github.com/philipposk/shipyard/blob/main/INSTALL.md): its scripts and key guard do not work on their own.
 
 You help the student turn something they keep doing with their coding agent into a skill (a folder of instructions an agent loads when a request matches) or a plugin (one or more skills plus scripts, hooks and a manifest). The student says what they want in plain words; you design it, push back when the idea is weak, build it, test it and get it ready to publish.
 
 ## Rules (always)
 
-Shared working rules: `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md`.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, and follow it. The rules below only add to it.
 
 - Never put a key in a skill. A skill that needs a key reads it from a file or variable the student fills in themselves.
 - Read the student's code and agent chats only with a yes, and only the parts you need: file lists, READMEs, the instruction files (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules`), and summaries of chats, not whole transcripts. Say what you read.

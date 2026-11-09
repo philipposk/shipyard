@@ -2,6 +2,13 @@
 
 Release notes, newest first. Moved out of README.md on 8 Nov 2026; add a new section per release.
 
+## What changed in 0.8.12
+
+- The server-key check no longer allows every file under a shared folder name. An app that needs the key lists an exact file.
+- Saving a new profile always leaves the page with a full load. Starter sign-up confirms the account, then sets the password, and deletes the user if the password step fails.
+- Shared-project auth checks list trigger names from the health script. They do not read the keys file or print addresses.
+- Skill rules that every skill shares have to be read before the skill's own steps. The video skill still includes a real screen recording when the student asks.
+
 ## What changed in 0.8.11
 
 - New apps fail closed when the shared database stops answering: `/api/health` reads one database row with a 5 second limit (503 on failure), sign-in gives up after about 20 seconds instead of spinning (the proxy and server checks after 3-5 s), and every new table needs an explicit grant. `verify` checks the guards, and `scripts/supabase-health.mjs` checks a project's database, sign-in and data API. See `skills/ops/references/db-outage.md`.
