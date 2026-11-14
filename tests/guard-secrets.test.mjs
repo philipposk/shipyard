@@ -352,7 +352,7 @@ function runHook(stdin, env = {}) {
   return spawnSync(process.execPath, [SCRIPT], {
     input: stdin,
     encoding: 'utf8',
-    env: { ...process.env, CLAUDE_PLUGIN_ROOT: ROOT, ...env },
+    env: { ...process.env, SHIPYARD_GUARD: 'on', CLAUDE_PLUGIN_ROOT: ROOT, ...env },
     timeout: 15_000,
   });
 }
@@ -566,7 +566,7 @@ test('hook process: still denies when started through a symlinked folder', () =>
     const r = spawnSync(process.execPath, [path.join(link, 'guard-secrets.mjs')], {
       input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'cat .env.local' } }),
       encoding: 'utf8',
-      env: { ...process.env, CLAUDE_PLUGIN_ROOT: link },
+      env: { ...process.env, SHIPYARD_GUARD: 'on', CLAUDE_PLUGIN_ROOT: link },
       timeout: 15_000,
     });
     assert.equal(r.status, 0);
@@ -584,6 +584,7 @@ test('hook process: a symlink to the script file itself also works', () => {
     copyFileSync(SCRIPT, path.join(dir, 'x', 'guard-secrets.mjs'));
     symlinkSync(path.join(dir, 'x'), path.join(dir, 'y'), 'dir');
     const r = spawnSync(process.execPath, [path.join(dir, 'y', 'guard-secrets.mjs')], {
+      env: { ...process.env, SHIPYARD_GUARD: 'on' },
       input: JSON.stringify({ tool_name: 'Read', tool_input: { file_path: '/work/app/.env.local' } }),
       encoding: 'utf8',
       timeout: 15_000,
