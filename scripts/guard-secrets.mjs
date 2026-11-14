@@ -17,7 +17,7 @@
 // if anything inside it breaks, the tool call is allowed. Built-ins only, no network.
 import os from 'node:os';
 import path from 'node:path';
-import { realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const REASON =
@@ -757,6 +757,18 @@ export function isClaudeShaped(i) {
 
 const out = (text) => process.stdout.write(`${text}\n`);
 
+/** Has the owner switched the guard off? (SHIPYARD_GUARD=off, or ~/.shipyard/guard.off exists; SHIPYARD_GUARD=on forces it on.) */
+export function guardOff(env = process.env) {
+  const v = String(env.SHIPYARD_GUARD ?? '');
+  if (/^(on|1|true|yes)$/i.test(v)) return false; // forced on (tests)
+  if (/^(off|0|false|no)$/i.test(v)) return true;
+  try {
+    return existsSync(path.join(shipyardHome(env), 'guard.off'));
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   if (process.argv.includes('--help') || process.argv.includes('-h')) {
     process.stdout.write(
@@ -766,6 +778,8 @@ async function main() {
     );
     return;
   }
+  // Owner opt-out: SHIPYARD_GUARD=off, or a file named guard.off in ~/.shipyard, switches the guard off.
+  if (guardOff(process.env)) return;
   try {
     const text = await readStdin();
     const input = JSON.parse(text);
