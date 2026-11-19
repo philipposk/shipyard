@@ -6,6 +6,10 @@ Before building a new skill, check whether one of these already does the job. Sh
 
 - **find-skills** (Vercel): searches the open skills directory and installs a match. Source `github.com/vercel-labs/skills` (`skills/find-skills`). Install: `npx skills add vercel-labs/skills --skill find-skills`. Browse at skills.sh.
 
+## Check before building
+
+- **prior-art** (Shipyard, `/shipyard:prior-art`): searches GitHub with the `gh` tool only, vets the best matches and answers Adopt, Extend, Compose or Build. For a heavier option that needs an MCP server (a connector for extra tools), see **dont-reinvent** (`github.com/Emanuelel/dont-reinvent`): it checks free, build or buy before writing code. Read its README before installing.
+
 ## Ways of working
 
 - **superpowers** (Jesse Vincent): brainstorm > plan > test-first build > review workflows. Plugin marketplace `obra/superpowers-marketplace`, plugin `superpowers`; other agents: see its README. Source `github.com/obra/superpowers`.
