@@ -212,6 +212,14 @@ export function GoogleIdentityButton({
             if (begin()) startWatch(120000, true);
           },
         });
+        // Google's button iframe can be blocked by the page's own headers (COEP, CSP): it then has no size. Use the redirect button instead of an
+        // empty slot.
+        window.setTimeout(() => {
+          if (cancelled || !slot.current) return;
+          const f = slot.current.querySelector("iframe");
+          const r = f?.getBoundingClientRect();
+          if (!pendingRef.current && (!f || !r || r.width < 2 || r.height < 2)) setFailed(true);
+        }, 6000);
       } catch {
         if (!cancelled) setFailed(true);
       }
