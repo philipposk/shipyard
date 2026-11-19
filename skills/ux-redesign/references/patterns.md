@@ -9,6 +9,7 @@
 | One + sheet | Every way to create something (record, upload, paste link, import, connect) lives in one sheet. The top option starts with last-used settings in one tap; the settings are one line you can change. | Otter, Fireflies, Notion |
 | Calm live screen | At most 5 controls (for example pause, stop, notes/transcript, mark moment, ask). Live notes are the default view; decisions and to-dos appear as cards. Asking opens as a half-sheet so the content stays visible. | Granola, Otter |
 | Summary first | A detail screen opens on the summary, then the person's actions, then key moments. At most 4 sections; hide sections with no content (for example slides). | Granola, Fireflies |
+| Search that stays | The search words live in the address (`?q=`, replaced, not pushed). Open a result, press Back, and the same results are there with the box filled. The list address is remembered for the app's own back button. | Gmail, Notion, Sparks |
 | Useful waiting | A processing screen shows progress in plain words and lets the user do something (read the partial result, name people, set the title). Offer an email or notification when it takes long. | Otter |
 
 ## Themes vs layout
