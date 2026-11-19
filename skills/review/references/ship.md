@@ -9,6 +9,7 @@ Preview deploys often lack the database settings, so a preview link can fail for
 3. Open it in a browser you can control (or ask the student to look): every signed-out page, any practice or preview pages, at phone width and wide, in light and dark, and in every language the app has. No errors in the console.
 4. A signed-out call to any API route answers 401 with JSON, never a redirect to the sign-in page. A redirect is a real bug: the browser follows it, gets the sign-in page with status 200, and the app thinks the call worked.
 5. Sign-in and sign-up: click each provider button twice quickly. One popup or redirect, a spinner with "Signing in…", the other sign-in controls disabled, and the button back after a closed popup or the Back button (`new-app/references/sign-in-pending.md`). Missing pending state is a finding.
+   If the app is also served on a second domain: repeat the sign-in on that address, and check its canonical tag points to the primary address (`references/second-domain.md` in the new-app skill).
 6. Stop the server when you are done.
 
 If the dev or preview server only reads its settings from the student's main folder (some apps read `.claude/launch.json` from there), start it from the worktree with a shell command that changes into the worktree first, and put back any file you changed.

@@ -41,7 +41,7 @@ Read `references/interview.md`. Ask at most 5 questions, about outcomes not tech
 
 ## 2. Spec and plan
 
-Read `references/build-rules.md` (and `references/sign-in-pending.md` for every sign-in or sign-up button). Choose a short slug (lowercase letters, numbers, hyphens, starts with a letter). Make a folder for the app, then write `SPEC.md` in it: who it is for, the main action, the list of features (small steps), what data is stored, and the hard rules from build-rules. Add a plan of 5 to 8 steps in plain words. End the plan with the 3 best feature ideas for later (see `references/ai-and-keys.md`). Show it and wait for the student to say "go". Nothing is built before that.
+Read `references/build-rules.md` (and `references/sign-in-pending.md` for every sign-in or sign-up button, and `references/second-domain.md` when the app is also served on a second domain). Choose a short slug (lowercase letters, numbers, hyphens, starts with a letter). Make a folder for the app, then write `SPEC.md` in it: who it is for, the main action, the list of features (small steps), what data is stored, and the hard rules from build-rules. Add a plan of 5 to 8 steps in plain words. End the plan with the 3 best feature ideas for later (see `references/ai-and-keys.md`). Show it and wait for the student to say "go". Nothing is built before that.
 
 ## 3. Scaffold
 

@@ -88,6 +88,8 @@ Google's screen reads "Sign in to continue to <host>". With Supabase's redirect 
 
 **Pending state is part of launch.** Before launch (and in every review), click each sign-in and sign-up button twice quickly on the live address: one popup or redirect, a spinner with "Signing in…" in the same box, every other sign-in control disabled, and the button back after a closed Google popup or the Back button. The return page must show "Signing you in…", never the form. If an app lacks it, add it from `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/sign-in-pending.md` before launch; list it as FAIL in a review-only report.
 
+**A second domain is part of launch when there is one.** If the app is also served on a mirror address, follow `references/second-domain.md` (in the new-app skill): the mirror is listed in Supabase Redirect URLs and as an Authorized JavaScript origin on the Google client, sign-in works on it, and canonical, `og:url`, robots and sitemap name only the primary address.
+
 ## Go-live check
 
 `node "${CLAUDE_PLUGIN_ROOT}/scripts/launch-check.mjs" <appDir>` (add `--live` before taking real money). It runs the full verify plus launch checks (legal pages, domain, email, Stripe objects, account deletion, store files). Show the tick/cross list. For each cross say what it means for their users, then fix it or give the one thing the student must do. The admin Health page (`/admin/health`, admins only) shows the same kind of list on the live site. Also register an outside uptime check on `https://<the app>/api/health`, expecting 200 (interval and alerts: the ops skill's `references/health.md`).
