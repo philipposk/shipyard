@@ -207,7 +207,7 @@ function table(result) {
 }
 
 export async function main(argv, deps = {}) {
-  const args = parseArgs(argv, { boolean: ['json', 'help'], string: ['min-stars', 'limit', 'vet', 'stale-months', 'delay-ms'], multiple: ['readme', 'code'], alias: { h: 'help' } });
+  const args = parseArgs(argv, { boolean: ['json', 'help'], string: ['readme', 'code', 'min-stars', 'limit', 'vet', 'stale-months', 'delay-ms'], multiple: ['readme', 'code'], alias: { h: 'help' } });
   if (args.help) { process.stdout.write(HELP); return 0; }
   setQuiet(args.json);
   const num = (name, def, max = Infinity) => {

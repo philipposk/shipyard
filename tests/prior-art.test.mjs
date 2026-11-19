@@ -167,3 +167,9 @@ test('the skill is wired into new-app, new-skill, the alternatives list and the 
   for (const p of ['skills/new-app/SKILL.md', 'skills/new-skill/SKILL.md', 'skills/new-skill/references/build-or-extend.md', 'skills/new-skill/references/external-skills.md', 'README.md']) assert.match(read(p), /prior-art/, p);
   assert.match(read('skills/new-skill/references/external-skills.md'), /Emanuelel\/dont-reinvent/);
 });
+
+test('main accepts repeated --readme and --code flags from the command line', async () => {
+  const { code, out } = await capture(() => main(['--readme', 'idea finder', '--code', 'idea finder', '--json', '--vet', '0'], { gh: fakeGh(), now: NOW }));
+  assert.equal(code, 0);
+  assert.equal(JSON.parse(out).ok, true);
+});
