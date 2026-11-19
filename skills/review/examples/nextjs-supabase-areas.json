@@ -2,7 +2,7 @@
  {
   "key": "auth-signin",
   "strong": true,
-  "scope": "SECURITY: sign-in and sessions: src/proxy.ts (or middleware.ts), src/app/sign-in/**, src/app/auth/** (callback, confirm, sign-out), src/app/api/auth/**, src/lib/supabase/*, src/lib/auth/*, onboarding pages, any Google or other OAuth button. Check open redirects in next/redirect values, nonce handling for ID-token sign-in, CSRF on cookie-authenticated POSTs, cookie flags, public-path lists that expose private pages or APIs, signed-out /api/* calls that get a redirect instead of 401 JSON, sign-up or reset flows that set a password from an email alone, tracking writes that use the server key with user-controlled data."
+  "scope": "SECURITY: sign-in and sessions: src/proxy.ts (or middleware.ts), src/app/sign-in/**, src/app/auth/** (callback, confirm, sign-out), src/app/api/auth/**, src/lib/supabase/*, src/lib/auth/*, onboarding pages, any Google or other OAuth button. Check open redirects in next/redirect values, nonce handling for ID-token sign-in, CSRF on cookie-authenticated POSTs, cookie flags, public-path lists that expose private pages or APIs, signed-out /api/* calls that get a redirect instead of 401 JSON, sign-in and sign-up buttons without a pending state (the first click must disable every provider button and the email submit with a ref guard, show a spinner and \"Signing in…\", stay until navigation, and release on error, a closed Google popup and pageshow persisted; the return page must not show the form again), sign-up or reset flows that set a password from an email alone, tracking writes that use the server key with user-controlled data."
  },
  {
   "key": "api-routes",

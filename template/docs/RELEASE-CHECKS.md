@@ -22,6 +22,8 @@ For a full review of the whole app with many helper agents, use the Shipyard rev
 8. Keep the pull request at 150 changed files or fewer: CodeRabbit's free plan skips bigger ones. Ship a bigger change
    as a stack of pull requests, each building on the one before.
 
+9. Sign-in and sign-up buttons: click each twice quickly. One popup or redirect, a spinner with "Signing in…", every other sign-in control disabled, the button back after a closed Google popup or the Back button, and the return page shows "Signing you in…" rather than the form. (`skills/new-app/references/sign-in-pending.md`.)
+
 Never change the build script, the deploy workflow or the hosting settings as part of a cleanup.
 
 ## After every deploy (smoke test)

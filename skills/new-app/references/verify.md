@@ -24,4 +24,5 @@ Re-run after every fix. "Vercel says ready" is not proof; only the real address 
 
 - Say which checks passed and which were skipped, with the reason.
 - Show the screenshot paths and say what you see. If you did not look, say so.
+- Sign-in buttons: click each provider button twice quickly. One popup or redirect, spinner and "Signing in…" shown, every other sign-in control disabled, the button back after a closed popup or the Back button (`references/sign-in-pending.md`). Verify does not test this; check it by hand and say so.
 - Things verify does not cover: forgot-password email (needs a verified domain), Google sign-in, payments, real devices, accessibility. Say "not verified" for what applies.

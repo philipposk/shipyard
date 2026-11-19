@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AUTH_TIMEOUT_MESSAGE, isAuthTimeout } from "@/lib/supabase/auth-fetch.mjs";
@@ -39,6 +39,17 @@ export default function SignInPage() {
   const [resending, setResending] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Double-submit protection (required for every sign-in / sign-up control, see skills/new-app/references/sign-in-pending.md):
+  // the ref ignores a second submit before React re-renders; the button stays pending (spinner, "Signing in…")
+  // while the browser navigates away; it is released on error and when the page returns from the back/forward cache.
+  const submitting = useRef(false);
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (e.persisted) { submitting.current = false; setLoading(false); }
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
 
   function switchMode(m: Mode) {
     setMode(m);
@@ -69,8 +80,11 @@ export default function SignInPage() {
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting.current) return;
+    submitting.current = true;
     setLoading(true);
     setError("");
+    let navigating = false;
     try {
       if (mode === "forgot") {
         const res = await fetch("/api/auth/forgot-password", {
@@ -104,7 +118,7 @@ export default function SignInPage() {
         // The account exists and is confirmed, so sign straight in. The proxy sends new people to finish their profile.
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
         if (signInErr) setError(isAuthTimeout(signInErr) ? AUTH_TIMEOUT_MESSAGE : signInErr.message);
-        else window.location.replace(next);
+        else { navigating = true; window.location.replace(next); }
         return;
       }
 
@@ -119,12 +133,13 @@ export default function SignInPage() {
         }
         return;
       }
-      // Full page load so the server sees the new login cookie.
+      // Full page load so the server sees the new login cookie. Stay pending until the browser leaves.
+      navigating = true;
       window.location.replace(next);
     } catch (err) {
       setError(isAuthTimeout(err) ? AUTH_TIMEOUT_MESSAGE : "Could not reach the server. Check your connection and try again.");
     } finally {
-      setLoading(false);
+      if (!navigating) { submitting.current = false; setLoading(false); }
     }
   }
 
@@ -135,7 +150,12 @@ export default function SignInPage() {
         {mode === "signin" ? BRAND.tagline : mode === "signup" ? "Create your account" : "Reset your password"}
       </p>
 
-      {mode !== "forgot" && <GoogleSignInButton next={nextParam} onError={setError} />}
+      {mode !== "forgot" && (
+        // inert: while the email form is pending, the Google button (an iframe) cannot be clicked either.
+        <div inert={loading || undefined}>
+          <GoogleSignInButton next={nextParam} onError={setError} />
+        </div>
+      )}
 
       {confirmSent ? (
         <div className="space-y-4 mt-6">
@@ -207,8 +227,8 @@ export default function SignInPage() {
               {resendNote && <p className="text-sm muted m-0" role="status">{resendNote}</p>}
             </div>
           )}
-          <button type="submit" className="btn btn-primary w-full" disabled={loading}>
-            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Send reset link"}
+          <button type="submit" className="btn btn-primary w-full" disabled={loading} aria-busy={loading}>
+            {loading ? <><span aria-hidden="true" className="inline-block size-3.5 mr-2 align-[-2px] animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-none" />{mode === "signin" ? "Signing in…" : mode === "signup" ? "Signing up…" : "Sending…"}</> : mode === "signin" ? "Sign in" : mode === "signup" ? "Sign up" : "Send reset link"}
           </button>
         </form>
       )}

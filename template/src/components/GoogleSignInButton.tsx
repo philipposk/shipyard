@@ -18,6 +18,11 @@ function GoogleIcon() {
   );
 }
 
+/** Tells GoogleIdentityButton to leave its pending state (the redirect fallback failed before leaving the page). */
+function releasePending() {
+  window.dispatchEvent(new Event("auth:release"));
+}
+
 /** Shows "Continue with Google" only when NEXT_PUBLIC_GOOGLE_SIGNIN_ENABLED=true (needs a Google client set up first). */
 export function GoogleSignInButton({ next, onError }: { next: string | null; onError?: (message: string) => void }) {
   if (!GOOGLE_SIGNIN_ENABLED) return null;
@@ -26,8 +31,9 @@ export function GoogleSignInButton({ next, onError }: { next: string | null; onE
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext(next, "/"))}`;
     try {
       const { error } = await createSupabaseBrowser().auth.signInWithOAuth({ provider: "google", options: { redirectTo } });
-      if (error) onError?.(isAuthTimeout(error) ? AUTH_TIMEOUT_MESSAGE : "Google sign-in failed. Please try again.");
+      if (error) { releasePending(); onError?.(isAuthTimeout(error) ? AUTH_TIMEOUT_MESSAGE : "Google sign-in failed. Please try again."); }
     } catch (err) {
+      releasePending();
       onError?.(isAuthTimeout(err) ? AUTH_TIMEOUT_MESSAGE : "Google sign-in failed. Please try again.");
     }
   }
