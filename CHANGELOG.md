@@ -2,6 +2,11 @@
 
 Release notes, newest first. Moved out of README.md on 8 Nov 2026; add a new section per release.
 
+## Unreleased (next version)
+
+- New `prior-art` skill and `scripts/prior-art.mjs`: before building a tool, feature, app or skill, search GitHub with the `gh` tool only for projects that already do it, drop forks and archived repos, flag stale and unlicensed ones, vet the top 5 (licence, last push, issues, tests, real code or prompt-only) and answer Adopt, Extend, Compose or Build. No keys, no paid services, no security scan (the answer says so).
+- `new-app` and `new-skill` now point to it when the idea may already exist, and `external-skills.md` lists it next to the heavier `Emanuelel/dont-reinvent`.
+
 ## What changed in 0.9.0
 
 - New `ai-visibility` skill and `scripts/ai-visibility.mjs`: audit llms.txt, JSON-LD, OG and robots for AI crawlers; OpenRouter baseline for whether models name the app; honest directory draft playbook.

@@ -41,6 +41,8 @@ Read `references/interview.md`. Ask at most 5 questions, about outcomes not tech
 
 ## 2. Spec and plan
 
+If the idea is a tool or feature that may already exist as an open-source project or library, run the prior-art check first (`/shipyard:prior-art`) and let its verdict shape the plan. Skip it for an ordinary app idea.
+
 Read `references/build-rules.md`. Choose a short slug (lowercase letters, numbers, hyphens, starts with a letter). Make a folder for the app, then write `SPEC.md` in it: who it is for, the main action, the list of features (small steps), what data is stored, and the hard rules from build-rules. Add a plan of 5 to 8 steps in plain words. End the plan with the 3 best feature ideas for later (see `references/ai-and-keys.md`). Show it and wait for the student to say "go". Nothing is built before that.
 
 ## 3. Scaffold

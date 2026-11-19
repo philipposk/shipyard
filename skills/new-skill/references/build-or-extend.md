@@ -1,5 +1,7 @@
 # Build on Shipyard or from scratch
 
+Before recommending anything, check whether the idea already exists: `external-skills.md` first, then the prior-art check (`/shipyard:prior-art`) for anything it does not list.
+
 Look before you recommend (with a yes): the repo's file list and README, its instruction files, any skills it already has, and summaries of recent agent chats (what they asked for more than once, what went wrong). Then pick one and say why in one line.
 
 | Choose | When |
