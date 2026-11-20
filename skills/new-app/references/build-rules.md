@@ -43,6 +43,7 @@ Copy these into `SPEC.md` under "Hard rules" and follow them for every feature. 
 - No purple gradients, no gradient card backgrounds. One accent colour.
 - No em dashes in text people read. Use commas or full stops.
 - No explanatory sentences in menus, no subtitle that repeats the title, no "Tip:" boxes, no developer words (API, token, schema, RLS) where visitors can see them. If something needs explaining, one plain line, or a small "?" that opens a popover on tap (never hover only: phones cannot hover).
+- Apps work on every device. UI copy never gives device-specific instructions (press Enter, tap, click, comma adds) except in native-only screens. Don't label the obvious (no 'Add a tag' placeholders or 'Suggested' headers when the control is clear). Shortcuts, when shown, use platform notation (⌘ on Apple, Ctrl elsewhere) and only on keyboard devices.
 - Legal links live in the account menu, not in a crowded footer.
 - Touch targets at least 48px. Inputs at least 16px so iPhones do not zoom. Light mode by default with dark mode available, no flash on load.
 - Do not hardcode copy that is really data. Do not show debug or backend wording to visitors.
