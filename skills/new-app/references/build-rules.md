@@ -41,7 +41,7 @@ Vercel's free plan gives 4 hours of server CPU a month, shared by every app on t
 - Decide about crawlers in `SPEC.md` (see `lessons.md`).
 
 ## Behaviour
-- Brand name only from `BRAND` in `src/lib/constants.ts`.
+- One place for everything that names the app: the identity block in `src/lib/constants.ts` (name, short name, tagline, description, address, contact email). Pages, emails, metadata, the home page words and tests read `BRAND`; a value used in two or more places that the owner may want to change later (a support address, a social link, a price label) goes there too, never typed twice. The manifest and `llms.txt` are copied from it by `npm run sync:brand` (runs before dev and build). The design check fails a typed-in name (`hard-coded-brand`). Renaming the app is one edit; the slug and the phone app id never change.
 - A designed empty state, loading skeleton and error message for every screen that loads data.
 - Test with a real second account, not only simulated sessions. Do things in an unusual order too (play first then join a group, catch up on an old day) and check what each account sees of the other.
 - Search stays where the person left it. Keep the words in the address (`?q=`), update it with `history.replaceState(null, "", url)` as they type (no new history entry per letter, no server round trip), and remember the list address (filters and search) in `sessionStorage`. Opening a result and pressing Back, or the app's own back button, returns to the same results with the box still filled, so they can open the next one. Only send the remembered address back to a page of the same list (never an open redirect). Seen in Sparks.
