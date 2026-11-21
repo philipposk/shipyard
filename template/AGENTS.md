@@ -4,7 +4,7 @@ App slug: `<APP_SLUG>`. Read `SPEC.md` (what to build) and `DESIGN.md` (how it l
 Claude Code reads `CLAUDE.md`, which points here. Codex and Cursor read this file directly.
 
 ## Always
-- Brand (name, short name, tagline, address) only through `BRAND` in `src/lib/constants.ts`. Never type it into a component.
+- The app's name, short name, tagline, description, address and contact email are set once, in the identity block at the top of `src/lib/constants.ts`, and read everywhere else through `BRAND` (`BRAND.name`, `BRAND.tagline`, `BRAND.contactEmail`, ...). Never type them into a component, a page, an email or a test fixture: renaming the app must stay a one-line edit there. `npm run check:design` fails (`hard-coded-brand`) when the name, tagline or description appears typed into `src/`. `public/manifest.webmanifest` and `public/llms.txt` can not read code, so `npm run sync:brand` copies the values into them (it runs before every `dev` and `build`, and `npm test` fails when they are out of date). Colours stay in the design tokens (`src/lib/theme.ts`, `globals.css`). `SITE_SLUG` and the phone app id are permanent ids: never change them to rename the app.
 - Work on a branch and open a pull request. Once the app is live, never push straight to `main`. Merge only when CI is green.
 - Keep each pull request at 150 changed files or fewer: CodeRabbit's free plan skips bigger ones. Ship a bigger change as a stack of pull requests, each building on the one before, merged one at a time with a smoke test after each deploy. The checks are in `docs/RELEASE-CHECKS.md`.
 - Never change the build script, the deploy workflow or the hosting settings as part of a cleanup or review.

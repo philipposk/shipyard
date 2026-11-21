@@ -1,6 +1,7 @@
 // Small helpers shared by the verify checks. No dependencies.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { parseBrand } from '../lib/brand.mjs';
 
 export const REQUEST_TIMEOUT_MS = 20_000;
 
@@ -124,20 +125,19 @@ export async function readAppFile(appDir) {
   }
 }
 
-/** Display name of the app: profile entry, then .shipyard-app.json, then SITE_NAME in constants.ts. */
+/** Display name of the app: SITE_NAME in constants.ts (where it is set), then the profile entry, then .shipyard-app.json. */
 export async function resolveAppName(ctx) {
-  if (ctx.app?.name) return String(ctx.app.name);
-  const file = await readAppFile(ctx.appDir);
-  if (file?.name) return String(file.name);
   for (const rel of ['src/lib/constants.ts', 'lib/constants.ts']) {
     try {
-      const text = await readFile(path.join(ctx.appDir, rel), 'utf8');
-      const m = /SITE_NAME\s*=\s*"((?:[^"\\]|\\.)*)"/.exec(text);
-      if (m) return JSON.parse(`"${m[1]}"`);
+      const name = parseBrand(await readFile(path.join(ctx.appDir, rel), 'utf8')).name;
+      if (name) return name;
     } catch {
       // try the next place
     }
   }
+  if (ctx.app?.name) return String(ctx.app.name);
+  const file = await readAppFile(ctx.appDir);
+  if (file?.name) return String(file.name);
   return null;
 }
 

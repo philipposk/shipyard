@@ -133,6 +133,7 @@ export async function readFacts(appDir, deps = {}) {
     }
   }
 
+  // readAppConfig already took the name from constants.ts when it is filled in there.
   const name = config.name || constant(constants, 'SITE_NAME') || config.slug;
   const iconSvgPath = path.join(appDir, 'public', 'icon.svg');
   return {

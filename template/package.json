@@ -6,13 +6,16 @@
     "node": ">=22"
   },
   "scripts": {
+    "predev": "node scripts/sync-brand.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-brand.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "knip": "npx --yes knip@5 --no-progress",
     "check:design": "node scripts/design-check.mjs",
+    "sync:brand": "node scripts/sync-brand.mjs",
     "test": "node scripts/run-tests.mjs",
     "lighthouse": "node scripts/lighthouse-ci.mjs"
   },

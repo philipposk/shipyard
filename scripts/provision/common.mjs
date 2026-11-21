@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import * as log from '../lib/log.mjs';
 import { parseArgs, UsageError } from '../lib/log.mjs';
 import { skillHint } from '../lib/agent.mjs';
+import { readAppBrand, withBrand } from '../lib/brand.mjs';
 
 /** Each app folder carries this file. It holds no secrets and is committed with the app. */
 export const APP_CONFIG_FILE = '.shipyard-app.json';
@@ -91,7 +92,8 @@ export async function readAppConfig(appDir) {
   if (!config || typeof config !== 'object' || typeof config.slug !== 'string' || !SLUG_RE.test(config.slug)) {
     throw new ProvisionError(`${APP_CONFIG_FILE} has no valid "slug". Restore it from git, or fix it by hand.`);
   }
-  return config;
+  // The name and description are set in src/lib/constants.ts; the copy in this file can be from before a rename.
+  return withBrand(config, await readAppBrand(appDir));
 }
 
 export async function writeAppConfig(appDir, config) {
