@@ -141,6 +141,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - `apis`: one guide and checker for every service key (OpenRouter, OpenAI, Groq, Deepgram, ElevenLabs, Gemini, NVIDIA, Brave, Serper, SerpAPI, Upstash, Resend, Stripe), web search with fallbacks, voice, an AI model router and shared rate limits. Run `/shipyard:apis`.
 - `ai-visibility`: make a live app easy for AI assistants to understand and recommend. Audits llms.txt, llms-full.txt, JSON-LD, the description, the OG image and robots rules for AI crawlers (`scripts/ai-visibility.mjs audit`), fixes them on a branch, measures whether GPT, Gemini, Claude, Grok, Perplexity, DeepSeek, Qwen and Kimi name your app (`scripts/ai-visibility.mjs baseline`, uses your OpenRouter key), and drafts honest directory listings that you approve before anything is posted. Run `/shipyard:ai-visibility`.
 - A settings page: `/shipyard:setup settings`.
+- `idea`: had a thought about the plugin while building an app? `/shipyard:idea <your idea>` files it as a GitHub issue on this repository, labelled `idea`, with the app it came from and a sentence on what you were doing. It takes a few seconds and opens no pull request, so you stay on your work. See [Ideas for Shipyard](#ideas-for-shipyard).
 
 Optional extras for design (not installed for you): the free `frontend-design` plugin, and Impeccable for a polish pass on one page.
 
@@ -155,6 +156,26 @@ Optional extras for design (not installed for you): the free `frontend-design` p
 ## What changed
 
 Release notes: [CHANGELOG.md](CHANGELOG.md).
+
+## Ideas for Shipyard
+
+Ideas for the plugin all go to one place: issues on this repository with the `idea` label ([open ideas](https://github.com/philipposk/shipyard/issues?q=is%3Aissue+is%3Aopen+label%3Aidea)). They are sorted from time to time, and the ones worth building become pull requests.
+
+**From a Claude Code session** (any app, any folder):
+
+```
+/shipyard:idea Let the design skill import a Figma link
+```
+
+Claude adds which app and repository you were in, the branch, and one sentence on what you were working on, files the issue, gives you the link and goes back to your task. The `idea` label is created the first time if the repository does not have it. Keep private details out: the issue can be public.
+
+If the GitHub CLI (`gh`) is not installed or not signed in, the idea is saved to `~/.shipyard/ideas.md` instead, and Claude tells you so. Once `gh auth login` works, send the saved ones with:
+
+```bash
+node <shipyard folder>/scripts/idea.mjs --send-saved
+```
+
+**From outside Claude Code** (Codex, Cursor, ChatGPT, your phone): open a [new issue](https://github.com/philipposk/shipyard/issues/new?labels=idea) and give it the `idea` label (the link adds it for you if you can add labels on the repository). Write the idea in the first line and, below it, which app you were building. From a terminal: `gh issue create --repo philipposk/shipyard --label idea --title "<the idea>" --body "<where it came from>"`. Codex and Cursor can also run the same script: `node <shipyard folder>/scripts/idea.mjs "<the idea>" --context "<what you were doing>"`.
 
 ## Contributing
 
