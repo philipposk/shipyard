@@ -2,6 +2,10 @@
 
 Release notes, newest first. Moved out of README.md on 8 Nov 2026; add a new section per release.
 
+## Not released yet
+
+- New apps keep their name, short name, tagline, description, address and contact email in one place, the identity block at the top of `src/lib/constants.ts`, read everywhere through `BRAND`. Renaming an app is one edit: `npm run sync:brand` (run before every `dev` and `build`) copies the name into `public/manifest.webmanifest` and `public/llms.txt`, and Shipyard's scripts (phone and desktop apps, emails, Stripe, legal pages, verify) read the name from `constants.ts` before the older copy in `.shipyard-app.json`. The design check has a new rule, `hard-coded-brand`, that fails when the name, tagline or description is typed into `src/`, and the review skill treats a typed-in copy as a finding.
+
 ## What changed in 0.9.0
 
 - New `ai-visibility` skill and `scripts/ai-visibility.mjs`: audit llms.txt, JSON-LD, OG and robots for AI crawlers; OpenRouter baseline for whether models name the app; honest directory draft playbook.

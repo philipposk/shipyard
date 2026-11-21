@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkSource, checkApp, isSmallFontSize, RULES } from "../scripts/design-check.mjs";
+import { checkSource, checkApp, isSmallFontSize, RULES, brandWords } from "../scripts/design-check.mjs";
 
 const APP = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = path.join(APP, "scripts", "design-check.mjs");
@@ -21,7 +21,7 @@ const SPARKLES = "✨";
 const STARS = "★".repeat(5);
 
 test("every rule has a test below", () => {
-  assert.equal(RULES.length, 10);
+  assert.equal(RULES.length, 11);
 });
 
 // ---- 1. hard-coded-colour ----------------------------------------------------------------
@@ -215,6 +215,64 @@ test("tip-box: the word tip elsewhere is fine", () => {
   assert.deepEqual(rules("src/app/p.tsx", `export const a = <p>Tips</p>;`), []);
   assert.deepEqual(rules("src/app/p.ts", `const tip: number = 3; export { tip };`), []);
   assert.deepEqual(rules("src/app/p.ts", `// Tip: a comment\nexport const a = 1;`), []);
+});
+
+// ---- 11. hard-coded-brand ------------------------------------------------------------------------------------------
+
+const CONSTANTS = [
+  'export const SITE_NAME = "Recipe Box";',
+  'export const SITE_SHORT_NAME = "Recipes";',
+  'export const SITE_DESCRIPTION = "Save the recipes you cook and find them again fast.";',
+  'export const SITE_TAGLINE = "Your recipes, in one place.";',
+].join("\n");
+const BRAND_WORDS = brandWords(CONSTANTS);
+const brandRules = (file, text) => [...new Set(checkSource(file, text, { brand: BRAND_WORDS }).map((f) => f.rule))];
+
+test("brandWords: the name, tagline and description, never the placeholders", () => {
+  assert.deepEqual(BRAND_WORDS, ["Recipe Box", "Your recipes, in one place.", "Save the recipes you cook and find them again fast."]);
+  // Built at run time so that Shipyard does not fill the placeholders in when it copies this file into an app.
+  const p = (key) => `<${"APP"}_${key}>`;
+  assert.deepEqual(brandWords(`export const SITE_NAME = "${p("NAME")}";\nexport const SITE_TAGLINE = "${p("TAGLINE")}";`), []);
+  assert.deepEqual(brandWords('export const SITE_NAME = "Ab";'), [], "a two-letter name is too short to look for");
+});
+
+test("hard-coded-brand: the name typed into a page or a string is found", () => {
+  assert.deepEqual(brandRules("src/app/about/page.tsx", "export const a = <h1>About Recipe Box</h1>;"), ["hard-coded-brand"]);
+  assert.deepEqual(brandRules("src/lib/email-text.ts", 'export const subject = "Welcome to Recipe Box";'), ["hard-coded-brand"]);
+  assert.deepEqual(brandRules("src/app/p.tsx", "export const a = <p>Your recipes, in one place.</p>;"), ["hard-coded-brand"]);
+});
+
+test("hard-coded-brand: an unspaced declaration and an escaped quote are read too", () => {
+  assert.deepEqual(brandWords('export const SITE_NAME="Recipe Box";'), ["Recipe Box"]);
+  const toms = brandWords('export const SITE_NAME = "Tom\'s Box";');
+  assert.deepEqual(toms, ["Tom's Box"]);
+  const found = (text) => [...new Set(checkSource("src/app/p.ts", text, { brand: toms }).map((f) => f.rule))];
+  assert.deepEqual(found("export const a = 'Welcome to Tom\\'s Box';"), ["hard-coded-brand"]);
+  assert.deepEqual(found('export const a = "Welcome to Tom\'s Box";'), ["hard-coded-brand"]);
+});
+
+test("hard-coded-brand: BRAND, constants.ts, comments, other words and allow comments are fine", () => {
+  assert.deepEqual(brandRules("src/app/about/page.tsx", "export const a = <h1>About {BRAND.name}</h1>;"), []);
+  assert.deepEqual(brandRules("src/lib/constants.ts", CONSTANTS), []);
+  assert.deepEqual(brandRules("src/lib/legal-content.ts", 'export const t = "Recipe Box is run by me";'), []);
+  assert.deepEqual(brandRules("src/app/p.tsx", "// Recipe Box home\nexport const a = <p>Hi</p>;"), []);
+  assert.deepEqual(brandRules("src/app/p.tsx", "export const a = <p>Recipe Boxes for sale</p>;"), [], "part of a longer word");
+  assert.deepEqual(brandRules("src/app/p.tsx", "// design-check: allow-brand\nexport const a = <p>Recipe Box</p>;"), []);
+  assert.deepEqual(rules("src/app/p.tsx", "export const a = <p>Recipe Box</p>;"), [], "no brand words given, nothing to find");
+});
+
+test("hard-coded-brand: checkApp reads the words from the app's constants.ts", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "brand-check-"));
+  try {
+    mkdirSync(path.join(dir, "src", "lib"), { recursive: true });
+    mkdirSync(path.join(dir, "src", "app"), { recursive: true });
+    writeFileSync(path.join(dir, "src", "lib", "constants.ts"), CONSTANTS);
+    writeFileSync(path.join(dir, "src", "app", "page.tsx"), "export default function P() {\n  return <h1>Recipe Box</h1>;\n}\n");
+    const { findings } = checkApp(dir);
+    assert.deepEqual(findings.map((f) => `${f.file}:${f.line}:${f.rule}`), ["src/app/page.tsx:2:hard-coded-brand"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 // ---- the allow comments in general -----------------------------------------------------------------------------------

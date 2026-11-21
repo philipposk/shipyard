@@ -23,6 +23,7 @@ All of it:
 - Privacy, terms, a 404 page, a favicon, robots and a sitemap.
 - Empty states, error states, system light and dark, no fake numbers, no em dashes in text people read. The behaviour rules in `build-rules.md`.
 - A real look, proposed properly (three directions, light and dark), then built into their existing styles. Not a one-colour edit.
+- One file for the app's name and the words that repeat (name, short name, tagline, description, address, contact email), read everywhere else, so a rename is one edit. In this stack that is whatever fits (a `src/config/brand.ts`, a settings module), not necessarily Shipyard's `constants.ts`.
 
 If they asked to review and improve the app, or to make it better, propose this whole list first and wait for a yes before starting. Ask again only before a step that spends money, takes a real payment, or deletes data.
 
@@ -37,6 +38,7 @@ Read the code. Answer with file names. Do not edit yet.
 - **Data isolation**: does each person only see their own data? Row level security on every table? Admin flags editable by users? Server key used in browser code?
 - **Costs**: AI or paid API calls without caps, keys shared between apps.
 - **Server time**: measure it, do not guess: `vercel metrics vercel.function_invocation.function_cpu_time_ms -p <project> -a sum --group-by route --since 30d`, then again with `--group-by clientUserAgent`, and the same for `vercel.middleware_invocation.function_cpu_time_ms`. The bill can be about twice these numbers, because waking from idle is not counted per call. Look for one route or caller far above the rest, then check the app against "Hosting costs" in `build-rules.md`.
+- **Brand in one place**: search for the app's name and slogan typed into pages, emails, metadata and the manifest. List every copy.
 - **Tests and checks**: tests exist and run? A test gate on pull requests? A leaked-key scan? Does CI run the type check (`tsc --noEmit`) before the tests? Is `next lint` still in `package.json` on Next 16 (it no longer exists)?
 - **API routes and AI**: a signed-out call to an API route answers 401 JSON, not a redirect to sign-in. Server-key deletes or writes steered by a path the person can change check the prefix and owner. The browser cannot choose the AI model on the app's key; AI, speech and MCP routes have per-person rate limits and body size caps (MCP: a batch cap, a charge per tool call). Lookups with typed keys use `Object.hasOwn`. Deleting data does not reset usage counters. Debounced saves flush on `pagehide`.
 - **Deploy**: pushing straight to the publishing branch, deployment protection, environment values.
