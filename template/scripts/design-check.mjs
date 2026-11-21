@@ -273,7 +273,7 @@ function lineOf(starts, offset) {
 
 /** A `export const NAME = "..."` string, or null. */
 function stringConst(text, name) {
-  const m = new RegExp(`export const ${name} = "((?:[^"\\\\]|\\\\.)*)"`).exec(text);
+  const m = new RegExp(`export const ${name}\\s*=\\s*"((?:[^"\\\\]|\\\\.)*)"`).exec(text);
   if (!m) return null;
   try {
     return JSON.parse(`"${m[1]}"`);
@@ -301,6 +301,8 @@ export function brandWords(constantsText) {
 }
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** A pattern for the word as it can appear in source: a quote in it may be escaped (`Tom\'s`). */
+const brandPattern = (word) => escapeRe(word).replace(/['"`]/g, (q) => `\\\\?${q}`);
 
 /** Find a regex (or list of regexes) in text and return each match's offset. */
 function* matches(text, res) {
@@ -444,7 +446,7 @@ export function checkSource(file, text, options = {}) {
     // 11. the app's name, tagline or description typed in instead of read from BRAND
     if (!BRAND_FILES.has(file)) {
       for (const word of options.brand ?? []) {
-        for (const m of matches(ui, new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(word)}(?![\\p{L}\\p{N}])`, "u"))) add("hard-coded-brand", m.index);
+        for (const m of matches(ui, new RegExp(`(?<![\\p{L}\\p{N}])${brandPattern(word)}(?![\\p{L}\\p{N}])`, "u"))) add("hard-coded-brand", m.index);
       }
     }
   }

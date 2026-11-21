@@ -69,6 +69,21 @@ test("syncApp: a rename in constants.ts reaches both manifests and llms.txt; --c
   }
 });
 
+test("syncApp: an unspaced declaration (SITE_NAME=\"...\") is read, synced and checked", () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "brand-sync-"));
+  try {
+    mkdirSync(path.join(dir, "src", "lib"), { recursive: true });
+    mkdirSync(path.join(dir, "public"), { recursive: true });
+    writeFileSync(path.join(dir, "src", "lib", "constants.ts"), constants("Cookbook Club", "Cookbook", "Cook together.").replace(/ = /g, "="));
+    writeFileSync(path.join(dir, "public", "llms.txt"), "# Old\n\n> Old.\n");
+    assert.deepEqual(syncApp(dir, { check: true }).changed, ["public/llms.txt"], "--check sees the stale file");
+    syncApp(dir);
+    assert.equal(readFileSync(path.join(dir, "public", "llms.txt"), "utf8"), "# Cookbook Club\n\n> Cook together.\n");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("syncApp: does nothing while constants.ts still holds the template placeholders", () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), "brand-sync-"));
   try {

@@ -19,7 +19,7 @@ const LLMS = "public/llms.txt";
 
 /** A `export const NAME = "..."` string from constants.ts, or null. */
 function stringConst(text, name) {
-  const m = new RegExp(`export const ${name} = "((?:[^"\\\\]|\\\\.)*)"`).exec(text);
+  const m = new RegExp(`export const ${name}\\s*=\\s*"((?:[^"\\\\]|\\\\.)*)"`).exec(text);
   if (!m) return null;
   try {
     return JSON.parse(`"${m[1]}"`);

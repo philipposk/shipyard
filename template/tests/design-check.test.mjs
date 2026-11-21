@@ -242,6 +242,15 @@ test("hard-coded-brand: the name typed into a page or a string is found", () => 
   assert.deepEqual(brandRules("src/app/p.tsx", "export const a = <p>Your recipes, in one place.</p>;"), ["hard-coded-brand"]);
 });
 
+test("hard-coded-brand: an unspaced declaration and an escaped quote are read too", () => {
+  assert.deepEqual(brandWords('export const SITE_NAME="Recipe Box";'), ["Recipe Box"]);
+  const toms = brandWords('export const SITE_NAME = "Tom\'s Box";');
+  assert.deepEqual(toms, ["Tom's Box"]);
+  const found = (text) => [...new Set(checkSource("src/app/p.ts", text, { brand: toms }).map((f) => f.rule))];
+  assert.deepEqual(found("export const a = 'Welcome to Tom\\'s Box';"), ["hard-coded-brand"]);
+  assert.deepEqual(found('export const a = "Welcome to Tom\'s Box";'), ["hard-coded-brand"]);
+});
+
 test("hard-coded-brand: BRAND, constants.ts, comments, other words and allow comments are fine", () => {
   assert.deepEqual(brandRules("src/app/about/page.tsx", "export const a = <h1>About {BRAND.name}</h1>;"), []);
   assert.deepEqual(brandRules("src/lib/constants.ts", CONSTANTS), []);
