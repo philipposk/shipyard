@@ -9,6 +9,7 @@ import { runCli, isMain } from './provision/common.mjs';
 import { UsageError } from './lib/log.mjs';
 import * as log from './lib/log.mjs';
 import { encodeGif } from './lib/gif.mjs';
+import { renderBlocks, blockProblems, BLOCK_HELP, FRAMES } from './lib/sketch-blocks.mjs';
 
 export const MANIFEST = 'sketch.json';
 export const LIMITS = { minOptions: 2, maxOptions: 4, maxFrames: 6, minFrames: 2, maxBytes: 12_000, maxElements: 80, maxSide: 800, maxAccents: 2 };
@@ -26,7 +27,16 @@ Usage:
   --scale <n>    Pixel scale for GIFs (default 1, at most 3).
   --json         Print the result as JSON.
 
-The folder holds sketch.json:
+The folder holds sketch.json. Draw each option with a few block lines (the script draws the SVG):
+  { "title": "...", "question": "...", "frame": "phone", "accent": "#1b7a4b",
+    "recommended": 1, "because": "One sentence on why.",
+    "options": [{ "name": "Input on top", "note": "Good for... Costs...", "blocks": ["title Notes", "*input Write a note | Add", "list 4"] }],
+    "variations": [{ "name": "tick-a-task", "frames": [["list 3 check"], ["list 3 check done:1"]] }] }
+  Start a line with * to draw it in the accent colour (the part that differs).
+  Blocks:
+${BLOCK_HELP.map(([w, d]) => `    ${w.padEnd(34)} ${d}`).join('\n')}
+
+Or write SVG files yourself and name them instead:
   { "title": "...", "question": "...", "recommended": 1,
     "options": [{ "name": "Bottom bar", "file": "option-1.svg", "note": "One sentence." }],
     "variations": [{ "name": "tick-a-task", "frames": ["tick-1.svg", "tick-2.svg"], "delay": 700 }] }
@@ -146,12 +156,14 @@ export async function loadSketch(dir) {
       return null;
     }
     if (svgs.has(file)) return svgs.get(file);
-    let text;
-    try {
-      text = await readFile(path.join(folder, file), 'utf8');
-    } catch {
-      errors.push(`${label}: ${file} is missing.`);
-      return null;
+    let text = generated.get(file);
+    if (text === undefined) {
+      try {
+        text = await readFile(path.join(folder, file), 'utf8');
+      } catch {
+        errors.push(`${label}: ${file} is missing.`);
+        return null;
+      }
     }
     const res = checkSvg(text, file);
     errors.push(...res.errors);
@@ -163,8 +175,34 @@ export async function loadSketch(dir) {
 
   if (!spec || typeof spec !== 'object') throw new UsageError(`${MANIFEST} must be an object.`);
   if (typeof spec.title !== 'string' || !spec.title.trim()) errors.push('sketch.json needs a "title".');
-  const options = Array.isArray(spec.options) ? spec.options : [];
-  const variations = Array.isArray(spec.variations) ? spec.variations : [];
+  const frameType = spec.frame ?? 'phone';
+  if (!FRAMES[frameType]) errors.push(`"frame" is phone, desktop or card, not "${frameType}".`);
+  const accent = typeof spec.accent === 'string' && /^#[0-9a-fA-F]{6}$/.test(spec.accent) ? spec.accent : undefined;
+  if (spec.accent !== undefined && !accent) errors.push('"accent" is a colour like "#1b7a4b".');
+  // Options and frames written as block lines are drawn here and saved as SVG files next to the rest.
+  const generated = new Map();
+  const authored = new Set();
+  const draw = (blocks, name, label) => {
+    const problems = blockProblems(blocks, frameType);
+    for (const pr of problems) errors.push(`${label} ${pr}`);
+    generated.set(name, renderBlocks(blocks, { frame: frameType, accent }));
+    return name;
+  };
+  const options = (Array.isArray(spec.options) ? spec.options : []).map((opt, i) => {
+    if (opt && opt.blocks !== undefined) return { ...opt, file: draw(opt.blocks, `option-${i + 1}.svg`, `Option ${i + 1}`) };
+    if (opt && typeof opt.file === 'string') authored.add(opt.file);
+    return opt;
+  });
+  const variations = (Array.isArray(spec.variations) ? spec.variations : []).map((v, i) => {
+    if (!v || !Array.isArray(v.frames) || typeof v.name !== 'string') return v;
+    const frames = v.frames.map((f, k) => {
+      if (Array.isArray(f)) return draw(f, `${v.name}-${k + 1}.svg`, `Variation ${i + 1} frame ${k + 1}`);
+      if (typeof f === 'string') authored.add(f);
+      return f;
+    });
+    return { ...v, frames };
+  });
+  for (const name of generated.keys()) if (authored.has(name)) errors.push(`${name} is drawn from blocks and also named as a file you wrote. Rename the file.`);
   if (!options.length && !variations.length) errors.push('sketch.json needs "options" (two to four sketches), "variations" (frames for a GIF), or both.');
   if (options.length && (options.length < LIMITS.minOptions || options.length > LIMITS.maxOptions)) errors.push(`Give ${LIMITS.minOptions} to ${LIMITS.maxOptions} options, not ${options.length}. More than four is no longer quick to compare.`);
   for (const [i, opt] of options.entries()) {
@@ -174,6 +212,8 @@ export async function loadSketch(dir) {
     if (opt && opt.note !== undefined && typeof opt.note !== 'string') errors.push(`${label}: "note" must be text.`);
     await readSvg(opt?.file, label);
   }
+  if (spec.because !== undefined && typeof spec.because !== 'string') errors.push('"because" is one sentence on why the recommended option wins.');
+  if (spec.recommended !== undefined && !spec.because) warnings.push('Add "because": one sentence on why the recommended option wins.');
   if (spec.recommended !== undefined) {
     const r = spec.recommended;
     if (!Number.isInteger(r) || r < 1 || r > options.length) errors.push(`"recommended" must be an option number from 1 to ${options.length}.`);
@@ -201,7 +241,7 @@ export async function loadSketch(dir) {
   const outputs = new Set(['index.html']);
   for (const v of variations) if (v && typeof v.name === 'string') outputs.add(`${v.name}.gif`).add(`${v.name}.anim.svg`);
   for (const file of svgs.keys()) if (outputs.has(file)) errors.push(`${file} is both a sketch you wrote and a file this script writes. Rename the sketch or the variation.`);
-  return { folder, spec: { ...spec, options, variations }, svgs, errors, warnings, ok: errors.length === 0 };
+  return { folder, spec: { ...spec, options, variations }, svgs, generated, errors, warnings, ok: errors.length === 0 };
 }
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -233,6 +273,8 @@ export function animatedSvg(frameTexts, viewBox, delayMs = 700) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.join(' ')}" width="${viewBox[2]}" height="${viewBox[3]}">${layers.join('')}</svg>\n`;
 }
 
+const accentOf = (spec) => (typeof spec.accent === 'string' && /^#[0-9a-fA-F]{6}$/.test(spec.accent) ? spec.accent : '#2563eb');
+
 /** The comparison page: options side by side, the recommended one marked, then the variations. */
 export function boardHtml(sketch, { gifs = {} } = {}) {
   const { spec, svgs } = sketch;
@@ -250,14 +292,15 @@ export function boardHtml(sketch, { gifs = {} } = {}) {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(spec.title)}</title>
 <style>
-:root { --bg: #f6f6f4; --card: #fff; --ink: #1a1a1a; --muted: #5f5f5f; --line: #d9d9d6; --accent: #2563eb; }
-@media (prefers-color-scheme: dark) { :root { --bg: #161616; --card: #222; --ink: #f2f2f2; --muted: #b0b0b0; --line: #3a3a3a; --accent: #7aa2ff; } }
+:root { --bg: #f6f6f4; --card: #fff; --ink: #1a1a1a; --muted: #5f5f5f; --line: #d9d9d6; --accent: ${accentOf(spec)}; }
+@media (prefers-color-scheme: dark) { :root { --bg: #161616; --card: #222; --ink: #f2f2f2; --muted: #b0b0b0; --line: #3a3a3a; } }
 * { box-sizing: border-box; }
 body { margin: 0; padding: 1.5rem 1rem 3rem; background: var(--bg); color: var(--ink); font: 1rem/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 main { max-width: 72rem; margin: 0 auto; }
 h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
 h2 { font-size: 1.1rem; margin: 2rem 0 0.75rem; }
-.question { color: var(--muted); margin: 0 0 1.25rem; }
+.question { color: var(--muted); margin: 0 0 0.5rem; }
+.because { margin: 0 0 1.25rem; }
 .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
 .grid.small { grid-template-columns: repeat(auto-fill, minmax(16rem, 22rem)); }
 .card { margin: 0; background: var(--card); border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; }
@@ -267,10 +310,12 @@ h2 { font-size: 1.1rem; margin: 2rem 0 0.75rem; }
 figcaption { padding: 0.75rem 1rem 1rem; }
 figcaption p { margin: 0.25rem 0 0; color: var(--muted); }
 .badge { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+@media (prefers-color-scheme: dark) { .badge { color: var(--ink); } }
 </style></head>
 <body><main>
 <h1>${esc(spec.title)}</h1>
 ${spec.question ? `<p class="question">${esc(spec.question)}</p>` : ''}
+${spec.recommended && spec.because ? `<p class="because"><strong>Recommended: ${spec.recommended}.</strong> ${esc(spec.because)}</p>` : ''}
 ${cards.length ? `<div class="grid">${cards.join('\n')}</div>` : ''}
 ${vars.length ? `<h2>Small changes</h2><div class="grid small">${vars.join('\n')}</div>` : ''}
 </main></body></html>
@@ -395,6 +440,8 @@ export async function main(args, deps = {}) {
   report(sketch);
   const result = { ok: sketch.ok, folder: sketch.folder, errors: sketch.errors, warnings: sketch.warnings };
   if (!sketch.ok || command === 'check') return result;
+  for (const [name, text] of sketch.generated) await writeFile(path.join(sketch.folder, name), text);
+  if (sketch.generated.size) result.drawn = [...sketch.generated.keys()];
 
   let gifs = {};
   if (command === 'gif' || command === 'all') {

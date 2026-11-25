@@ -378,3 +378,79 @@ test('main: check stops at errors and writes nothing; bad commands are usage err
   await assert.rejects(qs.main({ _: ['board'] }), /sketch folder/);
   await assert.rejects(qs.main({ _: ['board', dir], scale: '9' }), /--scale/);
 });
+
+// ---- block sketches (the cheap path: a few words per option, the script draws the SVG) ----
+const blocks = await import('../scripts/lib/sketch-blocks.mjs');
+
+test('renderBlocks: every block draws a safe SVG that passes the checker, in every frame', () => {
+  const all = blocks.BLOCK_HELP.map(([w]) => w.split(' ')[0]).filter((k) => k !== 'sidebar');
+  const lines = all.map((k) => `${k} ${k === 'list' ? '3 check done:1' : k === 'text' || k === 'cards' ? '2' : 'One | Two'}`);
+  for (const frame of Object.keys(blocks.FRAMES)) {
+    const svg = blocks.renderBlocks(lines, { frame, accent: '#1b7a4b' });
+    assert.deepEqual(qs.checkSvg(svg).errors, [], frame);
+    assert.match(svg, new RegExp(`viewBox="0 0 ${blocks.FRAMES[frame].join(' ')}"`));
+  }
+  const desk = blocks.renderBlocks(['sidebar Home|Notes', 'title Notes', 'list 2'], { frame: 'desktop' });
+  assert.deepEqual(qs.checkSvg(desk).errors, []);
+});
+
+test('renderBlocks: * marks the accent, done ticks a row, text is escaped', () => {
+  assert.match(blocks.renderBlocks(['*fab +'], { accent: '#1b7a4b' }), /fill="#1b7a4b"/);
+  assert.doesNotMatch(blocks.renderBlocks(['fab +'], { accent: '#1b7a4b' }), /#1b7a4b/);
+  assert.match(blocks.renderBlocks(['list 2 check done:2'], { accent: '#1b7a4b' }), /<path d="M/);
+  const svg = blocks.renderBlocks(['title <b>&"x"</b>']);
+  assert.match(svg, /&lt;b&gt;&amp;&quot;x&quot;&lt;\/b&gt;/);
+  assert.deepEqual(qs.checkSvg(svg).errors, []);
+});
+
+test('blockProblems: unknown words, empty lists, too many lines, sidebar off desktop, bad frame', () => {
+  assert.match(blocks.blockProblems(['title x', 'banana 3']).join(), /"banana 3" is not a block/);
+  assert.match(blocks.blockProblems([]).join(), /needs "blocks"/);
+  assert.match(blocks.blockProblems(Array(15).fill('space')).join(), /at most 14/);
+  assert.match(blocks.blockProblems(['sidebar a|b'], 'phone').join(), /only fits frame "desktop"/);
+  assert.match(blocks.blockProblems(['title x'], 'watch').join(), /phone, desktop or card/);
+});
+
+test('main all with blocks: draws option and frame SVGs, a GIF, and a page with the reason', async () => {
+  const spec = {
+    title: 'Adding a note',
+    accent: '#1b7a4b',
+    recommended: 1,
+    because: 'Notes are one line.',
+    options: [
+      { name: 'Input on top', note: 'Good: fast. Costs: space.', blocks: ['title Notes', '*input Write | Add', 'list 3'] },
+      { name: 'Floating button', blocks: ['title Notes', 'list 3', '*fab +'] },
+    ],
+    variations: [{ name: 'tick', frames: [['list 2 check'], ['list 2 check done:1']] }],
+  };
+  const dir = await folder('blocks', spec, {});
+  const fake = {
+    async newPage() {
+      return { async setContent() {}, async evaluate(_f, { width, height }) { return Buffer.alloc(width * height * 4, 200).toString('base64'); } };
+    },
+    async close() {},
+  };
+  const res = await qs.main({ _: ['all', dir] }, { browserOpener: async () => ({ browser: fake }) });
+  assert.equal(res.ok, true, res.errors.join());
+  assert.deepEqual(res.drawn, ['option-1.svg', 'option-2.svg', 'tick-1.svg', 'tick-2.svg']);
+  const names = await readdir(dir);
+  for (const f of [...res.drawn, 'tick.gif', 'index.html']) assert.ok(names.includes(f), f);
+  const html = await readFile(path.join(dir, 'index.html'), 'utf8');
+  assert.match(html, /Recommended: 1\.<\/strong> Notes are one line\./);
+  assert.match(html, /--accent: #1b7a4b/);
+});
+
+test('loadSketch with blocks: bad blocks, a bad accent and a file named like a drawn one are errors', async () => {
+  const spec = {
+    title: 'x',
+    accent: 'green',
+    options: [{ name: 'A', blocks: ['banana'] }, { name: 'B', file: 'option-1.svg' }],
+  };
+  const s = await qs.loadSketch(await folder('badblocks', spec, { 'option-1.svg': GOOD() }));
+  const all = s.errors.join('\n');
+  assert.match(all, /Option 1 "banana" is not a block/);
+  assert.match(all, /"accent" is a colour/);
+  assert.match(all, /option-1\.svg is drawn from blocks and also named as a file you wrote/);
+  const warn = await qs.loadSketch(await folder('nobecause', { title: 'x', recommended: 1, options: [{ name: 'A', blocks: ['title a'] }, { name: 'B', blocks: ['title b'] }] }, {}));
+  assert.match(warn.warnings.join(), /Add "because"/);
+});
