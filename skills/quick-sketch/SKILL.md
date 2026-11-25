@@ -11,7 +11,7 @@ Draw instead of describing whenever there is a real choice. You write a few bloc
 
 ## Rules (always)
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` before any other step, unless you already read it in this session.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/new-app/references/working-rules.md` now, before any other step, unless you already read it in this session.
 
 - Two to four options, each a genuinely different approach, with a 1 to 3 word name.
 - Spend as little as possible. Every tool call re-reads the whole chat, so the number of steps is the cost: read at most the one screen file the choice is about (or nothing, if the student described it), then write `sketch.json` in one step and run the script in one step. Do not open the SVGs or GIF to check them; the script checks them.
