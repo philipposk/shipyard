@@ -213,6 +213,13 @@ test('checkSvg: anything outside the one <svg> root, unknown elements and outsid
     GOOD('<text>x</text><use href="https://x/y.svg#a"/>'),
     GOOD('<text>x</text></svg><g>'),
     GOOD('<text>x</text><![CDATA[ x ]]>'),
+    GOOD('<text>x</text><rect/onclick="alert(1)"/>'),
+    GOOD('<text>x</text><!-- a --!><rect onclick="x"/> -->'),
+    GOOD('<text>x</text><!--><rect/>'),
+    GOOD('<text>x</text><animate attributeName="href" to="https://x"/>'),
+    GOOD('<text>x</text><set attributeName="fill" to="red"/>'),
+    GOOD('<text>x</text><rect style="fill:url( https://x/y )"/>'),
+    GOOD('<text>x</text><use xlink:href="https://x/y.svg#a"/>'),
   ];
   for (const svg of tricks) assert.ok(qs.checkSvg(svg).errors.length > 0, svg);
   const fine = '<?xml version="1.0"?>\n<!-- a sketch -->\n' + GOOD('<defs><pattern id="h" width="4" height="4"><path d="M0 0L4 4" stroke="#ccc"/></pattern></defs><g><rect fill="url(#h)"/><use href="#h"/><text>x<tspan>y</tspan></text></g>');
@@ -305,7 +312,8 @@ test('animatedSvg: one layer per frame, discrete timing, no script', () => {
   assert.match(out, /dur="1\.50s"/);
   assert.match(out, /values="hidden;visible;hidden"/);
   assert.doesNotMatch(out, /<script/);
-  assert.deepEqual(qs.checkSvg(out).errors.filter((e) => !/bytes/.test(e)), []);
+  // The animated SVG is shown with <img>, never inlined, so <animate> is fine there.
+  assert.deepEqual(qs.checkSvg(out).errors.filter((e) => !/bytes|<animate>/.test(e)), []);
 });
 
 test('animatedSvg keeps each frame root (a colour set on <svg> still changes between frames)', () => {
@@ -315,6 +323,20 @@ test('animatedSvg keeps each frame root (a colour set on <svg> still changes bet
   assert.match(out, /fill="#2563eb"/);
   assert.match(out, /fill="#777777"/);
   assert.equal((out.match(/<svg /g) ?? []).length, 3);
+});
+
+test('main all: a sketch with markup after </svg> stops before any page is written', async () => {
+  const bad = `${GOOD('<text>Safe</text>')}<img src="missing" /onerror="alert(1)">`;
+  const dir = await folder('xss', { title: 'x', options: [{ name: 'A', file: 'a.svg' }, { name: 'B', file: 'b.svg' }] }, { 'a.svg': bad, 'b.svg': GOOD() });
+  const res = await qs.main({ _: ['all', dir] });
+  assert.equal(res.ok, false);
+  assert.ok(!(await readdir(dir)).includes('index.html'));
+});
+
+test('loadSketch refuses an output name that differs only in case (macOS and Windows)', async () => {
+  const spec = { title: 'x', variations: [{ name: 'pulse', frames: ['Pulse.anim.svg', 't2.svg'] }] };
+  const s = await qs.loadSketch(await folder('collide-case', spec, { 'Pulse.anim.svg': GOOD('<text>a</text>'), 't2.svg': GOOD('<text>b</text>') }));
+  assert.match(s.errors.join(), /Pulse\.anim\.svg is both a sketch you wrote/);
 });
 
 test('loadSketch refuses a sketch file that an output would overwrite', async () => {

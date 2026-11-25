@@ -49,7 +49,7 @@ const FILE_RE = /^[A-Za-z0-9._-]+\.svg$/;
 
 // Elements a sketch may use. Anything else (img, a, script, iframe, foreignObject...) is refused,
 // so the page that shows the sketches inline can never run code from one.
-const ALLOWED_TAGS = new Set(['svg', 'g', 'defs', 'title', 'desc', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text', 'tspan', 'pattern', 'clippath', 'mask', 'marker', 'symbol', 'use', 'lineargradient', 'radialgradient', 'stop', 'filter', 'fedropshadow', 'fegaussianblur', 'feoffset', 'style', 'animate', 'set']);
+const ALLOWED_TAGS = new Set(['svg', 'g', 'defs', 'title', 'desc', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text', 'tspan', 'pattern', 'clippath', 'mask', 'marker', 'symbol', 'use', 'lineargradient', 'radialgradient', 'stop', 'filter', 'fedropshadow', 'fegaussianblur', 'feoffset', 'style']);
 const ATTR_RE = /([^\s=/]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
 
 /** One well-formed <svg> root, only allowed elements, plain attributes, and only #local hrefs. */
@@ -61,6 +61,8 @@ export function structureProblems(text, label = 'sketch') {
     return problems;
   }
   if (/<!/.test(body)) problems.push(`${label} has a DOCTYPE or CDATA section. Plain SVG only.`);
+  // A browser also ends a comment at --!> (and <!--> or <!--->), which the comment strip above would not see.
+  if (/--!>|<!--->?|<!-->/.test(String(text))) problems.push(`${label} has a comment a browser would end early. Remove it.`);
   let depth = 0;
   let closedRoot = false;
   for (const m of body.matchAll(/<(\/?)([A-Za-z][\w:.-]*)([^>]*?)(\/?)>|<[^>]*$/g)) {
@@ -82,6 +84,7 @@ export function structureProblems(text, label = 'sketch') {
     for (const a of m[3].matchAll(ATTR_RE)) {
       const name = a[1].toLowerCase();
       if (!/^[a-z_:][-a-z0-9_:.]*$/.test(name)) problems.push(`${label} has a strange attribute "${a[1].slice(0, 30)}" on <${m[2]}>.`);
+      else if (name.startsWith('on')) problems.push(`${label} has an event handler (${a[1].slice(0, 30)}). Sketches are drawings only.`);
       else if (/(^|:)href$/.test(name) && !/^["']?\s*#/.test(a[2] ?? '')) problems.push(`${label} links to something outside the file (href). Only #local references are allowed.`);
     }
     if (!m[4]) depth++;
@@ -202,7 +205,8 @@ export async function loadSketch(dir) {
     });
     return { ...v, frames };
   });
-  for (const name of generated.keys()) if (authored.has(name)) errors.push(`${name} is drawn from blocks and also named as a file you wrote. Rename the file.`);
+  const lowerAuthored = new Set([...authored].map((a) => String(a).toLowerCase()));
+  for (const name of generated.keys()) if (lowerAuthored.has(name.toLowerCase())) errors.push(`${name} is drawn from blocks and also named as a file you wrote. Rename the file.`);
   if (!options.length && !variations.length) errors.push('sketch.json needs "options" (two to four sketches), "variations" (frames for a GIF), or both.');
   if (options.length && (options.length < LIMITS.minOptions || options.length > LIMITS.maxOptions)) errors.push(`Give ${LIMITS.minOptions} to ${LIMITS.maxOptions} options, not ${options.length}. More than four is no longer quick to compare.`);
   for (const [i, opt] of options.entries()) {
@@ -240,7 +244,9 @@ export async function loadSketch(dir) {
   }
   const outputs = new Set(['index.html']);
   for (const v of variations) if (v && typeof v.name === 'string') outputs.add(`${v.name}.gif`).add(`${v.name}.anim.svg`);
-  for (const file of svgs.keys()) if (outputs.has(file)) errors.push(`${file} is both a sketch you wrote and a file this script writes. Rename the sketch or the variation.`);
+  const lowerOutputs = new Set([...outputs].map((o) => o.toLowerCase()));
+  // Compared without case: on macOS and Windows Pulse.anim.svg and pulse.anim.svg are the same file.
+  for (const file of svgs.keys()) if (lowerOutputs.has(file.toLowerCase())) errors.push(`${file} is both a sketch you wrote and a file this script writes. Rename the sketch or the variation.`);
   return { folder, spec: { ...spec, options, variations }, svgs, generated, errors, warnings, ok: errors.length === 0 };
 }
 
