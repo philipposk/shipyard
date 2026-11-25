@@ -10,7 +10,7 @@ const tmp = await mkdtemp(path.join(os.tmpdir(), 'ship-sketch-'));
 after(() => rm(tmp, { recursive: true, force: true }));
 (await import('../scripts/lib/log.mjs')).setQuiet(true);
 const qs = await import('../scripts/quick-sketch.mjs');
-const { encodeGif, lzwEncode, fallbackPalette } = await import('../scripts/lib/gif.mjs');
+const { encodeGif, lzwEncode, indexFrames } = await import('../scripts/lib/gif.mjs');
 
 // ---- a reference GIF decoder (only what the encoder writes) ----
 function lzwDecode(bytes, minCodeSize, pixelCount) {
@@ -139,13 +139,16 @@ test('encodeGif: a noisy frame long enough to fill the code table still round-tr
   }
 });
 
-test('encodeGif: transparent pixels land on white; more than 256 colours fall back to the cube', () => {
+test('encodeGif: transparent pixels land on white; past 256 colours the most used stay exact', () => {
   const t = solid(4, 1, () => [0, 0, 0, 0]);
   assert.equal(decodeGif(encodeGif([t])).frames[0][0], rgb(255, 255, 255));
-  const many = solid(32, 32, (x, y) => [x * 8, y * 8, (x * y) % 256]);
+  // A sketch accent (#1b7a4b) on white, with 400 one-pixel anti-aliasing shades along one row.
+  const many = solid(400, 40, (x, y) => (y === 0 ? [x % 256, Math.floor(x / 256) * 40, 7] : x < 200 ? [27, 122, 75] : [255, 255, 255]));
+  assert.equal(indexFrames([many]).exact, false);
   const gif = decodeGif(encodeGif([many]));
-  const cube = new Set(fallbackPalette());
-  assert.ok(gif.frames[0].every((c) => cube.has(c)));
+  assert.equal(gif.frames[0][400 * 5 + 10], rgb(27, 122, 75));
+  assert.equal(gif.frames[0][400 * 5 + 300], rgb(255, 255, 255));
+  assert.ok(new Set(gif.frames[0]).size <= 256);
 });
 
 test('encodeGif refuses frames of different sizes', () => {

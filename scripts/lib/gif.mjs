@@ -1,7 +1,7 @@
 // A small animated GIF encoder with no dependencies, for quick-sketch variations.
 // Input: RGBA frames of one size. Output: a looping GIF89a Buffer with one shared palette.
-// Sketches use a few greys and one accent, so the palette is usually exact; larger colour
-// counts fall back to a fixed 216-colour cube plus 40 greys, matched to the nearest colour.
+// Sketches use a few greys and one accent, so the palette is usually exact; with more colours
+// the 256 most used are kept exactly and the rest map to the nearest of those.
 
 const MAX_CODE = 4096;
 
@@ -12,18 +12,6 @@ function rgbAt(rgba, i) {
   const g = Math.round(rgba[i + 1] * a + 255 * (1 - a));
   const b = Math.round(rgba[i + 2] * a + 255 * (1 - a));
   return (r << 16) | (g << 8) | b;
-}
-
-/** The fallback palette: 6x6x6 colour cube plus 40 greys (256 entries). */
-export function fallbackPalette() {
-  const out = [];
-  const steps = [0, 51, 102, 153, 204, 255];
-  for (const r of steps) for (const g of steps) for (const b of steps) out.push((r << 16) | (g << 8) | b);
-  for (let i = 0; i < 40; i++) {
-    const v = Math.round(((i + 1) * 255) / 41);
-    out.push((v << 16) | (v << 8) | v);
-  }
-  return out;
 }
 
 function nearest(palette, rgb) {
@@ -42,22 +30,22 @@ function nearest(palette, rgb) {
   return best;
 }
 
-/** One palette for all frames, and each frame as palette indices. */
+/**
+ * One palette for all frames, and each frame as palette indices. Up to 256 colours are kept
+ * exactly; beyond that (anti-aliased edges at a larger scale) the 256 most used colours are
+ * kept, so the sketch's own greys and accent stay exact, and the rest map to the nearest.
+ */
 export function indexFrames(frames) {
-  const seen = new Map();
+  const counts = new Map();
   for (const f of frames) {
     for (let i = 0; i < f.rgba.length; i += 4) {
       const c = rgbAt(f.rgba, i);
-      if (!seen.has(c)) {
-        seen.set(c, seen.size);
-        if (seen.size > 256) break;
-      }
+      counts.set(c, (counts.get(c) ?? 0) + 1);
     }
-    if (seen.size > 256) break;
   }
-  const exact = seen.size <= 256;
-  const palette = exact ? [...seen.keys()] : fallbackPalette();
-  const lookup = exact ? seen : new Map();
+  const exact = counts.size <= 256;
+  const palette = exact ? [...counts.keys()] : [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 256).map(([c]) => c);
+  const lookup = new Map(palette.map((c, i) => [c, i]));
   const indexed = frames.map((f) => {
     const out = new Uint8Array(f.width * f.height);
     for (let p = 0, i = 0; p < out.length; p++, i += 4) {
