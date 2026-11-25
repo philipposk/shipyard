@@ -25,7 +25,7 @@ function lzwDecode(bytes, minCodeSize, pixelCount) {
   };
   reset();
   const out = [];
-  let pos = 0, prev = null;
+  let pos = 0, prev = null, sawEoi = false;
   const read = () => {
     let code = 0;
     for (let i = 0; i < size; i++) {
@@ -42,7 +42,10 @@ function lzwDecode(bytes, minCodeSize, pixelCount) {
       prev = null;
       continue;
     }
-    if (code === eoi) break;
+    if (code === eoi) {
+      sawEoi = true;
+      break;
+    }
     let entry;
     if (code < next && dict[code]) entry = dict[code];
     else if (code === next && prev) entry = [...prev, prev[0]];
@@ -55,6 +58,7 @@ function lzwDecode(bytes, minCodeSize, pixelCount) {
     prev = entry;
   }
   assert.equal(out.length, pixelCount, 'decoded pixel count');
+  assert.ok(sawEoi, 'the stream ends with an end-of-information code');
   return out;
 }
 
@@ -156,6 +160,21 @@ test('encodeGif refuses frames of different sizes', () => {
   assert.throws(() => encodeGif([]), /at least one/);
 });
 
+test('lzwEncode: every stream ends with a readable end code, at every code size (fuzzed)', () => {
+  // The reviewed boundary case: the decoder widens to 5 bits right before the end code.
+  assert.deepEqual(lzwDecode(lzwEncode([0, 0, 1, 0, 2, 0, 3, 1, 1, 2, 1], 2), 2, 11), [0, 0, 1, 0, 2, 0, 3, 1, 1, 2, 1]);
+  let seed = 11;
+  const rand = (n) => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) % n;
+  for (const min of [2, 3, 4, 8]) {
+    for (let run = 0; run < 300; run++) {
+      const len = 1 + rand(run < 200 ? 60 : 6000);
+      const colours = 1 + rand(Math.min(1 << min, 1 + rand(1 << min)));
+      const input = Array.from({ length: len }, () => rand(colours));
+      assert.deepEqual(lzwDecode(lzwEncode(input, min), min, len), input);
+    }
+  }
+});
+
 test('lzwEncode of nothing is a clear code and an end code', () => {
   assert.deepEqual(lzwDecode(lzwEncode([], 2), 2, 0), []);
 });
@@ -181,7 +200,23 @@ test('checkSvg: scripts, handlers, links, outside files and foreignObject are re
     '<foreignObject><div>x</div></foreignObject>',
   ];
   for (const body of bad) assert.ok(qs.checkSvg(GOOD(body)).errors.length > 0, body);
-  assert.deepEqual(qs.checkSvg(GOOD('<rect fill="url(#hatch)"/><text>x</text>')).errors, []);
+  for (const attr of ['fill="url(#hatch)"', `fill="url('#hatch')"`, `fill='url( "#hatch" )'`]) assert.deepEqual(qs.checkSvg(GOOD(`<rect ${attr}/><text>x</text>`)).errors, [], attr);
+  assert.ok(qs.checkSvg(GOOD(`<rect fill="url('https://x/y')"/><text>x</text>`)).errors.length > 0);
+});
+
+test('checkSvg: anything outside the one <svg> root, unknown elements and outside hrefs are refused', () => {
+  const tricks = [
+    `${GOOD('<text>Safe</text>')}<img src="missing" /onerror="alert(1)">`,
+    `<p>hi</p>${GOOD('<text>x</text>')}`,
+    GOOD('<text>x</text><img src="a.png"/>'),
+    GOOD('<text>x</text><iframe/>'),
+    GOOD('<text>x</text><use href="https://x/y.svg#a"/>'),
+    GOOD('<text>x</text></svg><g>'),
+    GOOD('<text>x</text><![CDATA[ x ]]>'),
+  ];
+  for (const svg of tricks) assert.ok(qs.checkSvg(svg).errors.length > 0, svg);
+  const fine = '<?xml version="1.0"?>\n<!-- a sketch -->\n' + GOOD('<defs><pattern id="h" width="4" height="4"><path d="M0 0L4 4" stroke="#ccc"/></pattern></defs><g><rect fill="url(#h)"/><use href="#h"/><text>x<tspan>y</tspan></text></g>');
+  assert.deepEqual(qs.checkSvg(fine).errors, []);
 });
 
 test('checkSvg: missing viewBox, too big, too many colours, no words', () => {
@@ -271,6 +306,22 @@ test('animatedSvg: one layer per frame, discrete timing, no script', () => {
   assert.match(out, /values="hidden;visible;hidden"/);
   assert.doesNotMatch(out, /<script/);
   assert.deepEqual(qs.checkSvg(out).errors.filter((e) => !/bytes/.test(e)), []);
+});
+
+test('animatedSvg keeps each frame root (a colour set on <svg> still changes between frames)', () => {
+  const a = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" fill="#2563eb"><rect width="5" height="5"/><text>a</text></svg>';
+  const b = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" fill="#777777"><rect width="5" height="5"/><text>a</text></svg>';
+  const out = qs.animatedSvg([a, b], [0, 0, 10, 10]);
+  assert.match(out, /fill="#2563eb"/);
+  assert.match(out, /fill="#777777"/);
+  assert.equal((out.match(/<svg /g) ?? []).length, 3);
+});
+
+test('loadSketch refuses a sketch file that an output would overwrite', async () => {
+  const spec = { title: 'x', variations: [{ name: 'pulse', frames: ['pulse.anim.svg', 't2.svg'] }] };
+  const s = await qs.loadSketch(await folder('collide', spec, { 'pulse.anim.svg': GOOD('<text>a</text>'), 't2.svg': GOOD('<text>b</text>') }));
+  assert.equal(s.ok, false);
+  assert.match(s.errors.join(), /pulse\.anim\.svg is both a sketch you wrote and a file this script writes/);
 });
 
 test('sizedSvg and pixelSize: explicit size, longest side capped', () => {

@@ -37,6 +37,49 @@ Without a browser, gif writes <name>.anim.svg (it plays in any browser) and says
 const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const FILE_RE = /^[A-Za-z0-9._-]+\.svg$/;
 
+// Elements a sketch may use. Anything else (img, a, script, iframe, foreignObject...) is refused,
+// so the page that shows the sketches inline can never run code from one.
+const ALLOWED_TAGS = new Set(['svg', 'g', 'defs', 'title', 'desc', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text', 'tspan', 'pattern', 'clippath', 'mask', 'marker', 'symbol', 'use', 'lineargradient', 'radialgradient', 'stop', 'filter', 'fedropshadow', 'fegaussianblur', 'feoffset', 'style', 'animate', 'set']);
+const ATTR_RE = /([^\s=/]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
+
+/** One well-formed <svg> root, only allowed elements, plain attributes, and only #local hrefs. */
+export function structureProblems(text, label = 'sketch') {
+  const problems = [];
+  const body = String(text).replace(/^\uFEFF/, '').replace(/<\?xml[^>]*\?>/gi, '').replace(/<!--[\s\S]*?-->/g, '').trim();
+  if (!/^<svg\b/i.test(body) || !/<\/svg>$/i.test(body)) {
+    problems.push(`${label} must be one <svg> element with nothing before or after it.`);
+    return problems;
+  }
+  if (/<!/.test(body)) problems.push(`${label} has a DOCTYPE or CDATA section. Plain SVG only.`);
+  let depth = 0;
+  let closedRoot = false;
+  for (const m of body.matchAll(/<(\/?)([A-Za-z][\w:.-]*)([^>]*?)(\/?)>|<[^>]*$/g)) {
+    if (m[2] === undefined) {
+      problems.push(`${label} has an unfinished tag.`);
+      break;
+    }
+    if (closedRoot) {
+      problems.push(`${label} has content after its closing </svg>.`);
+      break;
+    }
+    const tag = m[2].toLowerCase();
+    if (!ALLOWED_TAGS.has(tag)) problems.push(`${label} uses <${m[2]}>, which a sketch does not need. Use shapes and <text>.`);
+    if (m[1]) {
+      depth--;
+      if (depth === 0) closedRoot = true;
+      continue;
+    }
+    for (const a of m[3].matchAll(ATTR_RE)) {
+      const name = a[1].toLowerCase();
+      if (!/^[a-z_:][-a-z0-9_:.]*$/.test(name)) problems.push(`${label} has a strange attribute "${a[1].slice(0, 30)}" on <${m[2]}>.`);
+      else if (/(^|:)href$/.test(name) && !/^["']?\s*#/.test(a[2] ?? '')) problems.push(`${label} links to something outside the file (href). Only #local references are allowed.`);
+    }
+    if (!m[4]) depth++;
+  }
+  if (!closedRoot) problems.push(`${label} does not close its <svg> element properly.`);
+  return [...new Set(problems)];
+}
+
 /** Problems that make an SVG unsafe or not cheap. Returns { errors, warnings, viewBox }. */
 export function checkSvg(text, label = 'sketch') {
   const errors = [];
@@ -56,11 +99,13 @@ export function checkSvg(text, label = 'sketch') {
     viewBox = vb.slice(1, 5).map(Number);
     if (!(viewBox[2] > 0 && viewBox[3] > 0)) errors.push(`${label} has an empty viewBox.`);
   }
+  errors.push(...structureProblems(svg, label));
   if (/<script\b/i.test(svg)) errors.push(`${label} has a <script>. Sketches are drawings only.`);
   if (/\son[a-z]+\s*=/i.test(svg)) errors.push(`${label} has an event handler (on...=). Sketches are drawings only.`);
   if (/<foreignObject\b/i.test(svg)) errors.push(`${label} has <foreignObject>. Use plain shapes and <text>.`);
-  if (/<(image|use|iframe|embed|object)\b[^>]*\bhref\s*=\s*["'](?!#)/i.test(svg) || /<(image|iframe|embed|object)\b/i.test(svg)) errors.push(`${label} loads an image or another file. Draw it with shapes instead.`);
-  if (/url\(\s*["']?(?!#)/i.test(svg) || /@import/i.test(svg)) errors.push(`${label} loads something from outside the file (url() or @import).`);
+  if (/<(image|iframe|embed|object)\b/i.test(svg)) errors.push(`${label} loads an image or another file. Draw it with shapes instead.`);
+  const outside = [...svg.matchAll(/url\(\s*(?:"([^"]*)"|'([^']*)'|([^)]*))\s*\)/gi)].some((m) => !(m[1] ?? m[2] ?? m[3] ?? '').trim().startsWith('#'));
+  if (outside || /@import/i.test(svg)) errors.push(`${label} loads something from outside the file (url() or @import).`);
   if (/<a\b/i.test(svg)) errors.push(`${label} has a link. Sketches are drawings only.`);
   const elements = (svg.match(/<(rect|circle|ellipse|line|polyline|polygon|path|text|g)\b/gi) ?? []).length;
   if (elements > LIMITS.maxElements) warnings.push(`${label} has ${elements} shapes; a quick sketch reads better with fewer than ${LIMITS.maxElements}.`);
@@ -153,6 +198,9 @@ export async function loadSketch(dir) {
       else if (entry.viewBox.join(' ') !== first.join(' ')) errors.push(`${label}: ${f} has a different viewBox from the first frame. Frames must be the same size.`);
     }
   }
+  const outputs = new Set(['index.html']);
+  for (const v of variations) if (v && typeof v.name === 'string') outputs.add(`${v.name}.gif`).add(`${v.name}.anim.svg`);
+  for (const file of svgs.keys()) if (outputs.has(file)) errors.push(`${file} is both a sketch you wrote and a file this script writes. Rename the sketch or the variation.`);
   return { folder, spec: { ...spec, options, variations }, svgs, errors, warnings, ok: errors.length === 0 };
 }
 
@@ -178,7 +226,8 @@ export function animatedSvg(frameTexts, viewBox, delayMs = 700) {
   const keyTimes = Array.from({ length: n }, (_, i) => (i / n).toFixed(4)).join(';');
   const layers = frameTexts.map((text, i) => {
     const values = Array.from({ length: n }, (_, j) => (j === i ? 'visible' : 'hidden')).join(';');
-    const inner = inlineSvg(text).replace(/^<svg\b[^>]*>/i, '').replace(/<\/svg>\s*$/i, '');
+    // Keep each frame's own <svg> root (its fill, stroke, font...), sized to fill the layer.
+    const inner = sizedSvg(inlineSvg(text), viewBox[2], viewBox[3]).replace(/^<svg\b/i, `<svg x="${viewBox[0]}" y="${viewBox[1]}"`);
     return `<g visibility="${i === 0 ? 'visible' : 'hidden'}"><animate attributeName="visibility" values="${values}" keyTimes="${keyTimes}" dur="${dur}s" calcMode="discrete" repeatCount="indefinite"/>${inner}</g>`;
   });
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox.join(' ')}" width="${viewBox[2]}" height="${viewBox[3]}">${layers.join('')}</svg>\n`;

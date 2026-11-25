@@ -108,6 +108,9 @@ export function lzwEncode(indices, minCodeSize) {
     prefix = k;
   }
   write(prefix, size);
+  // Reading that last code makes the decoder add one more entry, which can widen the codes,
+  // so the end code must be written at the width the decoder will expect.
+  if (next < MAX_CODE && next >= 1 << size && size < 12) size++;
   write(eoi, size);
   if (bits > 0) bytes.push(cur & 255);
   return bytes;
