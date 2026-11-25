@@ -48,8 +48,9 @@ const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const FILE_RE = /^[A-Za-z0-9._-]+\.svg$/;
 
 // Elements a sketch may use. Anything else (img, a, script, iframe, foreignObject...) is refused,
-// so the page that shows the sketches inline can never run code from one.
-const ALLOWED_TAGS = new Set(['svg', 'g', 'defs', 'title', 'desc', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text', 'tspan', 'pattern', 'clippath', 'mask', 'marker', 'symbol', 'use', 'lineargradient', 'radialgradient', 'stop', 'filter', 'fedropshadow', 'fegaussianblur', 'feoffset', 'style']);
+// so the page that shows the sketches inline can never run code from one. No <style> and no style=:
+// CSS has escapes (@\69mport, u\72l()) that a text check cannot see through, and sketches only need fill= and stroke=.
+const ALLOWED_TAGS = new Set(['svg', 'g', 'defs', 'title', 'desc', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text', 'tspan', 'pattern', 'clippath', 'mask', 'marker', 'symbol', 'use', 'lineargradient', 'radialgradient', 'stop', 'filter', 'fedropshadow', 'fegaussianblur', 'feoffset']);
 const ATTR_RE = /([^\s=/]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
 
 /** One well-formed <svg> root, only allowed elements, plain attributes, and only #local hrefs. */
@@ -84,6 +85,8 @@ export function structureProblems(text, label = 'sketch') {
     for (const a of m[3].matchAll(ATTR_RE)) {
       const name = a[1].toLowerCase();
       if (!/^[a-z_:][-a-z0-9_:.]*$/.test(name)) problems.push(`${label} has a strange attribute "${a[1].slice(0, 30)}" on <${m[2]}>.`);
+      else if (name === 'style') problems.push(`${label} has a style= attribute. Use fill=, stroke= and font-size= instead.`);
+      else if (/[\\&]/.test(a[2] ?? '')) problems.push(`${label} has an escape (\\ or &) in the ${a[1].slice(0, 30)} attribute. Write the value plainly.`);
       else if (name.startsWith('on')) problems.push(`${label} has an event handler (${a[1].slice(0, 30)}). Sketches are drawings only.`);
       else if (/(^|:)href$/.test(name) && !/^["']?\s*#/.test(a[2] ?? '')) problems.push(`${label} links to something outside the file (href). Only #local references are allowed.`);
     }

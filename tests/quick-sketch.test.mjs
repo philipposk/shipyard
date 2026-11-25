@@ -220,6 +220,11 @@ test('checkSvg: anything outside the one <svg> root, unknown elements and outsid
     GOOD('<text>x</text><set attributeName="fill" to="red"/>'),
     GOOD('<text>x</text><rect style="fill:url( https://x/y )"/>'),
     GOOD('<text>x</text><use xlink:href="https://x/y.svg#a"/>'),
+    GOOD('<text>x</text><style>@\\69mport "https://x/y.css";</style>'),
+    GOOD('<text>x</text><style>rect{fill:#ccc}</style>'),
+    GOOD('<text>x</text><rect fill="u\\72l(https://x/y)"/>'),
+    GOOD('<text>x</text><rect fill="u&#114;l(https://x/y)"/>'),
+    GOOD('<text>x</text><rect filter="url&#40;https://x/y)"/>'),
   ];
   for (const svg of tricks) assert.ok(qs.checkSvg(svg).errors.length > 0, svg);
   const fine = '<?xml version="1.0"?>\n<!-- a sketch -->\n' + GOOD('<defs><pattern id="h" width="4" height="4"><path d="M0 0L4 4" stroke="#ccc"/></pattern></defs><g><rect fill="url(#h)"/><use href="#h"/><text>x<tspan>y</tspan></text></g>');
@@ -362,6 +367,40 @@ test('the finished page for a valid sketch holds only page and drawing elements,
   }
   assert.ok(seen.has('svg') && seen.has('rect') && seen.has('figure'), 'the scan saw the drawings');
   for (const m of body.matchAll(/<img\b[^>]*\bsrc="([^"]*)"/g)) assert.match(m[1], /^[\w.-]+\.(gif|svg)$/, 'img points at a local output');
+});
+
+test('in a real browser, the page for sketches that pass the check runs no script and loads nothing from outside', async (t) => {
+  let browser;
+  try {
+    const { loadPlaywright, launchChromium } = await import('../scripts/design/capture/browser.mjs');
+    browser = await launchChromium(await loadPlaywright(process.env.QUICK_SKETCH_TOOLS || process.cwd()));
+  } catch {
+    t.skip('no Playwright browser here');
+    return;
+  }
+  try {
+    // Near misses that the check accepts: markup and links written as words, local paint servers and #refs.
+    const near = GOOD('<defs><pattern id="h" width="4" height="4"><path d="M0 0L4 4" stroke="#ccc"/></pattern></defs><rect fill="url(#h)" width="9" height="9"/><use href="#h"/><text>&lt;script&gt;alert(1)&lt;/script&gt; &lt;img src=x&gt; javascript:alert(1)</text>');
+    const dir = await folder('browser-page', { title: '<b>x</b>', options: [{ name: 'A <i>', file: 'a.svg', note: '"><svg onload=alert(1)>' }, { name: 'B', file: 'b.svg' }] }, { 'a.svg': near, 'b.svg': GOOD('<text>b</text>') });
+    assert.deepEqual(qs.checkSvg(near).errors, []);
+    const res = await qs.main({ _: ['board', dir] });
+    assert.equal(res.ok, true);
+    const page = await browser.newPage();
+    const outside = [];
+    let dialogs = 0;
+    page.on('request', (r) => { if (!r.url().startsWith('file:')) outside.push(r.url()); });
+    page.on('dialog', async (d) => { dialogs++; await d.dismiss(); });
+    await page.goto(`file://${path.join(dir, 'index.html')}`);
+    await page.waitForTimeout(200);
+    const found = await page.evaluate(() => ({
+      scripts: document.querySelectorAll('script, foreignObject, iframe, object, embed, a').length,
+      handlers: [...document.querySelectorAll('*')].flatMap((el) => [...el.attributes].filter((a) => /^on/i.test(a.name)).map((a) => a.name)),
+      styles: document.querySelectorAll('svg style').length,
+    }));
+    assert.deepEqual({ outside, dialogs, ...found }, { outside: [], dialogs: 0, scripts: 0, handlers: [], styles: 0 });
+  } finally {
+    await browser.close();
+  }
 });
 
 test('loadSketch refuses an output name that differs only in case (macOS and Windows)', async () => {
