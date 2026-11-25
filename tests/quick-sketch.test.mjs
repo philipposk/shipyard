@@ -333,6 +333,37 @@ test('main all: a sketch with markup after </svg> stops before any page is writt
   assert.ok(!(await readdir(dir)).includes('index.html'));
 });
 
+test('main board and gif: an unsafe sketch stops before any file is written, like check', async () => {
+  const bad = `${GOOD('<text>Safe</text>')}<img src="missing" /onerror="alert(1)">`;
+  for (const cmd of ['board', 'gif']) {
+    const dir = await folder(`xss-${cmd}`, { title: 'x', options: [{ name: 'A', file: 'a.svg' }, { name: 'B', file: 'b.svg' }] }, { 'a.svg': bad, 'b.svg': GOOD() });
+    const before = (await readdir(dir)).sort();
+    const res = await qs.main({ _: [cmd, dir] }, { browserOpener: async () => ({ browser: null, reason: 'none' }) });
+    assert.equal(res.ok, false, cmd);
+    assert.deepEqual((await readdir(dir)).sort(), before, cmd);
+  }
+});
+
+test('the finished page for a valid sketch holds only page and drawing elements, no handlers or scripts', async () => {
+  const dir = await folder('page-elements', SPEC, FILES);
+  const res = await qs.main({ _: ['all', dir] }, { browserOpener: async () => ({ browser: null, reason: 'none' }) });
+  assert.equal(res.ok, true);
+  const html = await readFile(path.join(dir, 'index.html'), 'utf8');
+  const PAGE = new Set(['!doctype', 'html', 'head', 'meta', 'title', 'style', 'body', 'main', 'header', 'h1', 'h2', 'p', 'section', 'div', 'figure', 'figcaption', 'strong', 'span', 'img']);
+  const DRAWING = new Set(['svg', 'g', 'defs', 'desc', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'path', 'text', 'tspan', 'pattern', 'clippath', 'mask', 'marker', 'symbol', 'use', 'lineargradient', 'radialgradient', 'stop', 'filter', 'fedropshadow', 'fegaussianblur', 'feoffset']);
+  const body = html.replace(/<style>[\s\S]*?<\/style>/g, '');
+  const seen = new Set();
+  for (const m of body.matchAll(/<\s*([!a-zA-Z][\w:-]*)([^>]*)>/g)) {
+    const tag = m[1].toLowerCase();
+    seen.add(tag);
+    assert.ok(PAGE.has(tag) || DRAWING.has(tag), `unexpected <${tag}>`);
+    assert.doesNotMatch(m[2], /(^|[\s/"'])on\w+\s*=/i, `handler on <${tag}>`);
+    assert.doesNotMatch(m[2], /javascript:/i, `script link on <${tag}>`);
+  }
+  assert.ok(seen.has('svg') && seen.has('rect') && seen.has('figure'), 'the scan saw the drawings');
+  for (const m of body.matchAll(/<img\b[^>]*\bsrc="([^"]*)"/g)) assert.match(m[1], /^[\w.-]+\.(gif|svg)$/, 'img points at a local output');
+});
+
 test('loadSketch refuses an output name that differs only in case (macOS and Windows)', async () => {
   const spec = { title: 'x', variations: [{ name: 'pulse', frames: ['Pulse.anim.svg', 't2.svg'] }] };
   const s = await qs.loadSketch(await folder('collide-case', spec, { 'Pulse.anim.svg': GOOD('<text>a</text>'), 't2.svg': GOOD('<text>b</text>') }));
