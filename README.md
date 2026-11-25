@@ -142,6 +142,7 @@ Free Supabase allows 2 active projects and pauses a project after a week of no u
 - `ai-visibility`: make a live app easy for AI assistants to understand and recommend. Audits llms.txt, llms-full.txt, JSON-LD, the description, the OG image and robots rules for AI crawlers (`scripts/ai-visibility.mjs audit`), fixes them on a branch, measures whether GPT, Gemini, Claude, Grok, Perplexity, DeepSeek, Qwen and Kimi name your app (`scripts/ai-visibility.mjs baseline`, uses your OpenRouter key), and drafts honest directory listings that you approve before anything is posted. Run `/shipyard:ai-visibility`.
 - A settings page: `/shipyard:setup settings`.
 - `idea`: had a thought about the plugin while building an app? `/shipyard:idea <your idea>` files it as a GitHub issue on this repository, labelled `idea`, with the app it came from and a sentence on what you were doing. It takes a few seconds and opens no pull request, so you stay on your work. See [Ideas for Shipyard](#ideas-for-shipyard).
+- `quick-sketch`: when there are two or more ways something could look or work, Claude draws a cheap SVG sketch of each, side by side with one recommended, so you pick by looking. Small changes (ticking a box, a new background colour) become a short looping GIF. Run `/shipyard:quick-sketch` or say "sketch the options".
 
 Optional extras for design (not installed for you): the free `frontend-design` plugin, and Impeccable for a polish pass on one page.
 
